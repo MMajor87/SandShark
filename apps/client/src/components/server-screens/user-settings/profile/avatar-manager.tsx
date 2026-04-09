@@ -33,10 +33,9 @@ const AvatarManager = memo(({ user }: TAvatarManagerProps) => {
     try {
       const [file] = await openFilePicker('image/*');
 
-      const [temporaryFile, errorMsg] = await uploadImage(file);
+      const temporaryFile = await uploadImage(file);
 
       if (!temporaryFile) {
-        toast.error(errorMsg);
         return;
       }
 

@@ -48,10 +48,9 @@ const WelcomeProfileSetupDialog = memo(
       try {
         const [file] = await openFilePicker('image/*');
 
-        const [temporaryFile, _] = await uploadImage(file);
+        const temporaryFile = await uploadImage(file);
 
         if (!temporaryFile) {
-          toast.error(t('welcomeUploadError'));
           return;
         }
 
@@ -77,10 +76,9 @@ const WelcomeProfileSetupDialog = memo(
       try {
         const [file] = await openFilePicker('image/*');
 
-        const [temporaryFile, _] = await uploadImage(file);
+        const temporaryFile = await uploadImage(file);
 
         if (!temporaryFile) {
-          toast.error(t('welcomeUploadError'));
           return;
         }
 

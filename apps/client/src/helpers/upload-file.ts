@@ -18,21 +18,18 @@ const getSafeFileName = (name: string) => {
  * @param file The image file to upload.
  * @returns A tuple containing the uploaded file information and an error message, if any.
  */
-const uploadImage = async (
-  file: File
-): Promise<[upload: TTempFile | undefined, errorMsg: string]> => {
-  if (!file) return [undefined, 'No file selected. Please try again.'];
+const uploadImage = async (file: File): Promise<TTempFile | undefined> => {
+  if (!file) {
+    toast.error('No file selected. Please try again.');
+    return undefined;
+  }
 
   if (!file.type.startsWith('image/')) {
-    return [undefined, 'Invalid file type. Please try Again.'];
+    toast.error('Invalid file type. Please try Again.');
+    return undefined;
   }
 
-  const tempFile = await uploadFile(file);
-  if (!tempFile) {
-    return [undefined, 'Upload failed. Please try again.'];
-  }
-
-  return [tempFile, ''];
+  return await uploadFile(file);
 };
 
 type TUploadProgress = {

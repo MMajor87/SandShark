@@ -13,11 +13,6 @@ const getSafeFileName = (name: string) => {
   );
 };
 
-/**
- * Uploads an image file to the server. Validates that the file is an image before uploading.
- * @param file The image file to upload.
- * @returns A TTempFile containing the uploaded file information, if successful.
- */
 const uploadImage = async (file: File): Promise<TTempFile | undefined> => {
   if (!file) {
     toast.error('No file selected. Please try again.');

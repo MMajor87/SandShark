@@ -1,4 +1,5 @@
 import { UploadHeaders, type TTempFile } from '@sharkord/shared';
+import i18next from 'i18next';
 import { toast } from 'sonner';
 import { getUrlFromServer } from './get-file-url';
 import { getSessionStorageItem, SessionStorageKey } from './storage';
@@ -14,17 +15,11 @@ const getSafeFileName = (name: string) => {
 };
 
 const uploadImage = async (file: File): Promise<TTempFile | undefined> => {
-  if (!file) {
-    toast.error('No file selected. Please try again.');
-    return undefined;
-  }
-
   if (!file.type.startsWith('image/')) {
-    toast.error('Invalid file type. Please try Again.');
-    return undefined;
+    throw new Error(i18next.t('onlyImageFilesAllowed', { ns: 'common' }));
   }
 
-  return await uploadFile(file);
+  return uploadFile(file);
 };
 
 type TUploadProgress = {
@@ -88,7 +83,7 @@ const uploadFile = async (file: File, options?: TUploadFileOptions) => {
     });
 
     xhr.addEventListener('error', () => {
-      toast.error('Upload failed');
+      toast.error(i18next.t('uploadFailed', { ns: 'common' }));
 
       resolve(undefined);
     });

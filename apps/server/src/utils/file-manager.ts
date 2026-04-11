@@ -76,8 +76,15 @@ class TemporaryFileManager {
     id: string,
     mimeTypePrefix: string
   ): boolean => {
-    const bunFile = Bun.file(this.getTemporaryFile(id)?.path || '');
-    return bunFile && bunFile.type.startsWith(mimeTypePrefix);
+    const temporaryFile = this.getTemporaryFile(id);
+
+    if (!temporaryFile) {
+      return false;
+    }
+
+    const bunFile = Bun.file(temporaryFile.path);
+
+    return bunFile.type.startsWith(mimeTypePrefix);
   };
 
   public addTemporaryFile = async ({

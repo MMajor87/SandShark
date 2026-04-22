@@ -55,12 +55,14 @@ type TMessageComposeProps = {
   inputDefaultMaxHeightVh?: number;
   replyTarget?: TReplyTarget;
   onCancelReply?: () => void;
+  onArrowUp?: () => void;
   onResize?: () => void;
   ref?: Ref<TMessageComposeHandle>;
 };
 
 type TMessageComposeHandle = {
   clearFiles: () => void;
+  focus: () => void;
 };
 
 const MessageCompose = memo(
@@ -77,6 +79,7 @@ const MessageCompose = memo(
     inputDefaultMaxHeightVh = DEFAULT_MAX_HEIGHT_VH,
     replyTarget,
     onCancelReply,
+    onArrowUp,
     onResize,
     ref
   }: TMessageComposeProps) => {
@@ -140,7 +143,11 @@ const MessageCompose = memo(
       inputDefaultMaxHeightVh
     });
 
-    useImperativeHandle(ref, () => ({ clearFiles }), [clearFiles]);
+    useImperativeHandle(
+      ref,
+      () => ({ clearFiles, focus: () => tiptapRef.current?.focus() }),
+      [clearFiles]
+    );
 
     const handleSend = useCallback(async () => {
       if (
@@ -287,6 +294,7 @@ const MessageCompose = memo(
               onChange={onMessageChange}
               onSubmit={handleSend}
               onTyping={onTyping}
+              onArrowUp={onArrowUp}
               disabled={uploading || !canSendMessages}
               readOnly={sending}
               commands={pluginCommands}

@@ -3,7 +3,6 @@ import { useStreamVolumeControl } from '@/components/voice-provider/hooks/use-st
 import { useCan } from '@/features/server/hooks';
 import type { TVoiceUser } from '@/features/server/types';
 import { useIsOwnUser } from '@/features/server/users/hooks';
-import { VOICE_USER_DND_MIME } from '@/features/server/voice/actions';
 import { useSpeakingState } from '@/features/server/voice/hooks';
 import { Permission } from '@sharkord/shared';
 import { cn } from '@sharkord/ui';
@@ -16,8 +15,9 @@ import {
   Video,
   VolumeX
 } from 'lucide-react';
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import { UserPopover } from '../user-popover';
+import { VOICE_USER_DND_MIME } from './helpers';
 import { StreamContextMenu } from './stream-context-menu';
 
 type TVoiceUserProps = {
@@ -34,17 +34,18 @@ const VoiceUser = memo(({ user, isOwnChannel = false }: TVoiceUserProps) => {
   const shouldShowMuteIndicator = isOwnChannel && !isOwnUser && isMuted;
   const canMove = !isOwnUser && can(Permission.MOVE_MEMBERS);
 
+  const handleDragStart = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.dataTransfer.setData(VOICE_USER_DND_MIME, String(user.id));
+      e.dataTransfer.effectAllowed = 'move';
+    },
+    [user.id]
+  );
+
   const userRow = (
     <div
       draggable={canMove}
-      onDragStart={
-        canMove
-          ? (e) => {
-              e.dataTransfer.setData(VOICE_USER_DND_MIME, String(user.id));
-              e.dataTransfer.effectAllowed = 'move';
-            }
-          : undefined
-      }
+      onDragStart={canMove ? handleDragStart : undefined}
       className={cn(
         'flex items-center gap-2 px-2 py-1 rounded hover:bg-accent/30 text-sm',
         canMove && 'cursor-grab active:cursor-grabbing'

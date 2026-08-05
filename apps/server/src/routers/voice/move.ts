@@ -66,6 +66,20 @@ const moveUserRoute = rateLimitedProcedure(protectedProcedure, {
       message: 'User is not in a voice channel'
     });
 
+    const originChannel = await db
+      .select({ isDm: channels.isDm })
+      .from(channels)
+      .where(eq(channels.id, currentRuntime.id))
+      .limit(1)
+      .get();
+
+    // dm calls are private to their participants, moderation does not reach into
+    // them. same message as above so this does not leak that the user is in a dm
+    invariant(!originChannel?.isDm, {
+      code: 'BAD_REQUEST',
+      message: 'User is not in a voice channel'
+    });
+
     invariant(currentRuntime.id !== input.channelId, {
       code: 'BAD_REQUEST',
       message: 'User is already in that channel'

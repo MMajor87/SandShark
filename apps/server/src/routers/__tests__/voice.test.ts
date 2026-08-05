@@ -1,30 +1,20 @@
-import { ChannelPermission, ChannelType, Permission } from '@sharkord/shared';
+import { ChannelPermission, Permission } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import { initTest } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
 import {
   channelRolePermissions,
-  channels,
   rolePermissions,
   roles
 } from '../../db/schema';
 import { VoiceRuntime } from '../../runtimes/voice';
 
-const createPrivateVoiceChannel = async () => {
-  const [privateChannel] = await tdb
-    .insert(channels)
-    .values({
-      type: ChannelType.VOICE,
-      name: 'Private Voice',
-      position: 99,
-      private: true,
-      createdAt: Date.now()
-    })
-    .returning();
+// seeded private voice channel, nobody has channel permissions on it
+const PRIVATE_VOICE_CHANNEL_ID = 4;
 
-  return privateChannel!;
-};
+// seeded dm channel between user 3 and user 4
+const DM_CHANNEL_ID = 3;
 
 describe('voice router', () => {
   test('should rate limit excessive voice join attempts', async () => {
@@ -96,10 +86,11 @@ describe('voice router', () => {
         })
         .execute();
 
-      const privateChannel = await createPrivateVoiceChannel();
-
       await expect(
-        caller.voice.moveUser({ userId: 4, channelId: privateChannel.id })
+        caller.voice.moveUser({
+          userId: 4,
+          channelId: PRIVATE_VOICE_CHANNEL_ID
+        })
       ).rejects.toThrow('Insufficient channel permissions');
     });
 
@@ -121,12 +112,10 @@ describe('voice router', () => {
         })
         .execute();
 
-      const privateChannel = await createPrivateVoiceChannel();
-
       await tdb
         .insert(channelRolePermissions)
         .values({
-          channelId: privateChannel.id,
+          channelId: PRIVATE_VOICE_CHANNEL_ID,
           roleId: defaultRole!.id,
           permission: ChannelPermission.JOIN,
           allow: true,
@@ -135,21 +124,26 @@ describe('voice router', () => {
         .execute();
 
       await expect(
-        caller.voice.moveUser({ userId: 4, channelId: privateChannel.id })
+        caller.voice.moveUser({
+          userId: 4,
+          channelId: PRIVATE_VOICE_CHANNEL_ID
+        })
       ).rejects.toThrow('Insufficient channel permissions');
     });
 
     test('should allow moving a user into a channel they cannot access themselves', async () => {
       const { caller } = await initTest(1);
 
-      const privateChannel = await createPrivateVoiceChannel();
       const originRuntime = new VoiceRuntime(2);
 
       originRuntime.addUser(4, { micMuted: false, soundMuted: false });
 
       try {
         await expect(
-          caller.voice.moveUser({ userId: 4, channelId: privateChannel.id })
+          caller.voice.moveUser({
+            userId: 4,
+            channelId: PRIVATE_VOICE_CHANNEL_ID
+          })
         ).resolves.toBeUndefined();
       } finally {
         await originRuntime.destroy();
@@ -160,16 +154,15 @@ describe('voice router', () => {
       const { caller: ownerCaller } = await initTest(1);
       const { caller: movedCaller } = await initTest(4);
 
-      const privateChannel = await createPrivateVoiceChannel();
       const originRuntime = new VoiceRuntime(2);
-      const destinationRuntime = new VoiceRuntime(privateChannel.id);
+      const destinationRuntime = new VoiceRuntime(PRIVATE_VOICE_CHANNEL_ID);
 
       await destinationRuntime.init();
 
       originRuntime.addUser(4, { micMuted: false, soundMuted: false });
 
       const joinInput = {
-        channelId: privateChannel.id,
+        channelId: PRIVATE_VOICE_CHANNEL_ID,
         state: { micMuted: false, soundMuted: false }
       };
 
@@ -180,7 +173,7 @@ describe('voice router', () => {
 
         await ownerCaller.voice.moveUser({
           userId: 4,
-          channelId: privateChannel.id
+          channelId: PRIVATE_VOICE_CHANNEL_ID
         });
 
         originRuntime.removeUser(4);
@@ -230,6 +223,22 @@ describe('voice router', () => {
       await expect(
         caller.voice.moveUser({ userId: 4, channelId: 2 })
       ).rejects.toThrow('User is not in a voice channel');
+    });
+
+    test('should reject when the target user is in a dm call', async () => {
+      const { caller } = await initTest(1);
+
+      const dmRuntime = new VoiceRuntime(DM_CHANNEL_ID);
+
+      dmRuntime.addUser(4, { micMuted: false, soundMuted: false });
+
+      try {
+        await expect(
+          caller.voice.moveUser({ userId: 4, channelId: 2 })
+        ).rejects.toThrow('User is not in a voice channel');
+      } finally {
+        await dmRuntime.destroy();
+      }
     });
   });
 });

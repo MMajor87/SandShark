@@ -203,6 +203,11 @@ How server tests work:
   user used for permission checks). HTTP routes are tested against a real server on
   `testsBaseUrl`.
 - Seed data is in `src/__tests__/seed.ts` — extend it rather than creating ad-hoc fixtures.
+  A `createX()` helper at the top of a test file that inserts a row is an ad-hoc fixture:
+  put the row in `seed.ts` instead, document it in the summary comment at the top of that
+  file, and reference it from the test by its seeded id. Append new rows **after** the
+  existing ones so the ids already asserted on elsewhere do not shift, and check
+  `setup.test.ts` (it asserts the seeded row counts) when you add one.
 
 ### Route test coverage (mandatory)
 
@@ -239,9 +244,28 @@ reason — extend `seed.ts` or `helpers.ts` instead.
 - Generic, styleable, logic-free components belong in `packages/ui`, not here.
 - Same naming rules as the backend: kebab-case files, named exports, `T`-prefixed types,
   no `any`. Import with the `@/` alias.
-- User-facing strings go through i18n (`src/i18n`), never hardcoded.
-- Agressive memo everywhere: `React.memo`, `useMemo`, `useCallback`.
+- User-facing strings go through i18n (`src/i18n`), never hardcoded. That includes toast
+  messages in `catch` blocks: `toast.error(getTrpcError(error, t('failedX')))`.
+- Agressive memo everywhere: `React.memo`, `useMemo`, `useCallback`. Never define an event
+  handler inline in JSX (`onDrop={(e) => ...}`, `onClick={() => setX(false)}`) — a new
+  function identity on every render defeats the `React.memo` on the child receiving it.
+  Extract it to a named `useCallback` above the return.
 - Components should be small and focused; if a component is >200 lines, break it up. If a screen is >400 lines, break it up.
+
+Server calls go inline where they are used, wrapped in `try`/`catch` with a toast, the way
+`handleDragEnd` in `left-sidebar/channels.tsx` does it. Do not add a function to
+`actions.ts` that only wraps a single `getTRPCClient()` mutation — that indirection buys
+nothing and hides the call site. `actions.ts` is for dispatching to the store and for logic
+that several components share.
+
+Derived state is a selector, never an inline comparison inside an action or component.
+Before writing one, **search `selectors.ts` for it** — comparisons like "is the selected
+channel the one we are connected to" usually already exist
+(`isCurrentVoiceChannelSelectedSelector`). Reuse it instead of re-deriving it from two
+other selectors at the call site.
+
+Name a hook after the thing it owns, not the event it reacts to:
+`useVoiceMoveSubscription`, not `useReceiveVoiceMove`.
 
 `bun run magic` applies here too.
 
@@ -253,7 +277,7 @@ Never use dashes (—) when writing code, comments, UI strings, or commit messag
 
 ## After the feature/fix is done
 
-## Translations
+### Translations
 
 If you add new user-facing strings, you need to make sure you add them to ALL supported languages. To do this, navigate to the scripts package and run the following command:
 
@@ -263,10 +287,18 @@ bun run synci18n
 
 This command will output a list of missing translations, including the language, key and file. You will need to add the missing translations to the appropriate files in `apps/client/src/i18n/locales/`. Make sure the translations are accurate and contextually appropriate for the application. Only fix translations that have been touched by your changes.
 
-## Tests
+### Tests
 
 Make sure all tests pass and that you have added tests for any new functionality. Run the following command to run all tests:
 
 ```bash
 bun run test
 ```
+
+
+## Extra notes
+
+Always start comments with lowercase
+NEVER comment in the middle of a react component's JSX
+NEVER comment in a type definition
+Do not make useless comments like "this is a function that does X" or "this is a type definition for Y". Comments are useful for edge cases, explaining why something is done a certain way, or providing context that isn't obvious from the code itself.

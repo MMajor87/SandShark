@@ -126,7 +126,7 @@ const useSelectChannel = () => {
   return selectChannel;
 };
 
-const useReceiveVoiceMove = () => {
+const useVoiceMoveSubscription = () => {
   const selectChannel = useSelectChannel();
   const currentVoiceChannelId = useCurrentVoiceChannelId();
   const selectChannelRef = useRef(selectChannel);
@@ -151,4 +151,4 @@ const useReceiveVoiceMove = () => {
   }, []);
 };
 
-export { useCategoryExpanded, useReceiveVoiceMove, useSelectChannel };
+export { useCategoryExpanded, useSelectChannel, useVoiceMoveSubscription };

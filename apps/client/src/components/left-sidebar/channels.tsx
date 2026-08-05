@@ -14,10 +14,6 @@ import {
   useUnreadMessagesCount,
   useVoiceUsersByChannelId
 } from '@/features/server/hooks';
-import {
-  VOICE_USER_DND_MIME,
-  moveUserToVoiceChannel
-} from '@/features/server/voice/actions';
 import { useVoiceChannelExternalStreamsList } from '@/features/server/voice/hooks';
 import { getTRPCClient } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
@@ -49,6 +45,7 @@ import { toast } from 'sonner';
 import { ChannelContextMenu } from '../context-menus/channel';
 import { UnreadCount } from '../unread-count';
 import { ExternalStream } from './external-stream';
+import { VOICE_USER_DND_MIME } from './helpers';
 import { useSelectChannel } from './hooks';
 import { VoiceUser } from './voice-user';
 import { Waveform } from './waveform';
@@ -63,6 +60,7 @@ const Voice = memo(
     isSelected,
     ...props
   }: TVoiceProps & { isSelected: boolean }) => {
+    const { t } = useTranslation('sidebar');
     const users = useVoiceUsersByChannelId(channel.id);
     const externalStreams = useVoiceChannelExternalStreamsList(channel.id);
     const unreadCount = useUnreadMessagesCount(channel.id);
@@ -75,30 +73,41 @@ const Voice = memo(
     const isVoiceActive = users.length > 0 || externalStreams.length > 0;
     const isOwnChannel = currentVoiceChannelId === channel.id;
 
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
       if (!e.dataTransfer.types.includes(VOICE_USER_DND_MIME)) return;
 
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
 
-      if (!isDragOver) setIsDragOver(true);
-    };
+      setIsDragOver(true);
+    }, []);
 
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-      setIsDragOver(false);
+    const handleDragLeave = useCallback(() => setIsDragOver(false), []);
 
-      const raw = e.dataTransfer.getData(VOICE_USER_DND_MIME);
+    const handleDrop = useCallback(
+      async (e: React.DragEvent<HTMLDivElement>) => {
+        setIsDragOver(false);
 
-      if (!raw) return;
+        const raw = e.dataTransfer.getData(VOICE_USER_DND_MIME);
 
-      e.preventDefault();
+        if (!raw) return;
 
-      const userId = Number(raw);
+        e.preventDefault();
 
-      if (!userId || users.some((user) => user.id === userId)) return;
+        const userId = Number(raw);
 
-      moveUserToVoiceChannel(userId, channel.id);
-    };
+        if (!userId || users.some((user) => user.id === userId)) return;
+
+        try {
+          const trpc = getTRPCClient();
+
+          await trpc.voice.moveUser.mutate({ userId, channelId: channel.id });
+        } catch (error) {
+          toast.error(getTrpcError(error, t('failedMoveUser')));
+        }
+      },
+      [channel.id, users, t]
+    );
 
     return (
       <>
@@ -106,7 +115,7 @@ const Voice = memo(
           {...props}
           isSelected={isSelected}
           onDragOver={handleDragOver}
-          onDragLeave={() => setIsDragOver(false)}
+          onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={cn(props.className, {
             'text-blue-500':

@@ -6,8 +6,8 @@ import { serverSliceActions } from '../slice';
 import {
   channelByIdSelector,
   channelReadStateByIdSelector,
-  currentVoiceChannelIdSelector,
   isChannelTextVisibleByIdSelector,
+  isCurrentVoiceChannelSelectedSelector,
   selectedChannelIdSelector
 } from './selectors';
 
@@ -69,7 +69,8 @@ export const setChannelPermissions = (
 
   if (!channel?.private) return;
 
-  if (selectedChannel === currentVoiceChannelIdSelector(state)) return;
+  // the user is connected to it, so it stays visible until they disconnect
+  if (isCurrentVoiceChannelSelectedSelector(state)) return;
 
   // user is in a channel that is private, so we need to check if their permissions changed
   const canViewChannel =

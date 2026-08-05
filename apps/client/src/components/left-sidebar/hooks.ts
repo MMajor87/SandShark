@@ -4,15 +4,10 @@ import {
   useChannelsMap,
   useCurrentVoiceChannelId
 } from '@/features/server/channels/hooks';
-import { channelByIdSelector } from '@/features/server/channels/selectors';
-import { joinVoice } from '@/features/server/voice/actions';
-import { useVoice } from '@/features/server/voice/hooks';
-import { store } from '@/features/store';
 import { getLocalStorageItemAsJSON, LocalStorageKey } from '@/helpers/storage';
+import { useSelectChannel } from '@/hooks/use-select-channel';
 import { getTRPCClient } from '@/lib/trpc';
-import { ChannelType } from '@sharkord/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
 
 const loadExpandedValue = (categoryId: number): boolean => {
   const expandedMap = getLocalStorageItemAsJSON<Record<number, boolean>>(
@@ -59,52 +54,9 @@ const useCategoryExpanded = (categoryId: number) => {
   );
 };
 
-const useSelectChannel = () => {
-  const { init } = useVoice();
-  const currentVoiceChannelId = useCurrentVoiceChannelId();
+const useRestoreLastSelectedChannel = () => {
   const autoJoinLastChannel = useAutoJoinLastChannel();
   const channelsMap = useChannelsMap();
-
-  const selectChannel = useCallback(
-    async (channelId: number) => {
-      const channel = channelByIdSelector(store.getState(), channelId);
-
-      if (!channel) return;
-
-      setSelectedChannelId(channel.id);
-
-      if (channel.type !== ChannelType.VOICE) {
-        // persist selected channel for non-voice channels
-        localStorage.setItem(
-          LocalStorageKey.LAST_SELECTED_CHANNEL,
-          channel.id.toString()
-        );
-      }
-
-      if (
-        channel?.type === ChannelType.VOICE &&
-        currentVoiceChannelId !== channel.id
-      ) {
-        const response = await joinVoice(channel.id);
-
-        if (!response) {
-          // joining voice failed
-          setSelectedChannelId(undefined);
-          toast.error('Failed to join voice channel');
-
-          return;
-        }
-
-        try {
-          await init(response, channel.id);
-        } catch {
-          setSelectedChannelId(undefined);
-          toast.error('Failed to initialize voice connection');
-        }
-      }
-    },
-    [currentVoiceChannelId, init]
-  );
 
   useEffect(() => {
     if (!autoJoinLastChannel) return;
@@ -122,8 +74,6 @@ const useSelectChannel = () => {
       }
     }
   }, [channelsMap, autoJoinLastChannel]);
-
-  return selectChannel;
 };
 
 const useVoiceMoveSubscription = () => {
@@ -151,4 +101,8 @@ const useVoiceMoveSubscription = () => {
   }, []);
 };
 
-export { useCategoryExpanded, useSelectChannel, useVoiceMoveSubscription };
+export {
+  useCategoryExpanded,
+  useRestoreLastSelectedChannel,
+  useVoiceMoveSubscription
+};

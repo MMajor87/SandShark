@@ -1,6 +1,6 @@
+import { ChannelChip } from '@/components/channel-chip';
 import { parseDomCommand } from '@sharkord/shared';
 import { Element, type DOMNode } from 'html-react-parser';
-import { ChannelReferenceOverride } from '../overrides/channel-reference';
 import { CommandOverride } from '../overrides/command';
 import { MentionOverride } from '../overrides/mention';
 import { YoutubeOverride } from '../overrides/youtube';
@@ -44,7 +44,7 @@ const serializer = (domNode: DOMNode, messageId: number) => {
       const channelId = parseInt(domNode.attribs['data-channel-id'], 10);
 
       if (!Number.isNaN(channelId)) {
-        return <ChannelReferenceOverride channelId={channelId} />;
+        return <ChannelChip channelId={channelId} />;
       }
     }
   } catch (error) {

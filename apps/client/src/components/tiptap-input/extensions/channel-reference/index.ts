@@ -45,7 +45,7 @@ export const ChannelReference = Extension.create<TChannelReferenceOptions>({
             .insertContent([
               {
                 type: 'channelReference',
-                attrs: { channelId: props.id, label: props.name }
+                attrs: { channelId: props.id }
               },
               { type: 'text', text: ' ' }
             ])

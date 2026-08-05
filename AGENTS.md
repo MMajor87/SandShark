@@ -267,6 +267,48 @@ other selectors at the call site.
 Name a hook after the thing it owns, not the event it reacts to:
 `useVoiceMoveSubscription`, not `useReceiveVoiceMove`.
 
+### Selectors and caching
+
+Every selector runs on every dispatch, for every subscribed component. A selector that
+builds a new array or object on each call hands `useSelector` a new reference every time
+and re-renders its component on **unrelated** state changes. Pick the right tool:
+
+- **Plain function** for a direct state read: `(state: IRootState) => state.server.x`.
+  Nothing is derived, so there is nothing to memoize. `selectedChannelIdSelector`.
+- **`createSelector`** (`@reduxjs/toolkit`) the moment you `filter`, `map`, `sort`,
+  `reduce`, or build an object/array. `directMessagesUnreadCountSelector`.
+- **`createCachedSelector`** (`re-reselect`) for any selector that takes a parameter, keyed
+  by that parameter: `createCachedSelector([inputs, (_, id) => id], fn)((_, id) => id)`.
+  `createSelector` has a cache of one, so two components asking for different ids in the
+  same render evict each other and recompute forever. `channelByIdSelector`,
+  `userByIdSelector`.
+
+Rules that follow from that:
+
+- **Never wrap a parameterized selector in a plain `createSelector`.** The outer selector
+  inherits the cache of one and thrashes exactly the same way, which is invisible when the
+  result is a primitive and a re-render loop when it is an array (`userStatusSelector` and
+  `userRolesSelector` are the existing offenders, don't copy them). Use
+  `createCachedSelector` with the same key.
+- **Return a stable empty value.** A `?? {}` or `?? []` fallback allocates on every call.
+  Use the module-level `DEFAULT_OBJECT` / `DEFAULT_ARRAY` constant the domain already
+  declares.
+- **Compose selectors, don't re-derive.** Pass existing selectors as inputs rather than
+  reaching into `state` again inside the result function, so the memoization actually has
+  something to compare.
+- **A selector that must stay uncached** (because it reads several slices imperatively)
+  belongs in actions only, and says so in a comment above it, the way
+  `isChannelTextVisibleByIdSelector` does.
+- **Cross-domain selectors live in `features/server/selectors.ts`**, not in a domain's
+  `selectors.ts`. A domain file importing from `features/server/selectors.ts` is a circular
+  import, since that file already imports the domains. If your selector needs channels
+  *and* permissions *and* the own user, it goes in the shared file, with its hook in
+  `features/server/hooks.ts` (`referenceableChannelsSelector`,
+  `visibleChannelsInCategorySelector`).
+- Domain rules used by more than one selector go in `features/server/helpers.ts`
+  (`canViewChannel`), never re-implemented inline. Re-implementing one is how the owner
+  branch gets dropped.
+
 `bun run magic` applies here too.
 
 ## Before writing new code

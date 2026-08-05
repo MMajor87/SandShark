@@ -9,10 +9,7 @@ import { memo } from 'react';
 
 const ChannelReferenceNodeView = memo(({ node }: NodeViewProps) => (
   <NodeViewWrapper as="span" className="channel-reference-inline">
-    <ChannelChip
-      channelId={Number(node.attrs.channelId)}
-      label={node.attrs.label}
-    />
+    <ChannelChip channelId={Number(node.attrs.channelId)} />
   </NodeViewWrapper>
 ));
 
@@ -35,12 +32,6 @@ export const ChannelReferenceNode = Node.create({
           attrs.channelId != null
             ? { 'data-channel-id': String(attrs.channelId) }
             : {}
-      },
-      label: {
-        default: '',
-        parseHTML: (el) =>
-          (el as HTMLElement).textContent?.replace(/^#/, '') ?? '',
-        renderHTML: () => ({})
       }
     };
   },
@@ -50,10 +41,11 @@ export const ChannelReferenceNode = Node.create({
       {
         tag: 'span[data-type="channel-reference"]',
         getAttrs: (dom) => {
-          const el = dom as HTMLElement;
-          const channelId = el.getAttribute('data-channel-id')?.trim();
-          const label = el.textContent?.replace(/^#/, '') ?? '';
-          return channelId ? { channelId, label } : false;
+          const channelId = (dom as HTMLElement)
+            .getAttribute('data-channel-id')
+            ?.trim();
+
+          return channelId ? { channelId } : false;
         }
       }
     ];
@@ -66,8 +58,7 @@ export const ChannelReferenceNode = Node.create({
         'data-type': 'channel-reference',
         'data-channel-id': String(node.attrs.channelId),
         class: 'channel-reference'
-      },
-      `#${node.attrs.label ?? ''}`
+      }
     ];
   }
 });

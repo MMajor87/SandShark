@@ -70,6 +70,28 @@ Conventions:
 
 Run `bun run magic` (lint:fix + format + check-types) before finishing; CI enforces it.
 
+### Don't repeat, and put code where it belongs
+
+Before you write anything, search for it. Most of what a new route needs already exists.
+
+- **Search first.** Grep `helpers/`, `utils/`, `db/queries/`, `db/mutations/` and
+  `packages/shared` for the behaviour you are about to write. Reuse it, or extend it.
+- **Two copies is the limit.** Writing the same logic a third time means it becomes a
+  helper. Writing it a second time is acceptable if the two cases are genuinely unrelated.
+- **Never copy-paste a route or a query and edit it.** The copy drifts from the original
+  and one of the two ends up wrong. Extract what they share instead.
+- **Place code by layer, not by convenience:** db access in `db/queries` / `db/mutations`,
+  domain rules in `helpers/`, infrastructure in `utils/`, orchestration only in the route.
+  A route that contains a raw multi-table query, or a `utils/` file that knows about
+  permissions, is in the wrong place.
+- **Shared means shared.** Anything both client and server rely on — constants, enums,
+  types, regexes, validation rules — lives in `packages/shared`, declared once. Anything
+  only one side uses does not belong there.
+- One responsibility per file. If you have to use "and" to describe a file, split it.
+
+Don't invert this into over-abstraction: no helper for a single call site, and no merging
+of two blocks that only look similar. A little duplication beats the wrong abstraction.
+
 ### Security check order (every route, no exceptions)
 
 Checks go in this order, cheapest and broadest first. Never mutate anything before all of

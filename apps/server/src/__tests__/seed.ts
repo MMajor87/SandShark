@@ -192,7 +192,6 @@ const seedTestDb = async (db: BunSQLiteDatabase) => {
     avatarId: null,
     bannerId: null,
     bio: null,
-    bannerColor: null,
     createdAt: firstStart
   };
 
@@ -211,7 +210,6 @@ const seedTestDb = async (db: BunSQLiteDatabase) => {
     avatarId: null,
     bannerId: null,
     bio: null,
-    bannerColor: null,
     createdAt: firstStart
   };
 
@@ -241,7 +239,6 @@ const seedTestDb = async (db: BunSQLiteDatabase) => {
     avatarId: null,
     bannerId: null,
     bio: null,
-    bannerColor: null,
     createdAt: firstStart
   };
 
@@ -252,7 +249,6 @@ const seedTestDb = async (db: BunSQLiteDatabase) => {
     avatarId: null,
     bannerId: null,
     bio: null,
-    bannerColor: null,
     createdAt: firstStart
   };
 

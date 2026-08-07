@@ -5,11 +5,15 @@ import z from 'zod';
 import { config } from '../config';
 import { getWsInfo } from '../helpers/get-ws-info';
 import { logger } from '../logger';
+import { pluginManager } from '../plugins';
 import { healthRouteHandler } from './healthz';
 import {
   getRequestPathname,
   hasPrefixPathSegment,
-  type HttpRouteHandler
+  isSupportedHttpMethod,
+  supportedHttpMethods,
+  type HttpRouteHandler,
+  type TSupportedHttpMethod
 } from './helpers';
 import { infoRouteHandler } from './info';
 import { interfaceRouteHandler } from './interface';
@@ -25,11 +29,34 @@ type RouteContext = {
   info: ReturnType<typeof getWsInfo>;
 };
 
-type SupportedMethod = 'GET' | 'POST';
+// plugin routes are registered with decoded paths, so decode per segment to keep
+// an encoded '/' inside a segment from splitting into two
+const getPluginRoute = (pathname: string) => {
+  if (!hasPrefixPathSegment(pathname, '/plugins')) {
+    return undefined;
+  }
+
+  const [, , pluginId, ...routePathSegments] = pathname.split('/');
+
+  if (!pluginId) {
+    return undefined;
+  }
+
+  try {
+    return {
+      pluginId: decodeURIComponent(pluginId),
+      routePath: `/${routePathSegments
+        .map((segment) => decodeURIComponent(segment))
+        .join('/')}`
+    };
+  } catch {
+    return undefined;
+  }
+};
 
 const routeHandlers: Partial<
   Record<
-    SupportedMethod,
+    TSupportedHttpMethod,
     {
       exact: Record<string, HttpRouteHandler<RouteContext>>;
       prefix: Record<string, HttpRouteHandler<RouteContext>>;
@@ -65,7 +92,10 @@ const createHttpServer = async (port: number = config.server.port) => {
     const server = http.createServer(
       async (req: http.IncomingMessage, res: http.ServerResponse) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader(
+          'Access-Control-Allow-Methods',
+          supportedHttpMethods.join(', ')
+        );
         res.setHeader('Access-Control-Allow-Headers', '*');
 
         const info = getWsInfo(undefined, req);
@@ -73,12 +103,6 @@ const createHttpServer = async (port: number = config.server.port) => {
         logger.debug(
           `${chalk.dim('[HTTP]')} ${req.method} ${req.url} - ${info?.ip}`
         );
-
-        if (req.method === 'OPTIONS') {
-          res.writeHead(204);
-          res.end();
-          return;
-        }
 
         const pathname = getRequestPathname(req);
 
@@ -89,7 +113,10 @@ const createHttpServer = async (port: number = config.server.port) => {
         }
 
         try {
-          const method = req.method as SupportedMethod | undefined;
+          const method =
+            req.method && isSupportedHttpMethod(req.method)
+              ? req.method
+              : undefined;
 
           if (method) {
             const methodHandlers = routeHandlers[method];
@@ -109,6 +136,34 @@ const createHttpServer = async (port: number = config.server.port) => {
                 }
               }
             }
+
+            const pluginRoute = getPluginRoute(pathname);
+
+            if (pluginRoute) {
+              const pluginRouteHandler = pluginManager.getHttpRouteHandler(
+                pluginRoute.pluginId,
+                method,
+                pluginRoute.routePath
+              );
+
+              if (pluginRouteHandler) {
+                return await pluginRouteHandler(req, res);
+              }
+
+              if (method !== 'OPTIONS') {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Not found' }));
+
+                return;
+              }
+            }
+          }
+
+          if (method === 'OPTIONS') {
+            res.writeHead(204);
+            res.end();
+
+            return;
           }
 
           // fallback to interface route handler for GET requests
@@ -116,6 +171,18 @@ const createHttpServer = async (port: number = config.server.port) => {
             return await interfaceRouteHandler(req, res);
           }
         } catch (error) {
+          // a handler that already started writing cannot be turned into an error
+          // response, so drop the connection instead of throwing on writeHead
+          if (res.headersSent) {
+            logger.error(
+              'HTTP route error after the response started: %s',
+              getErrorMessage(error)
+            );
+
+            res.destroy();
+            return;
+          }
+
           const errorsMap: Record<string, string> = {};
 
           if (error instanceof z.ZodError) {

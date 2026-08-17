@@ -1,0 +1,7 @@
+{
+  "name": "sandshark",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Private Windows desktop client project for Sharkord.",
+  "license": "UNLICENSED"
+}

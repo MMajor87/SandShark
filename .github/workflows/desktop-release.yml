@@ -15,8 +15,13 @@ permissions:
   contents: write
 
 jobs:
+  repository-ci:
+    name: Full repository checks
+    uses: ./.github/workflows/ci.yml
+
   release-windows:
-    name: Build signed Windows release
+    name: Validate and build signed Windows release
+    needs: repository-ci
     runs-on: windows-latest
     env:
       WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
@@ -25,7 +30,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -35,19 +40,41 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build and sign Windows installer
-        working-directory: apps/desktop
-        run: bun run package
-
-      - name: Read desktop version
+      - name: Validate SandShark tag and package versions
         id: version
         shell: pwsh
         run: |
-          $version = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
-          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          $tag = '${{ inputs.tag || github.ref_name }}'
+          $clientVersion = (Get-Content apps/client/package.json -Raw | ConvertFrom-Json).version
+          $desktopVersion = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
+
+          if ($clientVersion -ne $desktopVersion) {
+            throw "SandShark client version '$clientVersion' does not match desktop version '$desktopVersion'."
+          }
+
+          $expectedTag = "sandshark-v$desktopVersion"
+          if ($tag -ne $expectedTag) {
+            throw "SandShark release tag '$tag' does not match package version '$desktopVersion'. Expected '$expectedTag'."
+          }
+
+          "version=$desktopVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Require code-signing certificate
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WIN_CSC_LINK) -or [string]::IsNullOrWhiteSpace($env:WIN_CSC_KEY_PASSWORD)) {
+            throw "SandShark Windows releases require WIN_CSC_LINK and WIN_CSC_KEY_PASSWORD secrets."
+          }
+
+      - name: Build signed Windows installer
+        working-directory: apps/desktop
+        run: bun run package
+
+      - name: Smoke launch unpacked app
+        working-directory: apps/desktop
+        run: bun run test:packaged-startup
 
       - name: Verify installer signature
-        if: ${{ env.WIN_CSC_LINK != '' }}
         working-directory: apps/desktop
         run: bun run verify:signature -- -Path release\SandShark-${{ steps.version.outputs.version }}-Setup-x64.exe
 

@@ -15,7 +15,8 @@
     "build:renderer": "bun run --cwd ../client build",
     "package": "bun run build && electron-builder --config electron-builder.yml --publish never",
     "dist": "bun run package",
-    "verify:signature": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -ExecutionPolicy Bypass -File scripts/verify-code-signature.ps1",
+    "verify:signature": "powershell.exe -ExecutionPolicy Bypass -File scripts/verify-code-signature.ps1",
+    "test:packaged-startup": "powershell.exe -ExecutionPolicy Bypass -File scripts/test-packaged-startup.ps1",
     "check-types": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {

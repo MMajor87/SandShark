@@ -103,8 +103,7 @@ const cleanup = ({ clearPersistedSession = !isNavigatingAway } = {}) => {
   // cleanup can be called due to various reasons (manual disconnect, connection error, auto-login failure, etc).
   // so we remove any persisted auto-login token to prevent auto-login loops.
   // skip this when navigating away (refresh/close) - Firefox fires onClose during refresh, Chrome does not
-  if (clearPersistedSession)
-    clearCurrentServerAutoLogin();
+  if (clearPersistedSession) clearCurrentServerAutoLogin();
 
   resetServerScreens();
   resetServerState();

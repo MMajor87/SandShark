@@ -276,7 +276,10 @@ const getPushToTalkKey = (event: KeyboardEvent): TPushToTalkKey | undefined => {
     ? digitKeyCodes[event.code.slice(5)]
     : undefined;
   const keyCode =
-    alphabetCode ?? digitCode ?? numpadKeyCodes[event.code] ?? keyCodes[event.code];
+    alphabetCode ??
+    digitCode ??
+    numpadKeyCodes[event.code] ??
+    keyCodes[event.code];
 
   if (!keyCode) return undefined;
 

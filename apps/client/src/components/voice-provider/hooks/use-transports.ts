@@ -71,159 +71,165 @@ const useTransports = ({
   const consumerCodecs = useRef<Map<string, string>>(new Map());
   const consumeOperationsInProgress = useRef<Set<string>>(new Set());
 
-  const createProducerTransport = useCallback(async (device: Device) => {
-    logVoice('Creating producer transport', { device });
+  const createProducerTransport = useCallback(
+    async (device: Device) => {
+      logVoice('Creating producer transport', { device });
 
-    const trpc = getTRPCClient();
+      const trpc = getTRPCClient();
 
-    try {
-      const params = await trpc.voice.createProducerTransport.mutate();
+      try {
+        const params = await trpc.voice.createProducerTransport.mutate();
 
-      logVoice('Got producer transport parameters', { params });
+        logVoice('Got producer transport parameters', { params });
 
-      producerTransport.current = device.createSendTransport(params);
+        producerTransport.current = device.createSendTransport(params);
 
-      producerTransport.current.on(
-        'connect',
-        async ({ dtlsParameters }, callback, errback) => {
-          logVoice('Producer transport connected', { dtlsParameters });
+        producerTransport.current.on(
+          'connect',
+          async ({ dtlsParameters }, callback, errback) => {
+            logVoice('Producer transport connected', { dtlsParameters });
 
-          try {
-            await trpc.voice.connectProducerTransport.mutate({
-              dtlsParameters
-            });
+            try {
+              await trpc.voice.connectProducerTransport.mutate({
+                dtlsParameters
+              });
 
-            callback();
-          } catch (error) {
-            errback(error as Error);
-            logVoice('Error connecting producer transport', { error });
-          }
-        }
-      );
-
-      producerTransport.current.on('connectionstatechange', (state) => {
-        logVoice('Producer transport connection state changed', { state });
-
-        if (state === 'failed') {
-          logVoice(`Producer transport ${state}`);
-          producerTransport.current?.close();
-          onTransportFailed();
-        } else if (state === 'closed') {
-          logVoice('Producer transport closed');
-          producerTransport.current = undefined;
-        }
-      });
-
-      producerTransport.current.on('icecandidateerror', (error) => {
-        logVoice('Producer transport ICE candidate error', { error });
-      });
-
-      producerTransport.current.on(
-        'produce',
-        async ({ rtpParameters, appData }, callback, errback) => {
-          logVoice('Producing new track', { rtpParameters, appData });
-
-          const { kind, qualityLayers } = appData as {
-            kind: StreamKind;
-            qualityLayers?: TStreamQualityLayer[];
-          };
-
-          if (!producerTransport.current) return;
-
-          try {
-            const producerId = await trpc.voice.produce.mutate({
-              transportId: producerTransport.current.id,
-              kind,
-              rtpParameters,
-              qualityLayers
-            });
-
-            callback({ id: producerId });
-          } catch (error) {
-            if (error instanceof TRPCClientError) {
-              if (error.data.code === 'FORBIDDEN') {
-                logVoice('Permission denied to produce track', { kind });
-                errback(
-                  new Error(
-                    `You don't have permission to ${kind} in this channel`
-                  )
-                );
-
-                return;
-              }
+              callback();
+            } catch (error) {
+              errback(error as Error);
+              logVoice('Error connecting producer transport', { error });
             }
-
-            logVoice('Error producing new track', { error });
-            errback(error as Error);
           }
-        }
-      );
-    } catch (error) {
-      logVoice('Error creating producer transport', { error });
-      throw error;
-    }
-  }, [onTransportFailed]);
+        );
 
-  const createConsumerTransport = useCallback(async (device: Device) => {
-    logVoice('Creating consumer transport', { device });
+        producerTransport.current.on('connectionstatechange', (state) => {
+          logVoice('Producer transport connection state changed', { state });
 
-    const trpc = getTRPCClient();
-
-    try {
-      const params = await trpc.voice.createConsumerTransport.mutate();
-
-      logVoice('Got consumer transport parameters', { params });
-
-      consumerTransport.current = device.createRecvTransport(params);
-
-      consumerTransport.current.on(
-        'connect',
-        async ({ dtlsParameters }, callback, errback) => {
-          logVoice('Consumer transport connected', { dtlsParameters });
-
-          try {
-            await trpc.voice.connectConsumerTransport.mutate({
-              dtlsParameters
-            });
-
-            callback();
-          } catch (error) {
-            errback(error as Error);
-            logVoice('Consumer transport connect error', { error });
+          if (state === 'failed') {
+            logVoice(`Producer transport ${state}`);
+            producerTransport.current?.close();
+            onTransportFailed();
+          } else if (state === 'closed') {
+            logVoice('Producer transport closed');
+            producerTransport.current = undefined;
           }
-        }
-      );
+        });
 
-      consumerTransport.current.on('connectionstatechange', (state) => {
-        logVoice('Consumer transport connection state changed', { state });
+        producerTransport.current.on('icecandidateerror', (error) => {
+          logVoice('Producer transport ICE candidate error', { error });
+        });
 
-        if (state === 'failed') {
-          logVoice(`Consumer transport ${state}, attempting cleanup`);
+        producerTransport.current.on(
+          'produce',
+          async ({ rtpParameters, appData }, callback, errback) => {
+            logVoice('Producing new track', { rtpParameters, appData });
 
-          Object.values(consumers.current).forEach((userConsumers) => {
-            Object.values(userConsumers).forEach((consumer) => {
-              consumer.close();
+            const { kind, qualityLayers } = appData as {
+              kind: StreamKind;
+              qualityLayers?: TStreamQualityLayer[];
+            };
+
+            if (!producerTransport.current) return;
+
+            try {
+              const producerId = await trpc.voice.produce.mutate({
+                transportId: producerTransport.current.id,
+                kind,
+                rtpParameters,
+                qualityLayers
+              });
+
+              callback({ id: producerId });
+            } catch (error) {
+              if (error instanceof TRPCClientError) {
+                if (error.data.code === 'FORBIDDEN') {
+                  logVoice('Permission denied to produce track', { kind });
+                  errback(
+                    new Error(
+                      `You don't have permission to ${kind} in this channel`
+                    )
+                  );
+
+                  return;
+                }
+              }
+
+              logVoice('Error producing new track', { error });
+              errback(error as Error);
+            }
+          }
+        );
+      } catch (error) {
+        logVoice('Error creating producer transport', { error });
+        throw error;
+      }
+    },
+    [onTransportFailed]
+  );
+
+  const createConsumerTransport = useCallback(
+    async (device: Device) => {
+      logVoice('Creating consumer transport', { device });
+
+      const trpc = getTRPCClient();
+
+      try {
+        const params = await trpc.voice.createConsumerTransport.mutate();
+
+        logVoice('Got consumer transport parameters', { params });
+
+        consumerTransport.current = device.createRecvTransport(params);
+
+        consumerTransport.current.on(
+          'connect',
+          async ({ dtlsParameters }, callback, errback) => {
+            logVoice('Consumer transport connected', { dtlsParameters });
+
+            try {
+              await trpc.voice.connectConsumerTransport.mutate({
+                dtlsParameters
+              });
+
+              callback();
+            } catch (error) {
+              errback(error as Error);
+              logVoice('Consumer transport connect error', { error });
+            }
+          }
+        );
+
+        consumerTransport.current.on('connectionstatechange', (state) => {
+          logVoice('Consumer transport connection state changed', { state });
+
+          if (state === 'failed') {
+            logVoice(`Consumer transport ${state}, attempting cleanup`);
+
+            Object.values(consumers.current).forEach((userConsumers) => {
+              Object.values(userConsumers).forEach((consumer) => {
+                consumer.close();
+              });
             });
-          });
-          consumers.current = {};
+            consumers.current = {};
 
-          consumerTransport.current?.close();
-          consumerTransport.current = undefined;
-          onTransportFailed();
-        } else if (state === 'closed') {
-          logVoice('Consumer transport closed');
-          consumerTransport.current = undefined;
-        }
-      });
+            consumerTransport.current?.close();
+            consumerTransport.current = undefined;
+            onTransportFailed();
+          } else if (state === 'closed') {
+            logVoice('Consumer transport closed');
+            consumerTransport.current = undefined;
+          }
+        });
 
-      consumerTransport.current.on('icecandidateerror', (error) => {
-        logVoice('Consumer transport ICE candidate error', { error });
-      });
-    } catch (error) {
-      logVoice('Failed to create consumer transport', { error });
-      throw error;
-    }
-  }, [onTransportFailed]);
+        consumerTransport.current.on('icecandidateerror', (error) => {
+          logVoice('Consumer transport ICE candidate error', { error });
+        });
+      } catch (error) {
+        logVoice('Failed to create consumer transport', { error });
+        throw error;
+      }
+    },
+    [onTransportFailed]
+  );
 
   const consume = useCallback(
     async (

@@ -1,8 +1,8 @@
-import type { TServerInfo } from '@sharkord/shared';
 import { isDesktopClient } from '@/platform/environment';
+import type { TServerInfo } from '@sharkord/shared';
 import {
-  getLocalStorageItemAsJSON,
   getLocalStorageItem,
+  getLocalStorageItemAsJSON,
   LocalStorageKey,
   removeLocalStorageItem,
   setLocalStorageItem,
@@ -140,7 +140,9 @@ const setActiveServerProfileId = (profileId: string | undefined) => {
 const getActiveServerProfile = () => {
   const profiles = getServerProfiles();
   const activeProfileId = getActiveServerProfileId();
-  const activeProfile = profiles.find((profile) => profile.id === activeProfileId);
+  const activeProfile = profiles.find(
+    (profile) => profile.id === activeProfileId
+  );
 
   if (activeProfile) return activeProfile;
 
@@ -196,15 +198,12 @@ const saveServerConnection = (
     ...config,
     id: profileId,
     icon:
-      options?.icon ??
-      existingProfile?.icon ??
-      `${config.httpUrl}/favicon.ico`,
+      options?.icon ?? existingProfile?.icon ?? `${config.httpUrl}/favicon.ico`,
     lastConnected: existingProfile?.lastConnected ?? Date.now(),
     preferences: options?.preferences ?? existingProfile?.preferences ?? {}
   };
   const withoutReplacedProfile = profiles.filter(
-    (item) =>
-      item.id !== profileId && item.id !== options?.existingProfileId
+    (item) => item.id !== profileId && item.id !== options?.existingProfileId
   );
 
   saveServerProfiles([profile, ...withoutReplacedProfile]);
@@ -229,7 +228,9 @@ const selectServerProfile = (profileId: string) => {
 
 const removeServerProfile = (profileId: string) => {
   const profiles = getServerProfiles();
-  const remainingProfiles = profiles.filter((profile) => profile.id !== profileId);
+  const remainingProfiles = profiles.filter(
+    (profile) => profile.id !== profileId
+  );
 
   if (remainingProfiles.length === profiles.length) return undefined;
 

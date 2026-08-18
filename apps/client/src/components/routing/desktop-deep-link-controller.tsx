@@ -1,7 +1,11 @@
-import { beginServerConnection, setSelectedDmChannelId } from '@/features/app/actions';
-import { setSelectedChannelId } from '@/features/server/channels/actions';
+import {
+  beginServerConnection,
+  setSelectedDmChannelId
+} from '@/features/app/actions';
 import { setDmsOpen, switchServer } from '@/features/server/actions';
+import { setSelectedChannelId } from '@/features/server/channels/actions';
 import { useIsConnected } from '@/features/server/hooks';
+import { store } from '@/features/store';
 import {
   getActiveServerProfile,
   saveServerConnection,
@@ -9,7 +13,6 @@ import {
   validateServerConnection
 } from '@/helpers/server-connection';
 import { isDesktopClient } from '@/platform/environment';
-import { store } from '@/features/store';
 import { memo, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 

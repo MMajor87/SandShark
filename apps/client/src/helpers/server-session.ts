@@ -76,7 +76,9 @@ const setCurrentSessionToken = (token: string) => {
 
 const getCurrentSessionToken = () => {
   const key = getServerSessionKey();
-  const sessionKey = getSessionStorageItem(SessionStorageKey.SERVER_SESSION_KEY);
+  const sessionKey = getSessionStorageItem(
+    SessionStorageKey.SERVER_SESSION_KEY
+  );
 
   if (!key || sessionKey !== key) {
     removeSessionStorageItem(SessionStorageKey.TOKEN);
@@ -119,7 +121,11 @@ const saveServerLogin = async ({
   } else {
     const secretKey = getDesktopAutoLoginSecretKey();
     if (secretKey && window.sandSharkDesktop) {
-      if (autoLogin) await window.sandSharkDesktop.setSecret({ key: secretKey, value: token });
+      if (autoLogin)
+        await window.sandSharkDesktop.setSecret({
+          key: secretKey,
+          value: token
+        });
       else await window.sandSharkDesktop.removeSecret(secretKey);
     }
   }
@@ -151,10 +157,12 @@ const getCurrentServerAutoLoginToken = async () => {
         return Object.keys(rest).length > 0 ? rest : undefined;
       });
 
-      if (await window.sandSharkDesktop.setSecret({
-        key: secretKey,
-        value: legacyToken
-      })) {
+      if (
+        await window.sandSharkDesktop.setSecret({
+          key: secretKey,
+          value: legacyToken
+        })
+      ) {
         return legacyToken;
       }
     }

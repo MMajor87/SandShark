@@ -14,7 +14,6 @@ import {
   safeStorage,
   type IpcMainInvokeEvent
 } from 'electron';
-import electronUpdater, { type ProgressInfo, type UpdateInfo } from 'electron-updater';
 import {
   appendFileSync,
   existsSync,
@@ -55,8 +54,6 @@ import type {
   TWindowBehavior
 } from './desktop-api.js';
 
-const { autoUpdater } = electronUpdater;
-
 app.setName('SandShark');
 app.setAppUserModelId('com.sandshark.desktop');
 
@@ -64,6 +61,15 @@ const currentDirectory = dirname(fileURLToPath(import.meta.url));
 const isDevelopment = !app.isPackaged;
 const developmentRendererUrl =
   process.env.SANDSHARK_RENDERER_URL ?? 'http://127.0.0.1:5173';
+const smokeTestUserDataArgPrefix = '--sandshark-smoke-user-data-dir=';
+const smokeTestUserDataDir = process.argv
+  .find((arg) => arg.startsWith(smokeTestUserDataArgPrefix))
+  ?.slice(smokeTestUserDataArgPrefix.length);
+
+if (smokeTestUserDataDir) {
+  app.setPath('userData', smokeTestUserDataDir);
+}
+
 const desktopIconPath = isDevelopment
   ? join(currentDirectory, '../sandshark.png')
   : undefined;
@@ -279,7 +285,11 @@ let updateSettings: TDesktopUpdateSettings = {
   ...DEFAULT_UPDATE_SETTINGS,
   ...desktopPreferences.updateSettings
 };
-let updateStatus: TDesktopUpdateStatus = { state: 'idle' };
+let updateStatus: TDesktopUpdateStatus = {
+  state: 'unsupported',
+  message:
+    'Automatic updates are not configured for this private SandShark build.'
+};
 let autoUpdaterConfigured = false;
 
 const saveUpdateSettings = () => {
@@ -300,81 +310,20 @@ const publishUpdateStatus = (status: TDesktopUpdateStatus) => {
   mainWindow?.webContents.send('sandshark:update-status', status);
 };
 
-const getUpdateErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error);
-
 const configureAutoUpdater = () => {
   if (autoUpdaterConfigured) return;
   autoUpdaterConfigured = true;
 
-  if (!app.isPackaged || process.platform !== 'win32') {
-    publishUpdateStatus({
-      state: 'unsupported',
-      message: 'Updates are available in installed Windows releases only.'
-    });
-    return;
-  }
-
-  autoUpdater.autoDownload = updateSettings.automaticallyDownload;
-  autoUpdater.autoInstallOnAppQuit = true;
-
-  autoUpdater.on('checking-for-update', () => {
-    publishUpdateStatus({ state: 'checking' });
-  });
-  autoUpdater.on('update-available', (info: UpdateInfo) => {
-    publishUpdateStatus({ state: 'available', version: info.version });
-  });
-  autoUpdater.on('update-not-available', () => {
-    publishUpdateStatus({ state: 'not-available' });
-  });
-  autoUpdater.on('download-progress', (progress: ProgressInfo) => {
-    publishUpdateStatus({
-      state: 'downloading',
-      percent: Math.round(progress.percent)
-    });
-  });
-  autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
-    publishUpdateStatus({ state: 'downloaded', version: info.version });
-  });
-  autoUpdater.on('error', (error: Error) => {
-    console.error('SandShark update error:', error);
-    publishUpdateStatus({ state: 'error', message: getUpdateErrorMessage(error) });
-  });
-
-  if (updateSettings.automaticallyCheck) {
-    setTimeout(() => {
-      void checkForUpdates();
-    }, 10_000);
-  }
+  publishUpdateStatus(updateStatus);
 };
 
 const checkForUpdates = async (): Promise<TDesktopUpdateStatus> => {
   configureAutoUpdater();
-
-  if (updateStatus.state === 'unsupported') return updateStatus;
-
-  try {
-    await autoUpdater.checkForUpdates();
-  } catch (error) {
-    console.error('SandShark could not check for updates:', error);
-    publishUpdateStatus({ state: 'error', message: getUpdateErrorMessage(error) });
-  }
-
   return updateStatus;
 };
 
 const downloadUpdate = async (): Promise<TDesktopUpdateStatus> => {
   configureAutoUpdater();
-
-  if (updateStatus.state === 'unsupported') return updateStatus;
-
-  try {
-    await autoUpdater.downloadUpdate();
-  } catch (error) {
-    console.error('SandShark could not download an update:', error);
-    publishUpdateStatus({ state: 'error', message: getUpdateErrorMessage(error) });
-  }
-
   return updateStatus;
 };
 
@@ -1451,20 +1400,9 @@ const registerDesktopIpcHandlers = () => {
       throw new Error('Invalid update settings.');
     }
 
-    const previousSettings = updateSettings;
     updateSettings = settings;
-    autoUpdater.autoDownload = settings.automaticallyDownload;
     saveUpdateSettings();
-
-    if (settings.automaticallyCheck && !previousSettings.automaticallyCheck) {
-      void checkForUpdates();
-    } else if (
-      settings.automaticallyDownload &&
-      !previousSettings.automaticallyDownload &&
-      updateStatus.state === 'available'
-    ) {
-      void downloadUpdate();
-    }
+    configureAutoUpdater();
 
     return updateSettings;
   });
@@ -1487,7 +1425,7 @@ const registerDesktopIpcHandlers = () => {
       throw new Error('No downloaded update is ready to install.');
     }
 
-    setImmediate(() => autoUpdater.quitAndInstall());
+    throw new Error('Automatic updates are not configured for this build.');
   });
   ipcMain.handle('sandshark:get-secret', (event, key: unknown) => {
     getSenderWindow(event);

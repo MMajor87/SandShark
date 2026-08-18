@@ -38,6 +38,10 @@ jobs:
         working-directory: apps/desktop
         run: bun run package
 
+      - name: Smoke launch unpacked app
+        working-directory: apps/desktop
+        run: bun run test:packaged-startup
+
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:

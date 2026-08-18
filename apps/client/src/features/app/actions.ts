@@ -6,17 +6,16 @@ import {
   saveServerConnection
 } from '@/helpers/server-connection';
 import { clearCurrentServerSession } from '@/helpers/server-session';
-import { isDesktopClient } from '@/platform/environment';
 import {
   LocalStorageKey,
   setLocalStorageItem,
   setLocalStorageItemBool
 } from '@/helpers/storage';
+import { isDesktopClient } from '@/platform/environment';
 import type { TMessageJumpToTarget } from '@/types';
 import type { TServerInfo } from '@sharkord/shared';
 import { toast } from 'sonner';
-import { markChannelAsRead, setInfo } from '../server/actions';
-import { switchServer } from '../server/actions';
+import { markChannelAsRead, setInfo, switchServer } from '../server/actions';
 import { store } from '../store';
 import {
   pluginSlotDebugSelector,

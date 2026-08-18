@@ -21,10 +21,13 @@ const DesktopDownloadController = memo(() => {
       const toastId = `desktop-download-${progress.id}`;
 
       if (progress.state === 'progressing') {
-        toast.loading(getProgressLabel(progress.receivedBytes, progress.totalBytes), {
-          id: toastId,
-          description: progress.filename
-        });
+        toast.loading(
+          getProgressLabel(progress.receivedBytes, progress.totalBytes),
+          {
+            id: toastId,
+            description: progress.filename
+          }
+        );
         return;
       }
 
@@ -45,7 +48,9 @@ const DesktopDownloadController = memo(() => {
       }
 
       toast.error(
-        progress.state === 'cancelled' ? 'Download cancelled' : 'Download interrupted',
+        progress.state === 'cancelled'
+          ? 'Download cancelled'
+          : 'Download interrupted',
         { id: toastId, description: progress.filename }
       );
     });

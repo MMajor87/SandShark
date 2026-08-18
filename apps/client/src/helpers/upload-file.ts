@@ -46,10 +46,7 @@ const uploadFile = async (file: File, options?: TUploadFileOptions) => {
       UploadHeaders.ORIGINAL_NAME,
       getSafeFileName(file.name)
     );
-    xhr.setRequestHeader(
-      UploadHeaders.TOKEN,
-      getCurrentSessionToken() ?? ''
-    );
+    xhr.setRequestHeader(UploadHeaders.TOKEN, getCurrentSessionToken() ?? '');
 
     if (options?.onProgress) {
       xhr.upload.addEventListener('progress', (e) => {

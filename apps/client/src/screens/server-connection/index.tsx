@@ -46,15 +46,20 @@ const ServerConnection = memo(() => {
     setProfiles(getServerProfiles());
   }, []);
 
-  const connectProfile = useCallback((profileId: string) => {
-    if (!selectServerProfile(profileId)) {
-      refreshProfiles();
-      setError('That saved server is no longer available. Add it again to reconnect.');
-      return;
-    }
+  const connectProfile = useCallback(
+    (profileId: string) => {
+      if (!selectServerProfile(profileId)) {
+        refreshProfiles();
+        setError(
+          'That saved server is no longer available. Add it again to reconnect.'
+        );
+        return;
+      }
 
-    beginServerConnection();
-  }, [refreshProfiles]);
+      beginServerConnection();
+    },
+    [refreshProfiles]
+  );
 
   const openCreate = useCallback(() => {
     setError(undefined);

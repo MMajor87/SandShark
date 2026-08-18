@@ -1,6 +1,6 @@
+import { isDesktopClient } from '@/platform/environment';
 import type { TFile } from '@sharkord/shared';
 import { getFileUrl } from './get-file-url';
-import { isDesktopClient } from '@/platform/environment';
 
 const downloadFile = async (file: TFile) => {
   const fileUrl = getFileUrl(file);

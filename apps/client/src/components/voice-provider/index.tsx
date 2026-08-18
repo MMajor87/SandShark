@@ -931,21 +931,21 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         video: screenCaptureConstraints,
         audio: devices.shareSystemAudio
           ? {
-            // System loopback is already mixed desktop audio. Do not apply
-            // microphone AEC/NS/AGC defaults to it before Chromium opens the
-            // Windows endpoint.
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-            channelCount: 2,
-            sampleRate: 48000,
-            // @ts-expect-error - experimental, not in types yet
-            suppressLocalAudioPlayback: canSuppressLocalAudioPlayback
-              ? (devices.suppressLocalAudioPlayback ?? false)
-              : undefined,
-            restrictOwnAudio: canRestrictOwnAudio
-              ? (devices.restrictOwnAudio ?? false)
-              : undefined
+              // System loopback is already mixed desktop audio. Do not apply
+              // microphone AEC/NS/AGC defaults to it before Chromium opens the
+              // Windows endpoint.
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+              channelCount: 2,
+              sampleRate: 48000,
+              // @ts-expect-error - experimental, not in types yet
+              suppressLocalAudioPlayback: canSuppressLocalAudioPlayback
+                ? (devices.suppressLocalAudioPlayback ?? false)
+                : undefined,
+              restrictOwnAudio: canRestrictOwnAudio
+                ? (devices.restrictOwnAudio ?? false)
+                : undefined
             }
           : false
       };
@@ -1207,7 +1207,8 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       reportDesktopCaptureDiagnostic('capture-failed', {
         errorName: error instanceof DOMException ? error.name : 'Error',
         errorMessage: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack?.slice(0, 2_000) : undefined,
+        errorStack:
+          error instanceof Error ? error.stack?.slice(0, 2_000) : undefined,
         systemAudioRequested: Boolean(devices.shareSystemAudio),
         desktopApiAvailable: Boolean(window.sandSharkDesktop)
       });

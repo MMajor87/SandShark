@@ -1,8 +1,4 @@
-export type TDesktopOperatingSystem =
-  | 'windows'
-  | 'macos'
-  | 'linux'
-  | 'unknown';
+export type TDesktopOperatingSystem = 'windows' | 'macos' | 'linux' | 'unknown';
 
 const getSearchParams = () => {
   if (typeof window === 'undefined') return new URLSearchParams();

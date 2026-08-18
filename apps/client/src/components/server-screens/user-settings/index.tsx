@@ -1,11 +1,11 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@sharkord/ui';
 import { isDesktopClient } from '@/platform/environment';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@sharkord/ui';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TServerScreenBaseProps } from '../screens';
 import { ServerScreenLayout } from '../server-screen-layout';
-import { Devices } from './devices';
 import { Desktop } from './desktop';
+import { Devices } from './devices';
 import { Notifications } from './notifications';
 import { Others } from './others';
 import { Password } from './password';
@@ -29,7 +29,9 @@ const UserSettings = memo(({ close }: TUserSettingsProps) => {
               {t('notificationsTab')}
             </TabsTrigger>
             <TabsTrigger value="others">{t('othersTab')}</TabsTrigger>
-            {hasDesktopSettings && <TabsTrigger value="desktop">Desktop</TabsTrigger>}
+            {hasDesktopSettings && (
+              <TabsTrigger value="desktop">Desktop</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="profile" className="space-y-6">

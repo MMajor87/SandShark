@@ -1,6 +1,4 @@
-import {
-  setBrowserNotifications
-} from '@/features/app/actions';
+import { setBrowserNotifications } from '@/features/app/actions';
 import { useBrowserNotifications } from '@/features/app/hooks';
 import { getDesktopVersion } from '@/platform/environment';
 import {
@@ -79,23 +77,26 @@ const Desktop = memo(() => {
     };
   }, []);
 
-  const setHardwareAccelerationEnabled = useCallback(async (enabled: boolean) => {
-    if (!window.sandSharkDesktop) return;
+  const setHardwareAccelerationEnabled = useCallback(
+    async (enabled: boolean) => {
+      if (!window.sandSharkDesktop) return;
 
-    const previous = hardwareAcceleration;
-    setHardwareAcceleration((current) =>
-      current ? { ...current, enabled, restartRequired: true } : current
-    );
-
-    try {
-      setHardwareAcceleration(
-        await window.sandSharkDesktop.setHardwareAcceleration(enabled)
+      const previous = hardwareAcceleration;
+      setHardwareAcceleration((current) =>
+        current ? { ...current, enabled, restartRequired: true } : current
       );
-    } catch {
-      setHardwareAcceleration(previous);
-      toast.error('Could not update hardware acceleration.');
-    }
-  }, [hardwareAcceleration]);
+
+      try {
+        setHardwareAcceleration(
+          await window.sandSharkDesktop.setHardwareAcceleration(enabled)
+        );
+      } catch {
+        setHardwareAcceleration(previous);
+        toast.error('Could not update hardware acceleration.');
+      }
+    },
+    [hardwareAcceleration]
+  );
 
   const setUpdatePreference = useCallback(
     async (key: keyof TDesktopUpdateSettings, value: boolean) => {
@@ -106,7 +107,9 @@ const Desktop = memo(() => {
       setUpdateSettings(next);
 
       try {
-        setUpdateSettings(await window.sandSharkDesktop.setUpdateSettings(next));
+        setUpdateSettings(
+          await window.sandSharkDesktop.setUpdateSettings(next)
+        );
       } catch {
         setUpdateSettings(previous);
         toast.error('Could not save update preferences.');
@@ -141,9 +144,10 @@ const Desktop = memo(() => {
           : updateStatus.state === 'not-available'
             ? 'SandShark is up to date.'
             : updateStatus.state === 'error'
-              ? updateStatus.message ?? 'The update check failed safely.'
+              ? (updateStatus.message ?? 'The update check failed safely.')
               : updateStatus.state === 'unsupported'
-                ? updateStatus.message ?? 'Updates are unavailable in this build.'
+                ? (updateStatus.message ??
+                  'Updates are unavailable in this build.')
                 : 'Check GitHub releases for a newer version of SandShark.';
 
   const isUpdateActionBusy =
@@ -185,7 +189,9 @@ const Desktop = memo(() => {
           <Switch
             checked={hardwareAcceleration?.enabled ?? true}
             disabled={!hardwareAcceleration}
-            onCheckedChange={(enabled) => void setHardwareAccelerationEnabled(enabled)}
+            onCheckedChange={(enabled) =>
+              void setHardwareAccelerationEnabled(enabled)
+            }
           />
         </Group>
 
@@ -193,17 +199,15 @@ const Desktop = memo(() => {
           <Alert>
             <Info />
             <AlertDescription>
-              Restart SandShark for the hardware acceleration change to take effect.
+              Restart SandShark for the hardware acceleration change to take
+              effect.
             </AlertDescription>
           </Alert>
         )}
 
         <Separator />
 
-        <Group
-          label="Check for updates"
-          description={updateDescription}
-        >
+        <Group label="Check for updates" description={updateDescription}>
           <Button
             variant="outline"
             size="icon"
@@ -215,7 +219,9 @@ const Desktop = memo(() => {
                   : 'Check for updates'
             }
             aria-label="Update action"
-            disabled={isUpdateActionBusy || updateStatus.state === 'unsupported'}
+            disabled={
+              isUpdateActionBusy || updateStatus.state === 'unsupported'
+            }
             onClick={() => void handleUpdateAction()}
           >
             {updateStatus.state === 'available' ? (

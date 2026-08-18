@@ -15,8 +15,8 @@ import { StreamKind } from '@sharkord/shared';
 import { HeadphoneOff, MicOff, Monitor, Video } from 'lucide-react';
 import { memo, useCallback, useMemo, useRef } from 'react';
 import { CardTheme } from './card-theme';
-import { cardControlClass, cardDensity } from './helpers';
 import { FullscreenButton } from './fullscreen-button';
+import { cardControlClass, cardDensity } from './helpers';
 import { useFullscreen } from './hooks/use-fullscreen';
 import { useVideoStats } from './hooks/use-video-stats';
 import { useVoiceRefs } from './hooks/use-voice-refs';
@@ -108,7 +108,9 @@ const VoiceUserCard = memo(
           'relative bg-card overflow-hidden group/voice-user-card',
           'flex items-center justify-center',
           'size-full',
-          isFullscreen ? 'rounded-none border-none' : 'rounded border border-border',
+          isFullscreen
+            ? 'rounded-none border-none'
+            : 'rounded border border-border',
           isActivelySpeaking && speakingEffectClass,
           className
         )}
@@ -142,7 +144,12 @@ const VoiceUserCard = memo(
           />
         )}
         {isShowingScreenShare && hasScreenShareAudioStream && (
-          <audio ref={screenShareAudioRef} autoPlay playsInline className="hidden" />
+          <audio
+            ref={screenShareAudioRef}
+            autoPlay
+            playsInline
+            className="hidden"
+          />
         )}
         {!hasVisualStream && (
           <UserAvatar

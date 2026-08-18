@@ -1,5 +1,8 @@
+import {
+  beginServerConnection,
+  openServerProfiles
+} from '@/features/app/actions';
 import { openDialog, requestConfirmation } from '@/features/dialogs/actions';
-import { beginServerConnection, openServerProfiles } from '@/features/app/actions';
 import { openServerScreen } from '@/features/server-screens/actions';
 import { disconnectFromServer, switchServer } from '@/features/server/actions';
 import {
@@ -30,89 +33,88 @@ type TServerSwitcherProps = {
   'data-testid'?: string;
 };
 
-const ServerSwitcher = memo(({
-  serverName,
-  'data-testid': testId
-}: TServerSwitcherProps) => {
-  const [open, setOpen] = useState(false);
-  const [profiles, setProfiles] = useState<TServerProfile[]>(() =>
-    getServerProfiles()
-  );
-  const [activeProfileId, setActiveProfileId] = useState(() =>
-    getActiveServerProfileId()
-  );
+const ServerSwitcher = memo(
+  ({ serverName, 'data-testid': testId }: TServerSwitcherProps) => {
+    const [open, setOpen] = useState(false);
+    const [profiles, setProfiles] = useState<TServerProfile[]>(() =>
+      getServerProfiles()
+    );
+    const [activeProfileId, setActiveProfileId] = useState(() =>
+      getActiveServerProfileId()
+    );
 
-  const handleOpenChange = useCallback((nextOpen: boolean) => {
-    if (nextOpen) {
-      setProfiles(getServerProfiles());
-      setActiveProfileId(getActiveServerProfileId());
-    }
+    const handleOpenChange = useCallback((nextOpen: boolean) => {
+      if (nextOpen) {
+        setProfiles(getServerProfiles());
+        setActiveProfileId(getActiveServerProfileId());
+      }
 
-    setOpen(nextOpen);
-  }, []);
+      setOpen(nextOpen);
+    }, []);
 
-  const switchProfile = useCallback((profileId: string) => {
-    if (profileId === getActiveServerProfileId()) {
+    const switchProfile = useCallback((profileId: string) => {
+      if (profileId === getActiveServerProfileId()) {
+        setOpen(false);
+        return;
+      }
+
+      if (!selectServerProfile(profileId)) return;
+
+      switchServer();
+      beginServerConnection();
       setOpen(false);
-      return;
-    }
+    }, []);
 
-    if (!selectServerProfile(profileId)) return;
+    const manageServers = useCallback(() => {
+      setOpen(false);
+      openServerProfiles();
+    }, []);
 
-    switchServer();
-    beginServerConnection();
-    setOpen(false);
-  }, []);
+    return (
+      <DropdownMenu open={open} onOpenChange={handleOpenChange}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="min-w-0 flex-1 justify-start gap-1 px-0 font-semibold"
+            title="Switch server"
+            data-testid={testId}
+          >
+            <span className="truncate">{serverName ?? 'SandShark'}</span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-72">
+          <DropdownMenuLabel>Servers</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {profiles.map((profile) => {
+            const isActive = profile.id === activeProfileId;
+            const name = profile.displayName ?? profile.httpUrl;
 
-  const manageServers = useCallback(() => {
-    setOpen(false);
-    openServerProfiles();
-  }, []);
-
-  return (
-    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="min-w-0 flex-1 justify-start gap-1 px-0 font-semibold"
-          title="Switch server"
-          data-testid={testId}
-        >
-          <span className="truncate">{serverName ?? 'SandShark'}</span>
-          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-72">
-        <DropdownMenuLabel>Servers</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {profiles.map((profile) => {
-          const isActive = profile.id === activeProfileId;
-          const name = profile.displayName ?? profile.httpUrl;
-
-          return (
-            <DropdownMenuItem
-              key={profile.id}
-              onClick={() => switchProfile(profile.id)}
-              className="flex items-center gap-2"
-            >
-              {profile.icon ? (
-                <img src={profile.icon} alt="" className="h-5 w-5 rounded" />
-              ) : (
-                <Server className="h-5 w-5 text-muted-foreground" />
-              )}
-              <span className="min-w-0 flex-1 truncate">{name}</span>
-              {isActive && <Check className="h-4 w-4 shrink-0" />}
-            </DropdownMenuItem>
-          );
-        })}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={manageServers}>
-          Manage servers
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-});
+            return (
+              <DropdownMenuItem
+                key={profile.id}
+                onClick={() => switchProfile(profile.id)}
+                className="flex items-center gap-2"
+              >
+                {profile.icon ? (
+                  <img src={profile.icon} alt="" className="h-5 w-5 rounded" />
+                ) : (
+                  <Server className="h-5 w-5 text-muted-foreground" />
+                )}
+                <span className="min-w-0 flex-1 truncate">{name}</span>
+                {isActive && <Check className="h-4 w-4 shrink-0" />}
+              </DropdownMenuItem>
+            );
+          })}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={manageServers}>
+            Manage servers
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+);
 
 const ServerDropdownMenu = memo(() => {
   const { t } = useTranslation('sidebar');

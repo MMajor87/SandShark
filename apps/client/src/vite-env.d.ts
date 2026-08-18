@@ -141,12 +141,14 @@ declare global {
         message?: string;
       }>;
       installUpdate: () => Promise<void>;
-      onUpdateStatus: (listener: (status: {
-        state: string;
-        version?: string;
-        percent?: number;
-        message?: string;
-      }) => void) => () => void;
+      onUpdateStatus: (
+        listener: (status: {
+          state: string;
+          version?: string;
+          percent?: number;
+          message?: string;
+        }) => void
+      ) => () => void;
       getSecret: (key: string) => Promise<string | undefined>;
       setSecret: (request: { key: string; value: string }) => Promise<boolean>;
       removeSecret: (key: string) => Promise<void>;
@@ -156,13 +158,15 @@ declare global {
         url: string;
         filename: string;
       }) => Promise<{ id?: string }>;
-      onDownloadProgress: (listener: (progress: {
-        id: string;
-        filename: string;
-        receivedBytes: number;
-        totalBytes: number;
-        state: 'progressing' | 'completed' | 'cancelled' | 'interrupted';
-      }) => void) => () => void;
+      onDownloadProgress: (
+        listener: (progress: {
+          id: string;
+          filename: string;
+          receivedBytes: number;
+          totalBytes: number;
+          state: 'progressing' | 'completed' | 'cancelled' | 'interrupted';
+        }) => void
+      ) => () => void;
       openDownloadedFile: (id: string) => Promise<void>;
       showDownloadedFile: (id: string) => Promise<void>;
     };

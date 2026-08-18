@@ -1,6 +1,6 @@
 import { setIsAutoConnecting } from '@/features/app/actions';
-import { setDisconnectInfo, connect } from '@/features/server/actions';
 import { useIsAppLoading, useIsPluginsLoading } from '@/features/app/hooks';
+import { connect, setDisconnectInfo } from '@/features/server/actions';
 import { useDisconnectInfo, useIsConnected } from '@/features/server/hooks';
 import {
   clearCurrentServerAutoLogin,
@@ -40,17 +40,17 @@ const AutoLoginController = memo(() => {
       setCurrentSessionToken(savedToken);
 
       return connect()
-      .catch(() => {
-        // token expired or invalid clear auto-login state so the user
-        // sees the connect screen and can log in manually
-        clearCurrentServerAutoLogin();
-        setDisconnectInfo(undefined);
-      })
-      .finally(() => {
-        // reset auto-login attempt state so if the user logs out and back in they can try auto-login again
-        autoLoginAttempted.current = false;
-        setIsAutoConnecting(false);
-      });
+        .catch(() => {
+          // token expired or invalid clear auto-login state so the user
+          // sees the connect screen and can log in manually
+          clearCurrentServerAutoLogin();
+          setDisconnectInfo(undefined);
+        })
+        .finally(() => {
+          // reset auto-login attempt state so if the user logs out and back in they can try auto-login again
+          autoLoginAttempted.current = false;
+          setIsAutoConnecting(false);
+        });
     });
   }, [isAppLoading, isPluginsLoading, isConnected, disconnectInfo]);
 

@@ -8,6 +8,12 @@ The goal is to reuse the existing Sharkord React/TypeScript frontend while addin
 
 This repository is initialized as the SandShark project shell. The implementation plan lives in [Sharkord_Desktop_Fork_TODO.md](./Sharkord_Desktop_Fork_TODO.md).
 
+## Testing Server
+
+Use this Sharkord server for development and integration testing:
+
+https://redacted.invalid/
+
 ## Privacy
 
 This project is intended to remain private until it is ready for wider review or release.

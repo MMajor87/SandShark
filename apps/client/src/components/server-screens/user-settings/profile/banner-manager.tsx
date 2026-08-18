@@ -1,3 +1,4 @@
+import { updateUser } from '@/features/server/users/actions';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { uploadImage } from '@/helpers/upload-file';
 import { useFilePicker } from '@/hooks/use-file-picker';
@@ -20,7 +21,10 @@ const BannerManager = memo(({ user }: TBannerManagerProps) => {
     const trpc = getTRPCClient();
 
     try {
-      await trpc.users.changeBanner.mutate({ fileId: undefined });
+      const updatedUser = await trpc.users.changeBanner.mutate({
+        fileId: undefined
+      });
+      updateUser(updatedUser.id, updatedUser);
 
       toast.success('Banner removed successfully!');
     } catch {
@@ -40,7 +44,10 @@ const BannerManager = memo(({ user }: TBannerManagerProps) => {
         return;
       }
 
-      await trpc.users.changeBanner.mutate({ fileId: temporaryFile.id });
+      const updatedUser = await trpc.users.changeBanner.mutate({
+        fileId: temporaryFile.id
+      });
+      updateUser(updatedUser.id, updatedUser);
 
       toast.success('Banner updated successfully!');
     } catch {

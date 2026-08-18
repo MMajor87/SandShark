@@ -285,11 +285,15 @@ describe('users router', () => {
   test('should update own user profile', async () => {
     const { caller } = await initTest();
 
-    await caller.users.update({
+    const updatedProfile = await caller.users.update({
       name: 'Updated Name',
       profileColor: '#ff0000',
       bio: 'This is my new bio'
     });
+
+    expect(updatedProfile.name).toBe('Updated Name');
+    expect(updatedProfile.profileColor).toBe('#ff0000');
+    expect(updatedProfile.bio).toBe('This is my new bio');
 
     const users = await caller.users.getAll();
     const updatedUser = users.find((u) => u.id === 1);
@@ -417,6 +421,39 @@ describe('users router', () => {
     ).rejects.toThrow('Current password is incorrect');
   });
 
+  test('should let an owner reset another user password', async () => {
+    const { caller } = await initTest();
+
+    await caller.users.resetPassword({
+      userId: 2,
+      newPassword: 'resetpassword456',
+      confirmNewPassword: 'resetpassword456'
+    });
+
+    const row = await tdb
+      .select({ password: users.password })
+      .from(users)
+      .where(eq(users.id, 2))
+      .get();
+
+    expect(row).toBeDefined();
+    expect(await Bun.password.verify('resetpassword456', row!.password)).toBe(
+      true
+    );
+  });
+
+  test('should not let a non-owner reset a user password', async () => {
+    const { caller } = await initTest(2);
+
+    await expect(
+      caller.users.resetPassword({
+        userId: 1,
+        newPassword: 'resetpassword456',
+        confirmNewPassword: 'resetpassword456'
+      })
+    ).rejects.toThrow("Only server owners can reset another user's password");
+  });
+
   test('should throw when new passwords do not match', async () => {
     const { caller } = await initTest();
 
@@ -444,9 +481,11 @@ describe('users router', () => {
     const uploadResponse = await uploadFile(file, mockedToken);
     const uploadData = (await uploadResponse.json()) as TTempFile;
 
-    await caller.users.changeAvatar({
+    const updatedUser = await caller.users.changeAvatar({
       fileId: uploadData.id
     });
+
+    expect(updatedUser.avatarId).toBeDefined();
 
     const userInfo = await caller.users.getInfo({ userId: 1 });
 
@@ -519,9 +558,11 @@ describe('users router', () => {
     const uploadResponse = await uploadFile(file, mockedToken);
     const uploadData = (await uploadResponse.json()) as TTempFile;
 
-    await caller.users.changeBanner({
+    const updatedUser = await caller.users.changeBanner({
       fileId: uploadData.id
     });
+
+    expect(updatedUser.bannerId).toBeDefined();
 
     const userInfo = await caller.users.getInfo({ userId: 1 });
 

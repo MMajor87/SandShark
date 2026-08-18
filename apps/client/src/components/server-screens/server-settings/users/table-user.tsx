@@ -2,7 +2,7 @@ import { Dialog } from '@/components/dialogs/dialogs';
 import { UserAvatar } from '@/components/user-avatar';
 import { setModViewOpen } from '@/features/app/actions';
 import { openDialog } from '@/features/dialogs/actions';
-import { useUserRoles } from '@/features/server/hooks';
+import { useIsOwnUserOwner, useUserRoles } from '@/features/server/hooks';
 import { useOwnUserId, useUserStatus } from '@/features/server/users/hooks';
 import { useDateLocale } from '@/hooks/use-date-locale';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger
 } from '@sharkord/ui';
 import { format, formatDistanceToNow } from 'date-fns';
-import { MoreVertical, Trash2, UserCog } from 'lucide-react';
+import { KeyRound, MoreVertical, Trash2, UserCog } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -31,6 +31,7 @@ const TableUser = memo(({ user, refetch }: TTableUserProps) => {
   const roles = useUserRoles(user.id);
   const status = useUserStatus(user.id);
   const ownUserId = useOwnUserId();
+  const isOwner = useIsOwnUserOwner();
 
   const onModerateClick = useCallback(() => {
     setModViewOpen(true, user.id);
@@ -39,6 +40,10 @@ const TableUser = memo(({ user, refetch }: TTableUserProps) => {
   const onDeleteClick = useCallback(() => {
     openDialog(Dialog.DELETE_USER, { user, refetch });
   }, [user, refetch]);
+
+  const onResetPasswordClick = useCallback(() => {
+    openDialog(Dialog.RESET_USER_PASSWORD, { user });
+  }, [user]);
 
   return (
     <>
@@ -126,6 +131,12 @@ const TableUser = memo(({ user, refetch }: TTableUserProps) => {
               </DropdownMenuItem>
               {ownUserId !== user.id && (
                 <>
+                  {isOwner && (
+                    <DropdownMenuItem onClick={onResetPasswordClick}>
+                      <KeyRound className="h-4 w-4" />
+                      {t('resetUserPasswordAction')}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={onDeleteClick}

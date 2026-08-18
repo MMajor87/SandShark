@@ -4,7 +4,7 @@ import z from 'zod';
 import { db } from '../../db';
 import { removeFile } from '../../db/mutations/files';
 import { publishUser } from '../../db/publishers';
-import { getUserById } from '../../db/queries/users';
+import { getPublicUserById, getUserById } from '../../db/queries/users';
 import { users } from '../../db/schema';
 import { fileManager } from '../../utils/file-manager';
 import { invariant } from '../../utils/invariant';
@@ -60,7 +60,16 @@ const changeBannerRoute = protectedProcedure
         .where(eq(users.id, ctx.userId));
     }
 
-    publishUser(ctx.userId, 'update');
+    const updatedUser = await getPublicUserById(ctx.userId);
+
+    invariant(updatedUser, {
+      code: 'NOT_FOUND',
+      message: 'Updated user not found'
+    });
+
+    await publishUser(ctx.userId, 'update');
+
+    return updatedUser;
   });
 
 export { changeBannerRoute };

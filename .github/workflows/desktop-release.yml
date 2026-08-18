@@ -56,6 +56,9 @@ jobs:
 
           "version=$desktopVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
+      - name: Verify desktop security boundary
+        run: bun run --cwd apps/desktop check:security
+
       - name: Build Windows installer
         working-directory: apps/desktop
         run: bun run package

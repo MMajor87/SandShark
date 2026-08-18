@@ -76,7 +76,9 @@ export type TActivityLogDetailsMap = {
     inviteCode: string | undefined;
   };
   [ActivityLogType.USER_LEFT]: {};
-  [ActivityLogType.USER_UPDATED_PASSWORD]: {};
+  [ActivityLogType.USER_UPDATED_PASSWORD]: {
+    resetBy?: number;
+  };
   // -------------------- ROLES --------------------
   [ActivityLogType.CREATED_ROLE]: {
     roleId: number;

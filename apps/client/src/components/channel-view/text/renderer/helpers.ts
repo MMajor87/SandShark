@@ -67,10 +67,61 @@ const getYoutubeInfo = (
   return { isYoutube: false, videoId: undefined };
 };
 
+type TSocialEmbedInfo =
+  | {
+      provider: 'x';
+      postId: string;
+    }
+  | {
+      provider: 'tiktok';
+      postId: string;
+    }
+  | undefined;
+
+const getSocialEmbedInfo = (href: string): TSocialEmbedInfo => {
+  try {
+    const url = new URL(href);
+    const hostname = url.hostname.replace(/^www\./, '');
+    const segments = url.pathname.split('/').filter(Boolean);
+
+    if (
+      ['x.com', 'twitter.com', 'mobile.twitter.com'].includes(hostname) &&
+      segments.length >= 3 &&
+      (segments[1] === 'status' ||
+        (segments[0] === 'i' &&
+          segments[1] === 'web' &&
+          segments[2] === 'status'))
+    ) {
+      const postId = segments.at(-1);
+
+      if (postId && /^\d+$/.test(postId)) {
+        return { provider: 'x', postId };
+      }
+    }
+
+    if (
+      hostname.endsWith('tiktok.com') &&
+      segments.length >= 3 &&
+      segments[0]?.startsWith('@') &&
+      ['video', 'photo'].includes(segments[1] ?? '')
+    ) {
+      const postId = segments[2];
+
+      if (postId && /^\d+$/.test(postId)) {
+        return { provider: 'tiktok', postId };
+      }
+    }
+  } catch {
+    // Ignore malformed URLs and render them as normal links.
+  }
+
+  return undefined;
+};
+
 const hasSpecializedLinkOverride = (href: string): boolean => {
   const { isYoutube } = getYoutubeInfo(href);
 
-  return isYoutube;
+  return isYoutube || !!getSocialEmbedInfo(href);
 };
 
 const DIRECT_MEDIA_TYPES = new Set(['image', 'video', 'audio']);
@@ -142,6 +193,7 @@ const extractMessageOpenGraph = (
 export {
   extractMessageOpenGraph,
   getDisplayHostname,
+  getSocialEmbedInfo,
   getYoutubeInfo,
   getYoutubeVideoId,
   hasSpecializedLinkOverride,

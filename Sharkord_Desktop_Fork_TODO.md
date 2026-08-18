@@ -950,14 +950,14 @@ The web client should continue functioning.
 
 After major desktop changes verify:
 
-- [ ] Browser login
-- [ ] Browser text chat
-- [ ] Browser voice chat
-- [ ] Browser webcam
-- [ ] Browser screen sharing
-- [ ] Browser file uploads
-- [ ] Browser notifications
-- [ ] Mobile browser layout if supported
+- [x] Browser login
+- [x] Browser text chat
+- [x] Browser voice chat
+- [x] Browser webcam
+- [x] Browser screen sharing
+- [x] Browser file uploads
+- [x] Browser notifications
+- [x] Mobile browser layout if supported
 
 Desktop functionality should be gated behind platform detection.
 
@@ -979,15 +979,15 @@ Optional:
 
 Test:
 
-- [ ] Single monitor
-- [ ] Multiple monitors
-- [ ] Laptop microphone
-- [ ] USB microphone
-- [ ] Bluetooth headset
-- [ ] USB headset
-- [ ] Webcam
-- [ ] Integrated GPU
-- [ ] Dedicated GPU
+- [x] Single monitor
+- [x] Multiple monitors
+- [x] Laptop microphone
+- [x] USB microphone
+- [x] Bluetooth headset
+- [x] USB headset
+- [x] Webcam
+- [x] Integrated GPU
+- [x] Dedicated GPU
 
 ## Networking
 
@@ -1007,7 +1007,7 @@ Test:
 
 Test rooms with:
 
-- [ ] 2 users
+- [x] 2 users
 - [ ] 5 users
 - [ ] 10 users
 - [ ] More users if practical
@@ -1034,8 +1034,8 @@ Test:
 
 Test:
 
-- [ ] 30 FPS
-- [ ] 60 FPS
+- [x] 30 FPS
+- [x] 60 FPS
 
 Test content:
 
@@ -1129,12 +1129,12 @@ Electron adds significant security responsibility.
 
 Verify:
 
-- [ ] `nodeIntegration` is disabled
-- [ ] `contextIsolation` is enabled
-- [ ] Preload exposes minimal APIs
-- [ ] IPC inputs are validated
-- [ ] External URLs open outside Electron
-- [ ] Remote content cannot execute Node APIs
+- [x] `nodeIntegration` is disabled
+- [x] `contextIsolation` is enabled
+- [x] Preload exposes minimal APIs
+- [x] IPC inputs are validated
+- [x] External URLs open outside Electron
+- [x] Remote content cannot execute Node APIs
 - [ ] Navigation is restricted
 - [ ] Permissions are explicitly handled
 - [ ] File URLs are controlled

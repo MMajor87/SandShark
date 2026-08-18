@@ -14,6 +14,7 @@ import {
   safeStorage,
   type IpcMainInvokeEvent
 } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import {
   appendFileSync,
   existsSync,
@@ -66,6 +67,7 @@ const smokeTestUserDataArgPrefix = '--sandshark-smoke-user-data-dir=';
 const smokeTestUserDataDir = process.argv
   .find((arg) => arg.startsWith(smokeTestUserDataArgPrefix))
   ?.slice(smokeTestUserDataArgPrefix.length);
+const isPackagedSmokeTest = Boolean(smokeTestUserDataDir);
 
 if (smokeTestUserDataDir) {
   app.setPath('userData', smokeTestUserDataDir);
@@ -412,11 +414,7 @@ const isDesktopLogDiagnostic = (
           detail === undefined)
   );
 };
-let updateStatus: TDesktopUpdateStatus = {
-  state: 'unsupported',
-  message:
-    'Automatic updates are not configured for this private SandShark build.'
-};
+let updateStatus: TDesktopUpdateStatus = { state: 'idle' };
 let autoUpdaterConfigured = false;
 
 const saveUpdateSettings = () => {
@@ -447,10 +445,58 @@ const publishUpdateStatus = (status: TDesktopUpdateStatus) => {
 };
 
 const configureAutoUpdater = () => {
+  if (isDevelopment || isPackagedSmokeTest) {
+    publishUpdateStatus({
+      state: 'unsupported',
+      message: 'Updates are only available in installed SandShark builds.'
+    });
+    return;
+  }
+
+  autoUpdater.autoDownload = updateSettings.automaticallyDownload;
+
   if (autoUpdaterConfigured) return;
   autoUpdaterConfigured = true;
 
-  publishUpdateStatus(updateStatus);
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'MMajor87',
+    repo: 'SandShark',
+    private: false,
+    releaseType: 'release'
+  });
+  autoUpdater.allowPrerelease = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('checking-for-update', () => {
+    publishUpdateStatus({ state: 'checking' });
+  });
+  autoUpdater.on('update-available', (info) => {
+    publishUpdateStatus({ state: 'available', version: info.version });
+  });
+  autoUpdater.on('update-not-available', () => {
+    publishUpdateStatus({ state: 'not-available' });
+  });
+  autoUpdater.on('download-progress', (progress) => {
+    publishUpdateStatus({
+      state: 'downloading',
+      percent: Math.round(progress.percent)
+    });
+  });
+  autoUpdater.on('update-downloaded', (info) => {
+    publishUpdateStatus({ state: 'downloaded', version: info.version });
+  });
+  autoUpdater.on('error', (error) => {
+    writeDesktopLog('updates', 'Electron updater error', {
+      error: error.message
+    });
+    publishUpdateStatus({
+      state: 'error',
+      message: 'Could not check for SandShark updates.'
+    });
+  });
+
+  if (updateSettings.automaticallyCheck) void checkForUpdates();
 };
 
 const checkForUpdates = async (): Promise<TDesktopUpdateStatus> => {
@@ -458,6 +504,17 @@ const checkForUpdates = async (): Promise<TDesktopUpdateStatus> => {
   writeDesktopLog('updates', 'Update check requested', {
     state: updateStatus.state
   });
+
+  if (!autoUpdaterConfigured) return updateStatus;
+
+  try {
+    await autoUpdater.checkForUpdates();
+  } catch (error) {
+    writeDesktopLog('updates', 'Electron updater check failed', {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+
   return updateStatus;
 };
 
@@ -466,6 +523,17 @@ const downloadUpdate = async (): Promise<TDesktopUpdateStatus> => {
   writeDesktopLog('updates', 'Update download requested', {
     state: updateStatus.state
   });
+
+  if (!autoUpdaterConfigured) return updateStatus;
+
+  try {
+    await autoUpdater.downloadUpdate();
+  } catch (error) {
+    writeDesktopLog('updates', 'Electron updater download failed', {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+
   return updateStatus;
 };
 
@@ -1760,7 +1828,7 @@ const registerDesktopIpcHandlers = () => {
       throw new Error('No downloaded update is ready to install.');
     }
 
-    throw new Error('Automatic updates are not configured for this build.');
+    autoUpdater.quitAndInstall();
   });
   ipcMain.handle('sandshark:get-secret', (event, key: unknown) => {
     getSenderWindow(event);

@@ -1,4 +1,5 @@
 import { closeServerScreens } from '@/features/server-screens/actions';
+import { updateUser } from '@/features/server/users/actions';
 import { useOwnPublicUser } from '@/features/server/users/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { useForm } from '@/hooks/use-form';
@@ -43,7 +44,8 @@ const Profile = memo(() => {
     const trpc = getTRPCClient();
 
     try {
-      await trpc.users.update.mutate(values);
+      const updatedUser = await trpc.users.update.mutate(values);
+      updateUser(updatedUser.id, updatedUser);
       toast.success(t('profileUpdated'));
     } catch (error) {
       setTrpcErrors(error);

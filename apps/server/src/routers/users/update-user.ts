@@ -6,7 +6,9 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db';
 import { publishUser } from '../../db/publishers';
+import { getPublicUserById } from '../../db/queries/users';
 import { users } from '../../db/schema';
+import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
 
 const updateUserRoute = protectedProcedure
@@ -35,7 +37,16 @@ const updateUserRoute = protectedProcedure
       .returning()
       .get();
 
-    publishUser(updatedUser.id, 'update');
+    const publicUser = await getPublicUserById(updatedUser.id);
+
+    invariant(publicUser, {
+      code: 'NOT_FOUND',
+      message: 'Updated user not found'
+    });
+
+    await publishUser(updatedUser.id, 'update');
+
+    return publicUser;
   });
 
 export { updateUserRoute };

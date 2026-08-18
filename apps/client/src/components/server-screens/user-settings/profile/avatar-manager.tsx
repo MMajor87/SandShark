@@ -1,4 +1,5 @@
 import { UserAvatar } from '@/components/user-avatar';
+import { updateUser } from '@/features/server/users/actions';
 import { uploadImage } from '@/helpers/upload-file';
 import { useFilePicker } from '@/hooks/use-file-picker';
 import { getTRPCClient } from '@/lib/trpc';
@@ -19,7 +20,10 @@ const AvatarManager = memo(({ user }: TAvatarManagerProps) => {
     const trpc = getTRPCClient();
 
     try {
-      await trpc.users.changeAvatar.mutate({ fileId: undefined });
+      const updatedUser = await trpc.users.changeAvatar.mutate({
+        fileId: undefined
+      });
+      updateUser(updatedUser.id, updatedUser);
 
       toast.success('Avatar removed successfully!');
     } catch (error) {
@@ -39,7 +43,10 @@ const AvatarManager = memo(({ user }: TAvatarManagerProps) => {
         return;
       }
 
-      await trpc.users.changeAvatar.mutate({ fileId: temporaryFile.id });
+      const updatedUser = await trpc.users.changeAvatar.mutate({
+        fileId: temporaryFile.id
+      });
+      updateUser(updatedUser.id, updatedUser);
 
       toast.success('Avatar updated successfully!');
     } catch (error) {

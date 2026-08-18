@@ -1,6 +1,6 @@
 {
   "name": "@sandshark/desktop",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "description": "SandShark desktop client",
   "author": "SandShark contributors",
   "private": true,
@@ -17,6 +17,7 @@
     "dist": "bun run package",
     "verify:signature": "powershell.exe -ExecutionPolicy Bypass -File scripts/verify-code-signature.ps1",
     "test:packaged-startup": "powershell.exe -ExecutionPolicy Bypass -File scripts/test-packaged-startup.ps1",
+    "check:security": "bun scripts/verify-security-boundary.mjs",
     "check-types": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {

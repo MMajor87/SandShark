@@ -3,6 +3,7 @@ import { useVolumeControl } from '@/components/voice-provider/volume-control-con
 import { useIsOwnUser } from '@/features/server/users/hooks';
 import { useVoice } from '@/features/server/voice/hooks';
 import { applyAudioOutputDevice } from '@/helpers/audio-output';
+import { isDesktopClient } from '@/platform/environment';
 import { StreamKind } from '@sharkord/shared';
 import { useEffect, useMemo } from 'react';
 import { useAudioLevel } from './use-audio-level';
@@ -18,6 +19,7 @@ const useVoiceRefs = (
     localAudioStream,
     localVideoStream,
     localScreenShareStream,
+    localScreenShareAudioStream,
     ownVoiceState,
     getOrCreateRefs
   } = useVoice();
@@ -98,6 +100,13 @@ const useVoiceRefs = (
     pluginId && streamKey ? getExternalVolumeKey(pluginId, streamKey) : null;
 
   const externalVolume = externalVolumeKey ? getVolume(externalVolumeKey) : 100;
+  const muteIncomingAudioForScreenShareIsolation =
+    isDesktopClient() &&
+    devices.shareSystemAudio &&
+    devices.restrictOwnAudio &&
+    Boolean(localScreenShareAudioStream);
+  const shouldMuteIncomingAudio =
+    ownVoiceState.soundMuted || muteIncomingAudioForScreenShareIsolation;
 
   useEffect(() => {
     if (!videoStream || !videoRef.current) return;
@@ -113,7 +122,7 @@ const useVoiceRefs = (
     }
 
     audioRef.current.volume = userVolume / 100;
-    audioRef.current.muted = ownVoiceState.soundMuted;
+    audioRef.current.muted = shouldMuteIncomingAudio;
 
     applyAudioOutputDevice(audioRef.current, devices.playbackId);
   }, [
@@ -121,7 +130,7 @@ const useVoiceRefs = (
     audioRef,
     userVolume,
     devices.playbackId,
-    ownVoiceState.soundMuted
+    shouldMuteIncomingAudio
   ]);
 
   useEffect(() => {
@@ -132,7 +141,7 @@ const useVoiceRefs = (
     }
 
     screenShareAudioRef.current.volume = userScreenVolume / 100;
-    screenShareAudioRef.current.muted = ownVoiceState.soundMuted;
+    screenShareAudioRef.current.muted = shouldMuteIncomingAudio;
 
     applyAudioOutputDevice(screenShareAudioRef.current, devices.playbackId);
   }, [
@@ -140,7 +149,7 @@ const useVoiceRefs = (
     screenShareAudioRef,
     userScreenVolume,
     devices.playbackId,
-    ownVoiceState.soundMuted
+    shouldMuteIncomingAudio
   ]);
 
   useEffect(() => {
@@ -159,7 +168,7 @@ const useVoiceRefs = (
     }
 
     externalAudioRef.current.volume = externalVolume / 100;
-    externalAudioRef.current.muted = ownVoiceState.soundMuted;
+    externalAudioRef.current.muted = shouldMuteIncomingAudio;
 
     applyAudioOutputDevice(externalAudioRef.current, devices.playbackId);
   }, [
@@ -167,7 +176,7 @@ const useVoiceRefs = (
     externalAudioRef,
     externalVolume,
     devices.playbackId,
-    ownVoiceState.soundMuted
+    shouldMuteIncomingAudio
   ]);
 
   useEffect(() => {
@@ -180,18 +189,18 @@ const useVoiceRefs = (
 
   useEffect(() => {
     if (audioRef.current) {
-      audioRef.current.muted = ownVoiceState.soundMuted;
+      audioRef.current.muted = shouldMuteIncomingAudio;
     }
 
     if (screenShareAudioRef.current) {
-      screenShareAudioRef.current.muted = ownVoiceState.soundMuted;
+      screenShareAudioRef.current.muted = shouldMuteIncomingAudio;
     }
 
     if (externalAudioRef.current) {
-      externalAudioRef.current.muted = ownVoiceState.soundMuted;
+      externalAudioRef.current.muted = shouldMuteIncomingAudio;
     }
   }, [
-    ownVoiceState.soundMuted,
+    shouldMuteIncomingAudio,
     audioRef,
     screenShareAudioRef,
     externalAudioRef,

@@ -15,6 +15,7 @@ import { getUserInfoRoute } from './get-user-info';
 import { getUsersRoute } from './get-users';
 import { kickRoute } from './kick';
 import { removeRoleRoute } from './remove-role';
+import { resetPasswordRoute } from './reset-password';
 import { unbanRoute } from './unban';
 import { updatePasswordRoute } from './update-password';
 import { updateUserRoute } from './update-user';
@@ -26,6 +27,7 @@ export const usersRouter = t.router({
   removeRole: removeRoleRoute,
   update: updateUserRoute,
   updatePassword: updatePasswordRoute,
+  resetPassword: resetPasswordRoute,
   getInfo: getUserInfoRoute,
   getAll: getUsersRoute,
   kick: kickRoute,

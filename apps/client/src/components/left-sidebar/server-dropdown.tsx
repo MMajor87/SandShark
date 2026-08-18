@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger
 } from '@sharkord/ui';
 import { Check, ChevronDown, Menu, Server } from 'lucide-react';
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from '../dialogs/dialogs';
 import { Protect } from '../protect';
@@ -32,6 +32,34 @@ type TServerSwitcherProps = {
   serverName: string | undefined;
   'data-testid'?: string;
 };
+
+type TServerProfileIconProps = {
+  icon: string | undefined;
+  className: string;
+};
+
+const ServerProfileIcon = memo(
+  ({ icon, className }: TServerProfileIconProps) => {
+    const [failedToLoad, setFailedToLoad] = useState(false);
+
+    useEffect(() => {
+      setFailedToLoad(false);
+    }, [icon]);
+
+    if (!icon || failedToLoad) {
+      return <Server className={className} />;
+    }
+
+    return (
+      <img
+        src={icon}
+        alt=""
+        className={className}
+        onError={() => setFailedToLoad(true)}
+      />
+    );
+  }
+);
 
 const ServerSwitcher = memo(
   ({ serverName, 'data-testid': testId }: TServerSwitcherProps) => {
@@ -70,6 +98,10 @@ const ServerSwitcher = memo(
       openServerProfiles();
     }, []);
 
+    const activeProfile = profiles.find(
+      (profile) => profile.id === activeProfileId
+    );
+
     return (
       <DropdownMenu open={open} onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger asChild>
@@ -79,6 +111,10 @@ const ServerSwitcher = memo(
             title="Switch server"
             data-testid={testId}
           >
+            <ServerProfileIcon
+              icon={activeProfile?.icon}
+              className="h-5 w-5 shrink-0 rounded object-cover text-muted-foreground"
+            />
             <span className="truncate">{serverName ?? 'SandShark'}</span>
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
           </Button>
@@ -96,11 +132,10 @@ const ServerSwitcher = memo(
                 onClick={() => switchProfile(profile.id)}
                 className="flex items-center gap-2"
               >
-                {profile.icon ? (
-                  <img src={profile.icon} alt="" className="h-5 w-5 rounded" />
-                ) : (
-                  <Server className="h-5 w-5 text-muted-foreground" />
-                )}
+                <ServerProfileIcon
+                  icon={profile.icon}
+                  className="h-5 w-5 shrink-0 rounded object-cover text-muted-foreground"
+                />
                 <span className="min-w-0 flex-1 truncate">{name}</span>
                 {isActive && <Check className="h-4 w-4 shrink-0" />}
               </DropdownMenuItem>

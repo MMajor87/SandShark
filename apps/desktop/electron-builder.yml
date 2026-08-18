@@ -30,7 +30,7 @@ publish:
   provider: github
   owner: MMajor87
   repo: SandShark
-  releaseType: draft
+  releaseType: release
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true

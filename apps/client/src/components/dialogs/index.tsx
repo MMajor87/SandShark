@@ -12,6 +12,7 @@ import { PluginCommandsDialog } from './plugin-commands';
 import { PluginInstallConfirmDialog } from './plugin-install-confirm';
 import { PluginLogsDialog } from './plugin-logs';
 import { PluginSettingsDialog } from './plugin-settings';
+import { ResetUserPasswordDialog } from './reset-user-password';
 import { SearchDialog } from './search';
 import { ServerPasswordDialog } from './server-password';
 import { SoundsDialog } from './sounds';
@@ -33,6 +34,7 @@ const DialogsMap: any = {
   [Dialog.PLUGIN_SETTINGS]: PluginSettingsDialog,
   [Dialog.PLUGIN_INSTALL_CONFIRM]: PluginInstallConfirmDialog,
   [Dialog.DELETE_USER]: DeleteUserDialog,
+  [Dialog.RESET_USER_PASSWORD]: ResetUserPasswordDialog,
   [Dialog.SEARCH]: SearchDialog,
   [Dialog.WELCOME_PROFILE_SETUP]: WelcomeProfileSetupDialog
 };

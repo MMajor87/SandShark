@@ -1,0 +1,32 @@
+{
+  "name": "@sandshark/desktop",
+  "version": "1.0.18",
+  "description": "SandShark desktop client",
+  "author": "SandShark contributors",
+  "private": true,
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names client,electron --prefix-colors blue,green \"bun run --cwd ../client dev -- --host 127.0.0.1 --port 5173 --strictPort\" \"wait-on http://127.0.0.1:5173 && bun run dev:electron\"",
+    "dev:electron": "bun run build:main && electron .",
+    "dev:watch": "tsc --watch --preserveWatchOutput",
+    "build": "bun run build:main && bun run build:renderer",
+    "build:main": "tsc --project tsconfig.json",
+    "build:renderer": "bun run --cwd ../client build",
+    "package": "bun run build && electron-builder --config electron-builder.yml",
+    "dist": "bun run package",
+    "verify:signature": "powershell -ExecutionPolicy Bypass -File scripts/verify-code-signature.ps1",
+    "check-types": "tsc --noEmit --project tsconfig.json"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9",
+    "uiohook-napi": "^1.5.5"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "electron": "39.6.0",
+    "electron-builder": "^26.0.0",
+    "typescript": "~5.8.3",
+    "wait-on": "^8.0.2"
+  }
+}

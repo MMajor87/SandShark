@@ -2,6 +2,7 @@ import { useCurrentVoiceChannelId } from '@/features/server/channels/hooks';
 import { useWebRtcSimulcastEnabled } from '@/features/server/hooks';
 import { playSound } from '@/features/server/sounds/actions';
 import { SoundType } from '@/features/server/types';
+import { updateOwnVoiceState } from '@/features/server/voice/actions';
 import { useOwnVoiceState } from '@/features/server/voice/hooks';
 import {
   clampMicrophoneDecibels,
@@ -22,8 +23,13 @@ import {
   getSuppressLocalAudioPlaybackSupport
 } from '@/helpers/get-display-media-support';
 import { getResWidthHeight } from '@/helpers/get-res-with-height';
+import {
+  getPushToTalkSettings,
+  subscribePushToTalkSettings
+} from '@/helpers/push-to-talk';
 import { useScreenShareSupport } from '@/hooks/use-screen-share-support';
 import { getTRPCClient } from '@/lib/trpc';
+import { isDesktopClient } from '@/platform/environment';
 import { NoiseSuppression, VideoCodec, type TStreamQuality } from '@/types';
 import {
   DEFAULT_BITRATE,
@@ -45,8 +51,10 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState
+  useState,
+  useSyncExternalStore
 } from 'react';
+import { toast } from 'sonner';
 import { useDevices } from '../devices-provider/hooks/use-devices';
 import {
   clearVoiceControlsBridge,
@@ -67,6 +75,7 @@ import {
   type TRemoteQualityLayers,
   type TStreamQualitySettings
 } from './helpers';
+import { useDesktopCapturePicker } from './hooks/use-desktop-capture-picker';
 import { useLocalStreams } from './hooks/use-local-streams';
 import { useRemoteStreams } from './hooks/use-remote-streams';
 import {
@@ -105,6 +114,7 @@ enum ConnectionStatus {
 export type TVoiceProvider = {
   loading: boolean;
   connectionStatus: ConnectionStatus;
+  pushToTalkActive: boolean;
   transportStats: TransportStatsData;
   audioVideoRefsMap: Map<number, AudioVideoRefs>;
   ownVoiceState: TVoiceUserState;
@@ -142,6 +152,7 @@ export type TVoiceProvider = {
 const VoiceProviderContext = createContext<TVoiceProvider>({
   loading: false,
   connectionStatus: ConnectionStatus.DISCONNECTED,
+  pushToTalkActive: false,
   transportStats: {
     producer: null,
     consumer: null,
@@ -193,15 +204,32 @@ type TVoiceProviderProps = {
   children: React.ReactNode;
 };
 
+const reportDesktopCaptureDiagnostic = (
+  stage: string,
+  details: Record<string, boolean | number | string | undefined> = {}
+) => {
+  if (!isDesktopClient()) return;
+
+  void window.sandSharkDesktop
+    ?.reportDesktopCaptureDiagnostic({ stage, details })
+    .catch(() => undefined);
+};
+
 const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
   const [loading, setLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
     ConnectionStatus.DISCONNECTED
   );
+  const [pushToTalkHeld, setPushToTalkHeld] = useState(false);
+  const [pushToTalkActive, setPushToTalkActive] = useState(false);
+  const [pushToTalkRegistered, setPushToTalkRegistered] = useState(false);
   const routerRtpCapabilities = useRef<RtpCapabilities | null>(null);
   const deviceRtpCapabilities = useRef<RtpCapabilities | null>(null);
   const audioVideoRefsMap = useRef<Map<number, AudioVideoRefs>>(new Map());
   const previousVoiceChannelIdRef = useRef<number | undefined>(undefined);
+  const transportRecoveryRef = useRef<() => void>(() => {});
+  const transportRecoveryInProgressRef = useRef(false);
+  const transportRecoveryAttemptsRef = useRef(0);
   const [streamQualities, setStreamQualities] =
     useState<TStreamQualitySettings>(loadStreamQualitiesFromStorage);
   const [remoteConsumerTypes, setRemoteConsumerTypes] =
@@ -209,10 +237,17 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
   const [remoteQualityLayers, setRemoteQualityLayers] =
     useState<TRemoteQualityLayers>({});
   const currentVoiceChannelId = useCurrentVoiceChannelId();
+  const pushToTalkSettings = useSyncExternalStore(
+    subscribePushToTalkSettings,
+    getPushToTalkSettings,
+    getPushToTalkSettings
+  );
   const webRtcSimulcastEnabled = useWebRtcSimulcastEnabled();
   const ownVoiceState = useOwnVoiceState();
   const { devices } = useDevices();
   const { isScreenShareSupported } = useScreenShareSupport();
+  const { chooseDesktopCaptureSource, picker: desktopCapturePicker } =
+    useDesktopCapturePicker();
 
   const simulcastEnabled =
     !!webRtcSimulcastEnabled && !!devices.simulcastEnabled;
@@ -370,6 +405,10 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     remoteUserStreams
   } = useRemoteStreams();
 
+  const onTransportFailed = useCallback(() => {
+    transportRecoveryRef.current();
+  }, []);
+
   const {
     localAudioProducer,
     localVideoProducer,
@@ -396,6 +435,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     cleanupTransports,
     getConsumerCodec
   } = useTransports({
+    onTransportFailed,
     addExternalStreamTrack,
     removeExternalStreamTrack,
     addRemoteUserStream,
@@ -420,13 +460,21 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
   );
   const nsAudioContextsRef = useRef<AudioContext[]>([]);
   const micMutedRef = useRef(ownVoiceState.micMuted);
+  const pushToTalkActiveRef = useRef(pushToTalkActive);
+  const pushToTalkModeRef = useRef<'talk' | 'mute' | undefined>(undefined);
 
   const syncTransmitMicrophoneTrackState = useCallback(() => {
     const track = transmitMicrophoneTrackRef.current;
 
     if (!track) return;
 
-    const shouldEnable = !micMutedRef.current;
+    const pushToTalkMode = pushToTalkModeRef.current;
+    const shouldEnable =
+      !micMutedRef.current &&
+      (pushToTalkMode === undefined ||
+        (pushToTalkMode === 'talk'
+          ? pushToTalkActiveRef.current
+          : !pushToTalkActiveRef.current));
 
     if (track.enabled !== shouldEnable) {
       track.enabled = shouldEnable;
@@ -616,7 +664,10 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         localAudioProducer.current = await producerTransport.current?.produce({
           track: transmitTrack,
           codecOptions: {
-            opusStereo: false,
+            // All audio producers share one bundled Opus payload type. Keep
+            // this aligned with screen-audio and the router capability to
+            // avoid an SDP codec collision when a screen share starts.
+            opusStereo: true,
             opusFec: true,
             opusDtx: false,
             opusMaxPlaybackRate: 48000,
@@ -678,6 +729,8 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
   ]);
 
   const startWebcamStream = useCallback(async () => {
+    let stream: MediaStream | undefined;
+
     try {
       logVoice('Starting webcam stream');
 
@@ -695,17 +748,24 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
 
       logVoice('Requesting webcam stream with constraints', webcamConstraints);
 
-      const stream =
+      const webcamStream =
         await navigator.mediaDevices.getUserMedia(webcamConstraints);
+      stream = webcamStream;
 
-      logVoice('Webcam stream obtained', { stream });
+      logVoice('Webcam stream obtained', { stream: webcamStream });
 
-      setLocalVideoStream(stream);
+      setLocalVideoStream(webcamStream);
 
-      const videoTrack = stream.getVideoTracks()[0];
+      const videoTrack = webcamStream.getVideoTracks()[0];
 
       if (videoTrack) {
         logVoice('Obtained video track', { videoTrack });
+
+        const transport = producerTransport.current;
+
+        if (!transport) {
+          throw new Error('Webcam transport is not available');
+        }
 
         const simulcastCodec = simulcastEnabled
           ? getSimulcastCodec(routerRtpCapabilities.current)
@@ -733,7 +793,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         }
 
         try {
-          localVideoProducer.current = await producerTransport.current?.produce(
+          localVideoProducer.current = await transport.produce(
             simulcastWebcamProducerOptions
           );
         } catch (error) {
@@ -744,7 +804,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
             { error }
           );
 
-          localVideoProducer.current = await producerTransport.current?.produce(
+          localVideoProducer.current = await transport.produce(
             webcamProducerOptions
           );
         }
@@ -770,17 +830,31 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         videoTrack.onended = () => {
           logVoice('Video track ended, cleaning up webcam');
 
-          localVideoStream?.getVideoTracks().forEach((track) => {
+          webcamStream.getVideoTracks().forEach((track) => {
             track.stop();
           });
           localVideoProducer.current?.close();
+          localVideoProducer.current = undefined;
 
           setLocalVideoStream(undefined);
+          updateOwnVoiceState({ webcamEnabled: false });
+
+          void getTRPCClient()
+            .voice.updateState.mutate({ webcamEnabled: false })
+            .catch((error) => {
+              logVoice('Error updating webcam state after camera ended', {
+                error
+              });
+            });
         };
       } else {
         throw new Error('Failed to obtain video track from webcam');
       }
     } catch (error) {
+      stream?.getTracks().forEach((track) => track.stop());
+      localVideoProducer.current?.close();
+      localVideoProducer.current = undefined;
+      setLocalVideoStream(undefined);
       logVoice('Error starting webcam stream', { error });
       throw error;
     }
@@ -788,7 +862,6 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     setLocalVideoStream,
     localVideoProducer,
     producerTransport,
-    localVideoStream,
     devices.webcamId,
     devices.webcamFramerate,
     devices.webcamResolution,
@@ -845,36 +918,83 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       const canRestrictOwnAudio = getRestrictOwnAudioSupport();
       const canSuppressLocalAudioPlayback =
         getSuppressLocalAudioPlaybackSupport();
+      const screenCaptureSize = getResWidthHeight(devices?.screenResolution);
+      const screenCaptureFrameRate = devices?.screenFramerate ?? 30;
+      const screenCaptureConstraints: MediaTrackConstraints = {
+        width: { max: screenCaptureSize.width },
+        height: { max: screenCaptureSize.height },
+        frameRate: { max: screenCaptureFrameRate }
+      };
+      const isDesktopScreenShare = isDesktopClient();
 
       const displayMediaConstraints: MediaStreamConstraints = {
-        video: {
-          ...getResWidthHeight(devices?.screenResolution),
-          frameRate: devices?.screenFramerate
-        },
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          channelCount: 2,
-          sampleRate: 48000,
-          // @ts-expect-error - experimental, not in types yet
-          suppressLocalAudioPlayback: canSuppressLocalAudioPlayback
-            ? (devices.suppressLocalAudioPlayback ?? false)
-            : undefined,
-          restrictOwnAudio: canRestrictOwnAudio
-            ? (devices.restrictOwnAudio ?? false)
-            : undefined
-        }
+        video: screenCaptureConstraints,
+        audio: devices.shareSystemAudio
+          ? {
+            // System loopback is already mixed desktop audio. Do not apply
+            // microphone AEC/NS/AGC defaults to it before Chromium opens the
+            // Windows endpoint.
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            channelCount: 2,
+            sampleRate: 48000,
+            // @ts-expect-error - experimental, not in types yet
+            suppressLocalAudioPlayback: canSuppressLocalAudioPlayback
+              ? (devices.suppressLocalAudioPlayback ?? false)
+              : undefined,
+            restrictOwnAudio: canRestrictOwnAudio
+              ? (devices.restrictOwnAudio ?? false)
+              : undefined
+            }
+          : false
       };
 
       logVoice(
         'Requesting display media with constraints',
         displayMediaConstraints
       );
+      reportDesktopCaptureDiagnostic('capture-requested', {
+        systemAudioRequested: Boolean(devices.shareSystemAudio),
+        requestedWidth: screenCaptureSize.width,
+        requestedHeight: screenCaptureSize.height,
+        requestedFrameRate: screenCaptureFrameRate
+      });
 
-      const stream = await navigator.mediaDevices.getDisplayMedia(
-        displayMediaConstraints
-      );
+      const desktopCaptureSource = isDesktopScreenShare
+        ? await chooseDesktopCaptureSource()
+        : undefined;
+
+      if (isDesktopScreenShare && !desktopCaptureSource) {
+        reportDesktopCaptureDiagnostic('source-picker-cancelled');
+        throw new DOMException('Screen share was cancelled.', 'AbortError');
+      }
+
+      let stream: MediaStream;
+
+      if (desktopCaptureSource) {
+        const desktopApi = window.sandSharkDesktop;
+
+        if (!desktopApi) {
+          throw new Error('Desktop screen capture is unavailable.');
+        }
+
+        reportDesktopCaptureDiagnostic('source-picker-selected', {
+          sourceType: desktopCaptureSource.type,
+          systemAudioRequested: Boolean(devices.shareSystemAudio)
+        });
+        await desktopApi.setDesktopCaptureSource(desktopCaptureSource.id);
+        // Electron grants the selected desktop source and Windows loopback
+        // audio as one request. A second display request can fail because
+        // Chromium only has one active picker/capture authorization.
+        stream = await navigator.mediaDevices.getDisplayMedia(
+          displayMediaConstraints
+        );
+      } else {
+        stream = await navigator.mediaDevices.getDisplayMedia(
+          displayMediaConstraints
+        );
+      }
 
       logVoice('Screen share stream obtained', { stream });
       setLocalScreenShare(stream);
@@ -882,7 +1002,34 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       const videoTrack = stream.getVideoTracks()[0];
       const audioTrack = stream.getAudioTracks()[0];
 
+      reportDesktopCaptureDiagnostic('capture-obtained', {
+        videoTracks: stream.getVideoTracks().length,
+        audioTracks: stream.getAudioTracks().length,
+        videoTrackReadyState: videoTrack?.readyState,
+        audioTrackReadyState: audioTrack?.readyState
+      });
+
+      if (devices.shareSystemAudio && !audioTrack) {
+        logVoice('System audio is unavailable for the selected capture source');
+        toast.warning(
+          'System audio is unavailable for this source. Sharing video only.'
+        );
+      }
+
       if (videoTrack) {
+        try {
+          await videoTrack.applyConstraints(screenCaptureConstraints);
+        } catch (error) {
+          logVoice('Could not apply screen share output constraints', {
+            error,
+            requested: screenCaptureConstraints
+          });
+        }
+
+        logVoice('Screen share track settings after constraints', {
+          requested: screenCaptureConstraints,
+          actual: videoTrack.getSettings()
+        });
         logVoice('Obtained video track', { videoTrack });
 
         videoTrack.contentHint = 'detail';
@@ -1057,6 +1204,13 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       setLocalScreenShare(undefined);
       setLocalScreenShareAudio(undefined);
       logVoice('Error starting screen share stream', { error });
+      reportDesktopCaptureDiagnostic('capture-failed', {
+        errorName: error instanceof DOMException ? error.name : 'Error',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack?.slice(0, 2_000) : undefined,
+        systemAudioRequested: Boolean(devices.shareSystemAudio),
+        desktopApiAvailable: Boolean(window.sandSharkDesktop)
+      });
       throw error;
     }
   }, [
@@ -1070,9 +1224,11 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     devices.screenFramerate,
     devices.screenCodec,
     devices.screenBitrate,
+    devices.shareSystemAudio,
     devices.restrictOwnAudio,
     devices.suppressLocalAudioPlayback,
-    simulcastEnabled
+    simulcastEnabled,
+    chooseDesktopCaptureSource
   ]);
 
   const cleanup = useCallback(() => {
@@ -1097,6 +1253,108 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     clearExternalStreams,
     cleanupTransports
   ]);
+
+  const recoverTransports = useCallback(async () => {
+    const capabilities = routerRtpCapabilities.current;
+
+    if (
+      !currentVoiceChannelId ||
+      !capabilities ||
+      transportRecoveryInProgressRef.current
+    ) {
+      return;
+    }
+
+    if (transportRecoveryAttemptsRef.current >= 2) {
+      logVoice('Voice transport recovery limit reached');
+      setConnectionStatus(ConnectionStatus.FAILED);
+      return;
+    }
+
+    transportRecoveryInProgressRef.current = true;
+    transportRecoveryAttemptsRef.current += 1;
+    setLoading(true);
+    setConnectionStatus(ConnectionStatus.CONNECTING);
+
+    try {
+      logVoice('Recovering failed voice transports', {
+        channelId: currentVoiceChannelId,
+        attempt: transportRecoveryAttemptsRef.current
+      });
+
+      stopMonitoring();
+      resetStats();
+      cleanupMicProcessingResources();
+      clearLocalStreams();
+      clearRemoteUserStreams();
+      clearExternalStreams();
+      cleanupTransports();
+
+      const device = new Device();
+      await device.load({ routerRtpCapabilities: capabilities });
+
+      const loadedDevice = device as Device & {
+        rtpCapabilities?: RtpCapabilities;
+        recvRtpCapabilities?: RtpCapabilities;
+      };
+      const recvRtpCapabilities =
+        loadedDevice.recvRtpCapabilities ?? loadedDevice.rtpCapabilities;
+
+      if (!recvRtpCapabilities) {
+        throw new Error('Failed to recover device RTP capabilities');
+      }
+
+      deviceRtpCapabilities.current = recvRtpCapabilities;
+
+      await createProducerTransport(device);
+      await createConsumerTransport(device);
+      await consumeExistingProducers(recvRtpCapabilities);
+      await startMicStream();
+
+      if (ownVoiceState.webcamEnabled) {
+        await startWebcamStream();
+      }
+
+      startMonitoring(producerTransport.current, consumerTransport.current);
+      transportRecoveryAttemptsRef.current = 0;
+      setConnectionStatus(ConnectionStatus.CONNECTED);
+      logVoice('Voice transport recovery completed');
+    } catch (error) {
+      logVoice('Voice transport recovery failed', { error });
+      setConnectionStatus(ConnectionStatus.FAILED);
+    } finally {
+      setLoading(false);
+      transportRecoveryInProgressRef.current = false;
+    }
+  }, [
+    currentVoiceChannelId,
+    stopMonitoring,
+    resetStats,
+    cleanupMicProcessingResources,
+    clearLocalStreams,
+    clearRemoteUserStreams,
+    clearExternalStreams,
+    cleanupTransports,
+    createProducerTransport,
+    createConsumerTransport,
+    consumeExistingProducers,
+    startMicStream,
+    startWebcamStream,
+    ownVoiceState.webcamEnabled,
+    startMonitoring,
+    producerTransport,
+    consumerTransport
+  ]);
+
+  useEffect(() => {
+    transportRecoveryRef.current = () => {
+      void recoverTransports();
+    };
+
+    return () => {
+      transportRecoveryRef.current = () => {};
+    };
+  }, [recoverTransports]);
 
   const init = useCallback(
     async (
@@ -1142,6 +1400,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         await startMicStream();
 
         startMonitoring(producerTransport.current, consumerTransport.current);
+        transportRecoveryAttemptsRef.current = 0;
         setConnectionStatus(ConnectionStatus.CONNECTED);
         setLoading(false);
         playSound(SoundType.OWN_USER_JOINED_VOICE_CHANNEL);
@@ -1193,6 +1452,105 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
   );
 
   useEffect(() => {
+    if (!isDesktopClient() || !window.sandSharkDesktop) return;
+
+    const desktopApi = window.sandSharkDesktop;
+    let disposed = false;
+
+    if (!pushToTalkSettings.enabled) {
+      setPushToTalkHeld(false);
+      setPushToTalkActive(false);
+      setPushToTalkRegistered(false);
+      void desktopApi.clearPushToTalk();
+      return;
+    }
+
+    setPushToTalkRegistered(false);
+
+    void desktopApi
+      .setPushToTalk({
+        input:
+          pushToTalkSettings.input.type === 'keyboard'
+            ? {
+                type: 'keyboard',
+                keyCode: pushToTalkSettings.input.keyCode
+              }
+            : {
+                type: 'mouse',
+                button: pushToTalkSettings.input.button
+              },
+        modifiers: pushToTalkSettings.input.modifiers
+      })
+      .then((result) => {
+        if (!disposed) setPushToTalkRegistered(result.registered);
+      })
+      .catch(() => {
+        if (!disposed) setPushToTalkRegistered(false);
+      });
+
+    return () => {
+      disposed = true;
+      setPushToTalkHeld(false);
+      setPushToTalkActive(false);
+      setPushToTalkRegistered(false);
+      void desktopApi.clearPushToTalk();
+    };
+  }, [
+    pushToTalkSettings.enabled,
+    pushToTalkSettings.input,
+    pushToTalkSettings.input.modifiers
+  ]);
+
+  useEffect(() => {
+    if (
+      !pushToTalkSettings.enabled ||
+      !isDesktopClient() ||
+      !window.sandSharkDesktop
+    ) {
+      return;
+    }
+
+    return window.sandSharkDesktop.onPushToTalk((active) => {
+      setPushToTalkHeld(active);
+    });
+  }, [pushToTalkSettings.enabled]);
+
+  useEffect(() => {
+    const delay = pushToTalkHeld
+      ? pushToTalkSettings.activationDelayMs
+      : pushToTalkSettings.releaseDelayMs;
+    const timer = window.setTimeout(() => {
+      setPushToTalkActive(pushToTalkHeld);
+    }, delay);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    pushToTalkHeld,
+    pushToTalkSettings.activationDelayMs,
+    pushToTalkSettings.releaseDelayMs
+  ]);
+
+  useEffect(() => {
+    if (currentVoiceChannelId) return;
+
+    setPushToTalkHeld(false);
+    setPushToTalkActive(false);
+  }, [currentVoiceChannelId]);
+
+  useEffect(() => {
+    pushToTalkActiveRef.current = pushToTalkActive;
+    pushToTalkModeRef.current = pushToTalkRegistered
+      ? pushToTalkSettings.mode
+      : undefined;
+    syncTransmitMicrophoneTrackState();
+  }, [
+    pushToTalkActive,
+    pushToTalkRegistered,
+    pushToTalkSettings.mode,
+    syncTransmitMicrophoneTrackState
+  ]);
+
+  useEffect(() => {
     setVoiceControlsBridge({
       setMicMuted: setMicMutedForBridge,
       setSoundMuted: setSoundMutedForBridge
@@ -1202,6 +1560,19 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       clearVoiceControlsBridge();
     };
   }, [setMicMutedForBridge, setSoundMutedForBridge]);
+
+  useEffect(() => {
+    if (!isDesktopClient() || !window.sandSharkDesktop) return;
+
+    return window.sandSharkDesktop.onTrayAction((action) => {
+      if (action === 'toggle-mic') {
+        void toggleMic();
+        return;
+      }
+
+      void toggleSound();
+    });
+  }, [toggleMic, toggleSound]);
 
   useVoiceEvents({
     consume,
@@ -1238,6 +1609,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     () => ({
       loading,
       connectionStatus,
+      pushToTalkActive,
       transportStats,
       audioVideoRefsMap: audioVideoRefsMap.current,
       isScreenShareSupported,
@@ -1266,6 +1638,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     [
       loading,
       connectionStatus,
+      pushToTalkActive,
       transportStats,
       isScreenShareSupported,
       getOrCreateRefs,
@@ -1303,6 +1676,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
           />
           {children}
         </div>
+        {desktopCapturePicker}
       </VolumeControlProvider>
     </VoiceProviderContext.Provider>
   );

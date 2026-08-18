@@ -39,6 +39,34 @@ export const connectingSelector = (state: IRootState) =>
 export const serverNameSelector = (state: IRootState) =>
   state.server.publicSettings?.name;
 
+export const totalUnreadMessagesSelector = (state: IRootState) =>
+  Object.values(state.server.readStatesMap).reduce<number>(
+    (total, count) => total + (count ?? 0),
+    0
+  );
+
+export const totalUnreadMentionsSelector = createSelector(
+  [
+    channelsSelector,
+    channelsReadStatesSelector,
+    messagesMapSelector,
+    ownUserIdSelector
+  ],
+  (channels, readStatesMap, messagesMap, ownUserId) =>
+    channels.reduce(
+      (total, channel) =>
+        total +
+        (hasUnreadMentionInMessages(
+          readStatesMap[channel.id] ?? 0,
+          messagesMap[channel.id] ?? [],
+          ownUserId
+        )
+          ? 1
+          : 0),
+      0
+    )
+);
+
 export const serverIdSelector = (state: IRootState) =>
   state.server.publicSettings?.serverId;
 

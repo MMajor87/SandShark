@@ -1,3 +1,4 @@
+import { isDesktopClient } from '@/platform/environment';
 import { useMemo } from 'react';
 
 /**
@@ -8,6 +9,8 @@ const useScreenShareSupport = () => {
   const isSupported = useMemo(() => {
     if (typeof window === 'undefined') return false;
     if (!navigator.mediaDevices) return false;
+
+    if (isDesktopClient() && window.sandSharkDesktop) return true;
 
     return typeof navigator.mediaDevices.getDisplayMedia === 'function';
   }, []);

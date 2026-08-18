@@ -16,9 +16,7 @@ SandShark is maintained as a private repository with `Sharkord/sharkord` configu
 
 ## Development Test Server
 
-Use this Sharkord server for development and integration testing:
-
-https://redacted.invalid/
+Use the authorized development server supplied out-of-band for integration testing. Do not record its address in the repository or public documentation.
 
 ## Phase 0 Verification Log
 

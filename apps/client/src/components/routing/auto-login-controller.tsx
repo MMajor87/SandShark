@@ -1,16 +1,12 @@
 import { setIsAutoConnecting } from '@/features/app/actions';
+import { setDisconnectInfo, connect } from '@/features/server/actions';
 import { useIsAppLoading, useIsPluginsLoading } from '@/features/app/hooks';
-import { connect } from '@/features/server/actions';
 import { useDisconnectInfo, useIsConnected } from '@/features/server/hooks';
 import {
-  getLocalStorageItem,
-  getLocalStorageItemBool,
-  LocalStorageKey,
-  removeLocalStorageItem,
-  SessionStorageKey,
-  setLocalStorageItemBool,
-  setSessionStorageItem
-} from '@/helpers/storage';
+  clearCurrentServerAutoLogin,
+  getCurrentServerAutoLoginToken,
+  setCurrentSessionToken
+} from '@/helpers/server-session';
 import { memo, useEffect, useRef } from 'react';
 
 const AutoLoginController = memo(() => {
@@ -32,34 +28,30 @@ const AutoLoginController = memo(() => {
       return;
     }
 
-    const autoLoginEnabled = getLocalStorageItemBool(
-      LocalStorageKey.AUTO_LOGIN
-    );
-
-    const savedToken = getLocalStorageItem(LocalStorageKey.AUTO_LOGIN_TOKEN);
-
-    if (!autoLoginEnabled || !savedToken) {
-      // auto-login not enabled or no token saved, do nothing
-      return;
-    }
-
     autoLoginAttempted.current = true;
 
-    setIsAutoConnecting(true);
-    setSessionStorageItem(SessionStorageKey.TOKEN, savedToken);
+    void getCurrentServerAutoLoginToken().then((savedToken) => {
+      if (!savedToken) {
+        autoLoginAttempted.current = false;
+        return;
+      }
 
-    connect()
+      setIsAutoConnecting(true);
+      setCurrentSessionToken(savedToken);
+
+      return connect()
       .catch(() => {
         // token expired or invalid clear auto-login state so the user
         // sees the connect screen and can log in manually
-        removeLocalStorageItem(LocalStorageKey.AUTO_LOGIN_TOKEN);
-        setLocalStorageItemBool(LocalStorageKey.AUTO_LOGIN, false);
+        clearCurrentServerAutoLogin();
+        setDisconnectInfo(undefined);
       })
       .finally(() => {
         // reset auto-login attempt state so if the user logs out and back in they can try auto-login again
         autoLoginAttempted.current = false;
         setIsAutoConnecting(false);
       });
+    });
   }, [isAppLoading, isPluginsLoading, isConnected, disconnectInfo]);
 
   return null;

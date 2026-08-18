@@ -2,6 +2,7 @@ import { FileCard } from '@/components/channel-view/text/file-card';
 import { PaginatedList } from '@/components/paginated-list';
 import { requestConfirmation } from '@/features/dialogs/actions';
 import { getFileUrl } from '@/helpers/get-file-url';
+import { downloadFile } from '@/helpers/download-file';
 import { getTRPCClient } from '@/lib/trpc';
 import type { TFile } from '@sharkord/shared';
 import { getTrpcError } from '@sharkord/shared';
@@ -63,6 +64,7 @@ const Files = memo(() => {
             size={file.size}
             onRemove={() => onRemoveClick(file.id)}
             href={getFileUrl(file)}
+            onDownload={() => void downloadFile(file)}
           />
         )}
       </PaginatedList.List>

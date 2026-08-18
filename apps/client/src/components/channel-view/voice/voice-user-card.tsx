@@ -13,9 +13,12 @@ import { getFileUrl } from '@/helpers/get-file-url';
 import { cn } from '@/lib/utils';
 import { StreamKind } from '@sharkord/shared';
 import { HeadphoneOff, MicOff, Monitor, Video } from 'lucide-react';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useRef } from 'react';
 import { CardTheme } from './card-theme';
 import { cardControlClass, cardDensity } from './helpers';
+import { FullscreenButton } from './fullscreen-button';
+import { useFullscreen } from './hooks/use-fullscreen';
+import { useVideoStats } from './hooks/use-video-stats';
 import { useVoiceRefs } from './hooks/use-voice-refs';
 import { PictureInPictureButton } from './picture-in-picture-button';
 import { PinButton } from './pin-button';
@@ -31,6 +34,7 @@ type TVoiceUserCardProps = {
   className?: string;
   isPinned?: boolean;
   isAnyCardPinned?: boolean;
+  showScreenShare?: boolean;
 };
 
 const VoiceUserCard = memo(
@@ -42,9 +46,17 @@ const VoiceUserCard = memo(
     isPinned = false,
     showPinControls = true,
     voiceUser,
-    isAnyCardPinned = false
+    isAnyCardPinned = false,
+    showScreenShare = true
   }: TVoiceUserCardProps) => {
-    const { videoRef, hasVideoStream } = useVoiceRefs(userId);
+    const {
+      videoRef,
+      screenShareRef,
+      screenShareAudioRef,
+      hasVideoStream,
+      hasScreenShareStream,
+      hasScreenShareAudioStream
+    } = useVoiceRefs(userId);
     const { volumeKey } = useStreamVolumeControl({ type: 'user', userId });
     const { devices } = useDevices();
     const isOwnUser = useIsOwnUser(userId);
@@ -56,8 +68,18 @@ const VoiceUserCard = memo(
 
     const isCompact = isAnyCardPinned && !isPinned;
     const density = cardDensity(isCompact);
+    const isShowingScreenShare = showScreenShare && hasScreenShareStream;
+    const hasVisualStream = isShowingScreenShare || hasVideoStream;
+    const visualStreamKind = isShowingScreenShare
+      ? StreamKind.SCREEN
+      : StreamKind.VIDEO;
+    const visualRef = isShowingScreenShare ? screenShareRef : videoRef;
+    const videoStats = useVideoStats(visualRef, hasVisualStream);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const { isFullscreen, toggleFullscreen, handleDoubleClick } =
+      useFullscreen(containerRef);
     const showQualityControl =
-      !isOwnUser && webRtcSimulcastEnabled && hasVideoStream;
+      !isOwnUser && webRtcSimulcastEnabled && hasVisualStream;
 
     const handlePinToggle = useCallback(() => {
       if (isPinned) {
@@ -67,24 +89,30 @@ const VoiceUserCard = memo(
       }
     }, [isPinned, onPin, onUnpin]);
 
+    const handleToggleFullscreen = useCallback(() => {
+      void toggleFullscreen();
+    }, [toggleFullscreen]);
+
     const backgroundStyle = useMemo(
       () =>
-        hasVideoStream
+        hasVisualStream
           ? { backgroundColor: '#000000' }
           : { backgroundImage: `url("${getFileUrl(voiceUser.banner)}")` },
-      [hasVideoStream, voiceUser.banner]
+      [hasVisualStream, voiceUser.banner]
     );
 
     return (
       <div
+        ref={containerRef}
         className={cn(
-          'relative bg-card rounded overflow-hidden group/voice-user-card',
+          'relative bg-card overflow-hidden group/voice-user-card',
           'flex items-center justify-center',
           'size-full',
-          'border border-border',
+          isFullscreen ? 'rounded-none border-none' : 'rounded border border-border',
           isActivelySpeaking && speakingEffectClass,
           className
         )}
+        onDoubleClick={isShowingScreenShare ? handleDoubleClick : undefined}
       >
         {voiceUser.banner && showUserBanners ? (
           <div
@@ -94,23 +122,29 @@ const VoiceUserCard = memo(
         ) : (
           <CardTheme
             profileColor={voiceUser.profileColor}
-            hasVideoStream={hasVideoStream}
+            hasVideoStream={hasVisualStream}
           />
         )}
 
-        {hasVideoStream && (
+        {hasVisualStream && (
           <video
-            ref={videoRef}
+            ref={visualRef}
             autoPlay
             muted
             playsInline
             className={cn(
               'absolute inset-0 w-full h-full object-contain',
-              isOwnUser && devices.mirrorOwnVideo && '-scale-x-100'
+              !isShowingScreenShare &&
+                isOwnUser &&
+                devices.mirrorOwnVideo &&
+                '-scale-x-100'
             )}
           />
         )}
-        {!hasVideoStream && (
+        {isShowingScreenShare && hasScreenShareAudioStream && (
+          <audio ref={screenShareAudioRef} autoPlay playsInline className="hidden" />
+        )}
+        {!hasVisualStream && (
           <UserAvatar
             userId={userId}
             className={cn(
@@ -144,17 +178,25 @@ const VoiceUserCard = memo(
           {showQualityControl && (
             <QualityButton
               streamId={userId}
-              kind={StreamKind.VIDEO}
-              disabled={!isSimulcastConsumer(userId, StreamKind.VIDEO)}
+              kind={visualStreamKind}
+              disabled={!isSimulcastConsumer(userId, visualStreamKind)}
               size={density.icon}
               className={cardControlClass(isCompact)}
             />
           )}
-          {hasVideoStream && (
+          {hasVisualStream && (
             <PictureInPictureButton
-              videoRef={videoRef}
+              videoRef={visualRef}
               size={density.icon}
               className={cardControlClass(isCompact)}
+            />
+          )}
+          {isShowingScreenShare && (
+            <FullscreenButton
+              isFullscreen={isFullscreen}
+              handleToggleFullscreen={handleToggleFullscreen}
+              size={density.icon}
+              className={cardControlClass(isCompact, isFullscreen)}
             />
           )}
           {showPinControls && (
@@ -207,6 +249,12 @@ const VoiceUserCard = memo(
             >
               {voiceUser.name}
             </p>
+            {isShowingScreenShare && videoStats && (
+              <span className="text-muted-foreground text-xs ml-2 leading-none shrink-0">
+                {videoStats.width}x{videoStats.height}
+                {videoStats.frameRate > 0 && ` ${videoStats.frameRate}fps`}
+              </span>
+            )}
           </div>
         </div>
       </div>

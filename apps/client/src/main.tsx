@@ -12,6 +12,9 @@ import { GlobalErrorBoundary } from './components/error-boundary/global-error-bo
 import { HotkeysController } from './components/hotkeys-controller/index.tsx';
 import { PluginsController } from './components/plugins-controller/index.tsx';
 import { AutoLoginController } from './components/routing/auto-login-controller.tsx';
+import { DesktopDeepLinkController } from './components/routing/desktop-deep-link-controller.tsx';
+import { DesktopDownloadController } from './components/routing/desktop-download-controller.tsx';
+import { DesktopNotificationController } from './components/routing/desktop-notification-controller.tsx';
 import { Routing } from './components/routing/index.tsx';
 import { ServerScreensProvider } from './components/server-screens/index.tsx';
 import { ThemeProvider } from './components/theme-provider/index.tsx';
@@ -44,6 +47,9 @@ createRoot(document.getElementById('root')!).render(
             <DialogsProvider />
             <ServerScreensProvider />
             <AutoLoginController />
+            <DesktopDeepLinkController />
+            <DesktopDownloadController />
+            <DesktopNotificationController />
             <Routing />
           </DevicesProvider>
         </Provider>

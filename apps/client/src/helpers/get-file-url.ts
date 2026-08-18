@@ -1,24 +1,24 @@
 import type { TFile } from '@sharkord/shared';
+import { getServerConnection } from './server-connection';
 
 const getHostFromServer = () => {
-  if (import.meta.env.MODE === 'development') {
-    return 'localhost:4991';
+  const connection = getServerConnection();
+
+  if (!connection) {
+    throw new Error('No Sharkord server has been selected.');
   }
 
-  return window.location.host;
+  return new URL(connection.websocketUrl).host;
 };
 
 const getUrlFromServer = () => {
-  if (import.meta.env.MODE === 'development') {
-    return 'http://localhost:4991';
+  const connection = getServerConnection();
+
+  if (!connection) {
+    throw new Error('No Sharkord server has been selected.');
   }
 
-  const host = window.location.host;
-  const currentProtocol = window.location.protocol;
-
-  const finalUrl = `${currentProtocol}//${host}`;
-
-  return finalUrl;
+  return connection.httpUrl;
 };
 
 const getFileUrl = (file: TFile | undefined | null) => {

@@ -8,6 +8,8 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 export interface TAppState {
   appLoading: boolean;
+  serverConnectionRequired: boolean;
+  serverConnectionError: string | undefined;
   isAutoConnecting: boolean;
   loadingPlugins: boolean;
   devices: TDevices | undefined;
@@ -31,6 +33,8 @@ export interface TAppState {
 
 const initialState: TAppState = {
   appLoading: true,
+  serverConnectionRequired: false,
+  serverConnectionError: undefined,
   isAutoConnecting: false,
   loadingPlugins: true,
   devices: undefined,
@@ -81,6 +85,15 @@ export const appSlice = createSlice({
   reducers: {
     setAppLoading: (state, action: PayloadAction<boolean>) => {
       state.appLoading = action.payload;
+    },
+    setServerConnectionRequired: (state, action: PayloadAction<boolean>) => {
+      state.serverConnectionRequired = action.payload;
+    },
+    setServerConnectionError: (
+      state,
+      action: PayloadAction<string | undefined>
+    ) => {
+      state.serverConnectionError = action.payload;
     },
     setDevices: (state, action: PayloadAction<TDevices>) => {
       state.devices = action.payload;

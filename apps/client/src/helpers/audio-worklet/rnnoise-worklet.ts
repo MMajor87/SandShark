@@ -1,4 +1,4 @@
-const RNNOISE_WORKLET_URL = '/rnnoise/rnnoise-bundle.js';
+const RNNOISE_WORKLET_URL = `${import.meta.env.BASE_URL}rnnoise/rnnoise-bundle.js`;
 const RNNOISE_WORKLET_NAME = 'RnnoiseProcessor';
 const RNNOISE_SAMPLE_RATE = 48000;
 const RNNOISE_READY_TIMEOUT_MS = 10000;

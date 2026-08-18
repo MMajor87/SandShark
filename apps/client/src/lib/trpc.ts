@@ -5,19 +5,18 @@ import { resetServerState, setDisconnectInfo } from '@/features/server/actions';
 import { playSound } from '@/features/server/sounds/actions';
 import { SoundType } from '@/features/server/types';
 import {
-  getSessionStorageItem,
-  LocalStorageKey,
-  removeLocalStorageItem,
-  removeSessionStorageItem,
-  SessionStorageKey
-} from '@/helpers/storage';
+  clearCurrentServerAutoLogin,
+  clearCurrentSessionToken,
+  getCurrentSessionToken
+} from '@/helpers/server-session';
 import { type AppRouter, type TConnectionParams } from '@sharkord/shared';
 import { createTRPCProxyClient, createWSClient, wsLink } from '@trpc/client';
 
 let wsClient: ReturnType<typeof createWSClient> | null = null;
 let trpc: ReturnType<typeof createTRPCProxyClient<AppRouter>> | null = null;
-let currentHost: string | null = null;
+let currentUrl: string | null = null;
 let isCleaningUp = false;
+let ignoreNextClose = false;
 
 // Firefox fires WebSocket onClose during page refresh; Chrome does not. When navigating away,
 // we must not clear auto-login localStorage or it will be lost on refresh in Firefox.
@@ -26,14 +25,16 @@ window.addEventListener('beforeunload', () => {
   isNavigatingAway = true;
 });
 
-const initializeTRPC = (host: string) => {
-  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-
+const initializeTRPC = (url: string) => {
   wsClient = createWSClient({
-    url: `${protocol}://${host}`,
+    url,
     // @ts-expect-error - the onclose type is not correct in trpc
     onClose: (cause: CloseEvent) => {
+      const wasIntentionalClose = ignoreNextClose;
+      ignoreNextClose = false;
       cleanup();
+
+      if (wasIntentionalClose) return;
 
       setDisconnectInfo({
         code: cause.code,
@@ -48,7 +49,7 @@ const initializeTRPC = (host: string) => {
     },
     connectionParams: async (): Promise<TConnectionParams> => {
       return {
-        token: getSessionStorageItem(SessionStorageKey.TOKEN) || ''
+        token: getCurrentSessionToken() || ''
       };
     },
     keepAlive: {
@@ -62,17 +63,17 @@ const initializeTRPC = (host: string) => {
     links: [wsLink({ client: wsClient })]
   });
 
-  currentHost = host;
+  currentUrl = url;
 
   return trpc;
 };
 
-const connectToTRPC = (host: string) => {
-  if (trpc && currentHost === host) {
+const connectToTRPC = (url: string) => {
+  if (trpc && currentUrl === url) {
     return trpc;
   }
 
-  return initializeTRPC(host);
+  return initializeTRPC(url);
 };
 
 const getTRPCClient = () => {
@@ -83,7 +84,7 @@ const getTRPCClient = () => {
   return trpc;
 };
 
-const cleanup = () => {
+const cleanup = ({ clearPersistedSession = !isNavigatingAway } = {}) => {
   if (isCleaningUp) {
     return;
   }
@@ -91,25 +92,26 @@ const cleanup = () => {
   isCleaningUp = true;
 
   if (wsClient) {
+    ignoreNextClose = true;
     wsClient.close();
     wsClient = null;
   }
 
   trpc = null;
-  currentHost = null;
+  currentUrl = null;
 
   // cleanup can be called due to various reasons (manual disconnect, connection error, auto-login failure, etc).
   // so we remove any persisted auto-login token to prevent auto-login loops.
   // skip this when navigating away (refresh/close) - Firefox fires onClose during refresh, Chrome does not
-  if (!isNavigatingAway)
-    removeLocalStorageItem(LocalStorageKey.AUTO_LOGIN_TOKEN);
+  if (clearPersistedSession)
+    clearCurrentServerAutoLogin();
 
   resetServerScreens();
   resetServerState();
   resetDialogs();
   resetApp();
 
-  removeSessionStorageItem(SessionStorageKey.TOKEN);
+  clearCurrentSessionToken();
 
   // this should help Firefox users who report that auto login is not consistent
   setTimeout(() => {

@@ -2,7 +2,7 @@ import { UploadHeaders, type TTempFile } from '@sharkord/shared';
 import i18next from 'i18next';
 import { toast } from 'sonner';
 import { getUrlFromServer } from './get-file-url';
-import { getSessionStorageItem, SessionStorageKey } from './storage';
+import { getCurrentSessionToken } from './server-session';
 
 const getSafeFileName = (name: string) => {
   return (
@@ -48,7 +48,7 @@ const uploadFile = async (file: File, options?: TUploadFileOptions) => {
     );
     xhr.setRequestHeader(
       UploadHeaders.TOKEN,
-      getSessionStorageItem(SessionStorageKey.TOKEN) ?? ''
+      getCurrentSessionToken() ?? ''
     );
 
     if (options?.onProgress) {

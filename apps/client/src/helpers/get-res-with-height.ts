@@ -4,6 +4,8 @@ const getResWidthHeight = (
   resolution: Resolution | undefined
 ): { width: number; height: number } => {
   switch (resolution) {
+    case Resolution['144p']:
+      return { width: 256, height: 144 };
     case Resolution['240p']:
       return { width: 320, height: 240 };
     case Resolution['360p']:

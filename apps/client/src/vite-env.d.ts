@@ -8,6 +8,164 @@ declare global {
     openSoundsModal?: () => void;
     printVoiceStats?: () => void;
     DEBUG?: boolean;
+    sandSharkDesktop?: {
+      getVersion: () => Promise<string>;
+      minimize: () => Promise<void>;
+      maximize: () => Promise<void>;
+      close: () => Promise<void>;
+      showNotification: (options: {
+        title: string;
+        body?: string;
+        silent?: boolean;
+        target?: {
+          profileId?: string;
+          channelId: number;
+          messageId: number;
+          isDm: boolean;
+        };
+      }) => Promise<void>;
+      onNotificationClick: (
+        listener: (target: {
+          profileId?: string;
+          channelId: number;
+          messageId: number;
+          isDm: boolean;
+        }) => void
+      ) => () => void;
+      openExternal: (url: string) => Promise<void>;
+      getDesktopCaptureSources: () => Promise<
+        Array<{
+          id: string;
+          name: string;
+          type: 'screen' | 'window';
+          thumbnailDataUrl?: string;
+        }>
+      >;
+      setDesktopCaptureSource: (sourceId: string) => Promise<void>;
+      reportDesktopCaptureDiagnostic: (diagnostic: {
+        stage: string;
+        details?: Record<string, boolean | number | string | undefined>;
+      }) => Promise<void>;
+      showDesktopCaptureLog: () => Promise<void>;
+      setPushToTalk: (config: {
+        input:
+          | { type: 'keyboard'; keyCode: number }
+          | { type: 'mouse'; button: number };
+        modifiers: {
+          control: boolean;
+          shift: boolean;
+          alt: boolean;
+          meta: boolean;
+        };
+      }) => Promise<{
+        registered: boolean;
+        error?: string;
+      }>;
+      clearPushToTalk: () => Promise<void>;
+      onPushToTalk: (listener: (active: boolean) => void) => () => void;
+      setTrayStatus: (status: {
+        serverName?: string;
+        micMuted: boolean;
+        soundMuted: boolean;
+        unreadCount: number;
+      }) => Promise<void>;
+      onTrayAction: (
+        listener: (action: 'toggle-mic' | 'toggle-sound') => void
+      ) => () => void;
+      setTaskbarStatus: (status: {
+        unreadCount: number;
+        mentionCount: number;
+      }) => Promise<void>;
+      flashTaskbar: () => Promise<void>;
+      getWindowBehavior: () => Promise<{
+        closeToTray: boolean;
+        minimizeToTray: boolean;
+        startMinimized: boolean;
+      }>;
+      setWindowBehavior: (behavior: {
+        closeToTray: boolean;
+        minimizeToTray: boolean;
+        startMinimized: boolean;
+      }) => Promise<void>;
+      getStartAtLogin: () => Promise<{
+        enabled: boolean;
+        supported: boolean;
+      }>;
+      setStartAtLogin: (enabled: boolean) => Promise<{
+        enabled: boolean;
+        supported: boolean;
+      }>;
+      getHardwareAcceleration: () => Promise<{
+        enabled: boolean;
+        restartRequired: boolean;
+      }>;
+      setHardwareAcceleration: (enabled: boolean) => Promise<{
+        enabled: boolean;
+        restartRequired: boolean;
+      }>;
+      getUpdateSettings: () => Promise<{
+        automaticallyCheck: boolean;
+        automaticallyDownload: boolean;
+      }>;
+      setUpdateSettings: (settings: {
+        automaticallyCheck: boolean;
+        automaticallyDownload: boolean;
+      }) => Promise<{
+        automaticallyCheck: boolean;
+        automaticallyDownload: boolean;
+      }>;
+      getUpdateStatus: () => Promise<{
+        state:
+          | 'idle'
+          | 'checking'
+          | 'available'
+          | 'not-available'
+          | 'downloading'
+          | 'downloaded'
+          | 'error'
+          | 'unsupported';
+        version?: string;
+        percent?: number;
+        message?: string;
+      }>;
+      checkForUpdates: () => Promise<{
+        state: string;
+        version?: string;
+        percent?: number;
+        message?: string;
+      }>;
+      downloadUpdate: () => Promise<{
+        state: string;
+        version?: string;
+        percent?: number;
+        message?: string;
+      }>;
+      installUpdate: () => Promise<void>;
+      onUpdateStatus: (listener: (status: {
+        state: string;
+        version?: string;
+        percent?: number;
+        message?: string;
+      }) => void) => () => void;
+      getSecret: (key: string) => Promise<string | undefined>;
+      setSecret: (request: { key: string; value: string }) => Promise<boolean>;
+      removeSecret: (key: string) => Promise<void>;
+      readyForDeepLinks: () => Promise<string[]>;
+      onDeepLink: (listener: (url: string) => void) => () => void;
+      downloadFile: (request: {
+        url: string;
+        filename: string;
+      }) => Promise<{ id?: string }>;
+      onDownloadProgress: (listener: (progress: {
+        id: string;
+        filename: string;
+        receivedBytes: number;
+        totalBytes: number;
+        state: 'progressing' | 'completed' | 'cancelled' | 'interrupted';
+      }) => void) => () => void;
+      openDownloadedFile: (id: string) => Promise<void>;
+      showDownloadedFile: (id: string) => Promise<void>;
+    };
 
     // plugin store exposed for plugins to use imperatively
     __SHARKORD_STORE__: import('@sharkord/shared').TPluginStore;

@@ -1,0 +1,40 @@
+appId: com.sandshark.desktop
+productName: SandShark
+icon: sandshark.png
+artifactName: ${productName}-${version}-Setup-${arch}.${ext}
+npmRebuild: false
+directories:
+  output: release
+files:
+  - dist/**
+extraResources:
+  - from: ../client/dist
+    to: renderer
+  - from: sandshark.png
+    to: sandshark.png
+asar: true
+asarUnpack:
+  - node_modules/uiohook-napi/**
+win:
+  executableName: SandShark
+  target:
+    - target: nsis
+      arch:
+        - x64
+protocols:
+  - name: SandShark
+    schemes:
+      - sandshark
+      - sharkord
+publish:
+  provider: github
+  owner: MMajor87
+  repo: SandShark
+  releaseType: draft
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: SandShark
+  deleteAppDataOnUninstall: false

@@ -271,6 +271,10 @@ const useVoiceControls = ({
         // ignore
       }
 
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+
       toast.error(getTrpcError(error, 'Failed to update screen share state'));
     } finally {
       isTogglingScreenShare.current = false;

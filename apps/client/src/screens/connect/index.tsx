@@ -4,15 +4,10 @@ import { connect } from '@/features/server/actions';
 import { useInfo } from '@/features/server/hooks';
 import { getFileUrl, getUrlFromServer } from '@/helpers/get-file-url';
 import {
-  getLocalStorageItem,
-  getLocalStorageItemBool,
-  LocalStorageKey,
-  removeLocalStorageItem,
-  SessionStorageKey,
-  setLocalStorageItem,
-  setLocalStorageItemBool,
-  setSessionStorageItem
-} from '@/helpers/storage';
+  getCurrentServerAutoLoginToken,
+  getCurrentServerIdentity,
+  saveServerLogin
+} from '@/helpers/server-session';
 import { useForm } from '@/hooks/use-form';
 import { PluginSlot, TestId } from '@sharkord/shared';
 import {
@@ -29,7 +24,7 @@ import {
   Label,
   Switch
 } from '@sharkord/ui';
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -41,12 +36,10 @@ const Connect = memo(() => {
     rememberCredentials: boolean;
     autoLogin: boolean;
   }>({
-    identity: getLocalStorageItem(LocalStorageKey.IDENTITY) || '',
-    password: getLocalStorageItem(LocalStorageKey.USER_PASSWORD) || '',
-    rememberCredentials: !!getLocalStorageItem(
-      LocalStorageKey.REMEMBER_CREDENTIALS
-    ),
-    autoLogin: getLocalStorageItemBool(LocalStorageKey.AUTO_LOGIN)
+    identity: getCurrentServerIdentity() || '',
+    password: '',
+    rememberCredentials: false,
+    autoLogin: false
   });
 
   const [loading, setLoading] = useState(false);
@@ -57,6 +50,12 @@ const Connect = memo(() => {
     const invite = urlParams.get('invite');
     return invite || undefined;
   }, []);
+
+  useEffect(() => {
+    void getCurrentServerAutoLoginToken().then((token) => {
+      if (token) onChange('autoLogin', true);
+    });
+  }, [onChange]);
 
   const onConnectClick = useCallback(async () => {
     setLoading(true);
@@ -85,15 +84,11 @@ const Connect = memo(() => {
 
       const data = (await response.json()) as { token: string };
 
-      setSessionStorageItem(SessionStorageKey.TOKEN, data.token);
-      setLocalStorageItemBool(LocalStorageKey.AUTO_LOGIN, values.autoLogin);
-
-      if (values.autoLogin) {
-        setLocalStorageItem(LocalStorageKey.AUTO_LOGIN_TOKEN, data.token);
-      } else {
-        removeLocalStorageItem(LocalStorageKey.AUTO_LOGIN_TOKEN);
-      }
-
+      await saveServerLogin({
+        identity: values.identity,
+        token: data.token,
+        autoLogin: values.autoLogin
+      });
       await connect();
     } catch (error) {
       const errorMessage =
@@ -117,7 +112,7 @@ const Connect = memo(() => {
       return getFileUrl(info.logo);
     }
 
-    return '/logo.webp';
+    return `${import.meta.env.BASE_URL}logo.webp`;
   }, [info]);
 
   return (

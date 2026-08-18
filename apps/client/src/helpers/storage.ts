@@ -1,3 +1,12 @@
+import {
+  getPlatformLocalStorageItem,
+  getPlatformSessionStorageItem,
+  removePlatformLocalStorageItem,
+  removePlatformSessionStorageItem,
+  setPlatformLocalStorageItem,
+  setPlatformSessionStorageItem
+} from '@/platform/storage';
+
 export enum LocalStorageKey {
   IDENTITY = 'sharkord-identity',
   REMEMBER_CREDENTIALS = 'sharkord-remember-identity',
@@ -34,22 +43,29 @@ export enum LocalStorageKey {
   LANGUAGE = 'sharkord-language',
   PLUGIN_SLOT_DEBUG = 'sharkord-plugin-slot-debug',
   HIDE_OWN_SCREEN_SHARE = 'sharkord-hide-own-screen-share',
-  ALWAYS_SHOW_VOICE_CONTROLS = 'sharkord-always-show-voice-controls'
+  ALWAYS_SHOW_VOICE_CONTROLS = 'sharkord-always-show-voice-controls',
+  SERVER_CONNECTION = 'sandshark-server-connection',
+  SERVER_SESSIONS = 'sandshark-server-sessions',
+  SERVER_PROFILES = 'sandshark-server-profiles',
+  ACTIVE_SERVER_PROFILE_ID = 'sandshark-active-server-profile-id',
+  PUSH_TO_TALK_SETTINGS = 'sandshark-push-to-talk-settings',
+  MUTED_NOTIFICATION_CHANNELS = 'sandshark-muted-notification-channels'
 }
 
 export enum SessionStorageKey {
-  TOKEN = 'sharkord-token'
+  TOKEN = 'sharkord-token',
+  SERVER_SESSION_KEY = 'sandshark-server-session-key'
 }
 
 const getLocalStorageItem = (key: LocalStorageKey): string | null => {
-  return localStorage.getItem(key);
+  return getPlatformLocalStorageItem(key);
 };
 
 const getLocalStorageItemBool = (
   key: LocalStorageKey,
   defaultValue: boolean = false
 ): boolean => {
-  const item = localStorage.getItem(key);
+  const item = getPlatformLocalStorageItem(key);
 
   if (item === null) {
     return defaultValue ?? false;
@@ -62,14 +78,14 @@ const setLocalStorageItemBool = (
   key: LocalStorageKey,
   value: boolean
 ): void => {
-  localStorage.setItem(key, value.toString());
+  setPlatformLocalStorageItem(key, value.toString());
 };
 
 const getLocalStorageItemAsNumber = (
   key: LocalStorageKey,
   defaultValue?: number
 ): number | undefined => {
-  const item = localStorage.getItem(key);
+  const item = getPlatformLocalStorageItem(key);
 
   if (item === null) {
     return defaultValue;
@@ -84,7 +100,7 @@ const getLocalStorageItemAsJSON = <T>(
   key: LocalStorageKey,
   defaultValue: T | undefined = undefined
 ): T | undefined => {
-  const item = localStorage.getItem(key);
+  const item = getPlatformLocalStorageItem(key);
 
   if (item) {
     return JSON.parse(item) as T;
@@ -94,27 +110,27 @@ const getLocalStorageItemAsJSON = <T>(
 };
 
 const setLocalStorageItemAsJSON = <T>(key: LocalStorageKey, value: T): void => {
-  localStorage.setItem(key, JSON.stringify(value));
+  setPlatformLocalStorageItem(key, JSON.stringify(value));
 };
 
 const setLocalStorageItem = (key: LocalStorageKey, value: string): void => {
-  localStorage.setItem(key, value);
+  setPlatformLocalStorageItem(key, value);
 };
 
 const removeLocalStorageItem = (key: LocalStorageKey): void => {
-  localStorage.removeItem(key);
+  removePlatformLocalStorageItem(key);
 };
 
 const getSessionStorageItem = (key: SessionStorageKey): string | null => {
-  return sessionStorage.getItem(key);
+  return getPlatformSessionStorageItem(key);
 };
 
 const setSessionStorageItem = (key: SessionStorageKey, value: string): void => {
-  sessionStorage.setItem(key, value);
+  setPlatformSessionStorageItem(key, value);
 };
 
 const removeSessionStorageItem = (key: SessionStorageKey): void => {
-  sessionStorage.removeItem(key);
+  removePlatformSessionStorageItem(key);
 };
 
 export {

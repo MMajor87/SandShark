@@ -32,7 +32,8 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
     toggleSound,
     toggleWebcam,
     toggleScreenShare,
-    isScreenShareSupported
+    isScreenShareSupported,
+    pushToTalkActive
   } = useVoice();
   const ownVoiceState = useOwnVoiceState();
   const channelCan = useChannelCan(channelId);
@@ -75,6 +76,15 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
           onClick={toggleMic}
           disabled={!permissions.canSpeak || ownVoiceState.soundMuted}
         />
+
+        {pushToTalkActive && (
+          <div
+            className="flex size-8 items-center justify-center text-green-500"
+            title="Push to talk active"
+          >
+            <Mic className="size-4" fill="currentColor" />
+          </div>
+        )}
 
         <ControlToggleButton
           enabled={ownVoiceState.soundMuted}

@@ -1,9 +1,11 @@
 import { setPluginsLoading } from '@/features/app/actions';
+import { useServerConnectionRequired } from '@/features/app/hooks';
 import {
   processPluginComponents,
   setPluginComponents
 } from '@/features/server/plugins/actions';
 import { getUrlFromServer } from '@/helpers/get-file-url';
+import { getServerConnection } from '@/helpers/server-connection';
 import { memo, useCallback, useEffect } from 'react';
 
 export type TPluginsController = {
@@ -11,6 +13,8 @@ export type TPluginsController = {
 };
 
 const PluginsController = memo(() => {
+  const serverConnectionRequired = useServerConnectionRequired();
+
   const fetchPlugins = useCallback(async () => {
     try {
       const response = await fetch(`${getUrlFromServer()}/plugin-components`);
@@ -34,8 +38,14 @@ const PluginsController = memo(() => {
     // we need to fetch plugins here before joining the server
     // because there might be slots that need to be rendered in the login screen
     // once you are connected the the data flow is through trpc and not through this controller
+    if (serverConnectionRequired || !getServerConnection()) {
+      setPluginsLoading(false);
+      return;
+    }
+
+    setPluginsLoading(true);
     fetchPlugins();
-  }, [fetchPlugins]);
+  }, [fetchPlugins, serverConnectionRequired]);
 
   return null;
 });

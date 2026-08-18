@@ -10,6 +10,7 @@
     "mediasoup"
   ],
   "scripts": {
+    "desktop:dev": "bun run --cwd apps/desktop dev",
     "test": "bun run --filter '*' test",
     "format": "bun run --filter '*' format",
     "format:check": "bun run --filter '*' format:check",

@@ -12,7 +12,6 @@ import {
   PinnedCardType,
   usePinCardController
 } from './hooks/use-pin-card-controller';
-import { ScreenShareCard } from './screen-share-card';
 import { VoiceGrid } from './voice-grid';
 import { VoiceUserCard } from './voice-user-card';
 
@@ -43,15 +42,23 @@ const VoiceChannel = memo(({ channelId }: TChannelProps) => {
 
     voiceUsers.forEach((voiceUser) => {
       const userCardId = `user-${voiceUser.id}`;
-      const hasVideo = voiceUser.state.webcamEnabled;
+      const shouldHideOwnScreenShare =
+        hideOwnScreenShare && voiceUser.id === ownUserId;
+      const hasVideo =
+        voiceUser.state.webcamEnabled ||
+        (voiceUser.state.sharingScreen && !shouldHideOwnScreenShare);
 
       // Only show user card if not filtering, or if they have video
       if (!shouldFilterNonVideo || hasVideo) {
+        const isScreenSharePinned =
+          pinnedCard?.type === PinnedCardType.SCREEN_SHARE &&
+          pinnedCard.userId === voiceUser.id;
+
         cards.push(
           <VoiceUserCard
             key={userCardId}
             userId={voiceUser.id}
-            isPinned={isPinned(userCardId)}
+            isPinned={isPinned(userCardId) || isScreenSharePinned}
             isAnyCardPinned={isAnyCardPinned}
             onPin={() =>
               pinCard({
@@ -62,31 +69,7 @@ const VoiceChannel = memo(({ channelId }: TChannelProps) => {
             }
             onUnpin={unpinCard}
             voiceUser={voiceUser}
-          />
-        );
-      }
-
-      // Screen shares always have video, so always show them
-      const shouldHideOwnScreenShare =
-        hideOwnScreenShare && voiceUser.id === ownUserId;
-      if (voiceUser.state.sharingScreen && !shouldHideOwnScreenShare) {
-        const screenShareCardId = `screen-share-${voiceUser.id}`;
-
-        cards.push(
-          <ScreenShareCard
-            key={screenShareCardId}
-            userId={voiceUser.id}
-            isPinned={isPinned(screenShareCardId)}
-            isAnyCardPinned={isAnyCardPinned}
-            onPin={() =>
-              pinCard({
-                id: screenShareCardId,
-                type: PinnedCardType.SCREEN_SHARE,
-                userId: voiceUser.id
-              })
-            }
-            onUnpin={unpinCard}
-            showPinControls
+            showScreenShare={!shouldHideOwnScreenShare}
           />
         );
       }
@@ -122,6 +105,7 @@ const VoiceChannel = memo(({ channelId }: TChannelProps) => {
   }, [
     voiceUsers,
     externalStreams,
+    pinnedCard,
     isPinned,
     pinCard,
     unpinCard,
@@ -148,7 +132,15 @@ const VoiceChannel = memo(({ channelId }: TChannelProps) => {
 
   return (
     <div className="flex flex-col size-full relative bg-background overflow-hidden group/voice-stage">
-      <VoiceGrid pinnedCardId={pinnedCard?.id}>{cards}</VoiceGrid>
+      <VoiceGrid
+        pinnedCardId={
+          pinnedCard?.type === PinnedCardType.SCREEN_SHARE
+            ? `user-${pinnedCard.userId}`
+            : pinnedCard?.id
+        }
+      >
+        {cards}
+      </VoiceGrid>
       <ControlsBar channelId={channelId} />
     </div>
   );

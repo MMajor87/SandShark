@@ -4,6 +4,10 @@ import { requestConfirmation } from '@/features/dialogs/actions';
 import { openServerScreen } from '@/features/server-screens/actions';
 import { useChannelById } from '@/features/server/channels/hooks';
 import { useCan } from '@/features/server/hooks';
+import {
+  isChannelNotificationsMuted,
+  toggleChannelNotificationsMuted
+} from '@/helpers/muted-notification-channels';
 import { getTRPCClient } from '@/lib/trpc';
 import { ChannelType, Permission } from '@sharkord/shared';
 import {
@@ -14,7 +18,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger
 } from '@sharkord/ui';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -31,6 +35,9 @@ const ChannelContextMenu = memo(
 
     const canManageChannels = can(Permission.MANAGE_CHANNELS);
     const isVoiceChannel = channel?.type === ChannelType.VOICE;
+    const [notificationsMuted, setNotificationsMuted] = useState(() =>
+      isChannelNotificationsMuted(channelId)
+    );
 
     const onOpenChat = useCallback(() => {
       openVoiceChatSidebar(channelId);
@@ -61,9 +68,9 @@ const ChannelContextMenu = memo(
       openServerScreen(ServerScreen.CHANNEL_SETTINGS, { channelId });
     }, [channelId]);
 
-    if (!canManageChannels && !isVoiceChannel) {
-      return <>{children}</>;
-    }
+    const onNotificationMuteToggle = useCallback(() => {
+      setNotificationsMuted(toggleChannelNotificationsMuted(channelId));
+    }, [channelId]);
 
     return (
       <ContextMenu>
@@ -76,9 +83,12 @@ const ChannelContextMenu = memo(
               {t('openChat')}
             </ContextMenuItem>
           )}
+          <ContextMenuItem onClick={onNotificationMuteToggle}>
+            {notificationsMuted ? 'Unmute notifications' : 'Mute notifications'}
+          </ContextMenuItem>
           {canManageChannels && (
             <>
-              {isVoiceChannel && <ContextMenuSeparator />}
+              <ContextMenuSeparator />
               <ContextMenuItem onClick={onEditClick}>
                 {t('editLabel')}
               </ContextMenuItem>

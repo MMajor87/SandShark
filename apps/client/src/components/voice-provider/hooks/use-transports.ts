@@ -19,6 +19,7 @@ import { useCallback, useRef } from 'react';
 import { getStoredStreamQuality } from '../helpers';
 
 type TUseTransportParams = {
+  onTransportFailed: () => void;
   addRemoteUserStream: (
     userId: number,
     stream: MediaStream,
@@ -51,6 +52,7 @@ type TUseTransportParams = {
 };
 
 const useTransports = ({
+  onTransportFailed,
   addRemoteUserStream,
   removeRemoteUserStream,
   addExternalStreamTrack,
@@ -105,6 +107,7 @@ const useTransports = ({
         if (state === 'failed') {
           logVoice(`Producer transport ${state}`);
           producerTransport.current?.close();
+          onTransportFailed();
         } else if (state === 'closed') {
           logVoice('Producer transport closed');
           producerTransport.current = undefined;
@@ -157,8 +160,9 @@ const useTransports = ({
       );
     } catch (error) {
       logVoice('Error creating producer transport', { error });
+      throw error;
     }
-  }, []);
+  }, [onTransportFailed]);
 
   const createConsumerTransport = useCallback(async (device: Device) => {
     logVoice('Creating consumer transport', { device });
@@ -205,6 +209,7 @@ const useTransports = ({
 
           consumerTransport.current?.close();
           consumerTransport.current = undefined;
+          onTransportFailed();
         } else if (state === 'closed') {
           logVoice('Consumer transport closed');
           consumerTransport.current = undefined;
@@ -216,8 +221,9 @@ const useTransports = ({
       });
     } catch (error) {
       logVoice('Failed to create consumer transport', { error });
+      throw error;
     }
-  }, []);
+  }, [onTransportFailed]);
 
   const consume = useCallback(
     async (

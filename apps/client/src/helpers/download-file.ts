@@ -1,11 +1,20 @@
 import type { TFile } from '@sharkord/shared';
 import { getFileUrl } from './get-file-url';
+import { isDesktopClient } from '@/platform/environment';
 
 const downloadFile = async (file: TFile) => {
   const fileUrl = getFileUrl(file);
 
   if (!fileUrl) {
     console.error('Failed to get file URL.');
+    return;
+  }
+
+  if (isDesktopClient() && window.sandSharkDesktop) {
+    await window.sandSharkDesktop.downloadFile({
+      url: fileUrl,
+      filename: file.originalName
+    });
     return;
   }
 
@@ -22,6 +31,7 @@ const downloadFile = async (file: TFile) => {
   link.download = file.originalName;
 
   link.click();
+  URL.revokeObjectURL(link.href);
 };
 
 export { downloadFile };

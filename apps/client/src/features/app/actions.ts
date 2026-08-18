@@ -1,6 +1,13 @@
 import { assertNotificationsPermission } from '@/helpers/assert-notifications-permission';
 import { getFileUrl, getUrlFromServer } from '@/helpers/get-file-url';
 import {
+  getServerConnection,
+  markActiveServerProfileConnected,
+  saveServerConnection
+} from '@/helpers/server-connection';
+import { clearCurrentServerSession } from '@/helpers/server-session';
+import { isDesktopClient } from '@/platform/environment';
+import {
   LocalStorageKey,
   setLocalStorageItem,
   setLocalStorageItemBool
@@ -9,6 +16,7 @@ import type { TMessageJumpToTarget } from '@/types';
 import type { TServerInfo } from '@sharkord/shared';
 import { toast } from 'sonner';
 import { markChannelAsRead, setInfo } from '../server/actions';
+import { switchServer } from '../server/actions';
 import { store } from '../store';
 import {
   pluginSlotDebugSelector,
@@ -19,6 +27,25 @@ import { appSliceActions } from './slice';
 
 export const setAppLoading = (loading: boolean) =>
   store.dispatch(appSliceActions.setAppLoading(loading));
+
+export const setServerConnectionRequired = (required: boolean) =>
+  store.dispatch(appSliceActions.setServerConnectionRequired(required));
+
+export const setServerConnectionError = (error: string | undefined) =>
+  store.dispatch(appSliceActions.setServerConnectionError(error));
+
+export const beginServerConnection = () => {
+  setServerConnectionError(undefined);
+  setServerConnectionRequired(false);
+  setAppLoading(true);
+};
+
+export const openServerProfiles = () => {
+  switchServer();
+  setServerConnectionError(undefined);
+  setServerConnectionRequired(true);
+  setAppLoading(false);
+};
 
 export const setIsAutoConnecting = (isAutoConnecting: boolean) =>
   store.dispatch(appSliceActions.setIsAutoConnecting(isAutoConnecting));
@@ -80,16 +107,47 @@ export const fetchServerInfo = async (): Promise<TServerInfo | undefined> => {
 };
 
 export const loadApp = async () => {
+  if (!getServerConnection()) {
+    setServerConnectionError(undefined);
+    setServerConnectionRequired(true);
+    setAppLoading(false);
+    return;
+  }
+
   const info = await fetchServerInfo();
 
   if (!info) {
     console.error('Failed to load server info during app load');
-    toast.error('Failed to load server info');
+
+    if (isDesktopClient()) {
+      setServerConnectionError(
+        'Could not reach the saved Sharkord server. Check its URL and try again.'
+      );
+      setServerConnectionRequired(true);
+      setAppLoading(false);
+    } else {
+      toast.error('Failed to load server info');
+    }
+
     return;
   }
 
+  const connection = getServerConnection();
+
+  if (connection?.serverId && connection.serverId !== info.serverId) {
+    clearCurrentServerSession();
+    saveServerConnection({
+      ...connection,
+      serverId: info.serverId,
+      displayName: info.name
+    });
+  }
+
   setInfo(info);
+  markActiveServerProfileConnected();
   applyServerBranding(info);
+  setServerConnectionError(undefined);
+  setServerConnectionRequired(false);
   setAppLoading(false);
 };
 

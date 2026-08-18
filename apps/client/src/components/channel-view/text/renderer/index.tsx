@@ -3,6 +3,7 @@ import { RelativeTime } from '@/components/relative-time';
 import { requestConfirmation } from '@/features/dialogs/actions';
 import { useOwnUserId, useUserById } from '@/features/server/users/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
+import { downloadFile } from '@/helpers/download-file';
 import { getRenderedUsername } from '@/helpers/get-rendered-username';
 import { getTRPCClient } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
@@ -135,6 +136,7 @@ const MessageRenderer = memo(
                   isOwnMessage ? () => onRemoveFileClick(file.id) : undefined
                 }
                 href={getFileUrl(file)}
+                onDownload={() => void downloadFile(file)}
               />
             ))}
           </div>

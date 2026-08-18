@@ -1,6 +1,7 @@
 import { Dialog } from '@/components/dialogs/dialogs';
 import { logDebug } from '@/helpers/browser-logger';
-import { getHostFromServer } from '@/helpers/get-file-url';
+import { getServerConnection } from '@/helpers/server-connection';
+import { clearCurrentServerSession } from '@/helpers/server-session';
 import { cleanup, connectToTRPC, getTRPCClient } from '@/lib/trpc';
 import type { TMessageJumpToTarget } from '@/types';
 import { type TPublicServerSettings, type TServerInfo } from '@sharkord/shared';
@@ -71,8 +72,13 @@ export const connect = async () => {
 
   const { serverId } = info;
 
-  const host = getHostFromServer();
-  const trpc = await connectToTRPC(host);
+  const connection = getServerConnection();
+
+  if (!connection) {
+    throw new Error('No Sharkord server has been selected.');
+  }
+
+  const trpc = await connectToTRPC(connection.websocketUrl);
 
   const { hasPassword, handshakeHash } = await trpc.others.handshake.query();
 
@@ -115,7 +121,13 @@ export const joinServer = async (handshakeHash: string, password?: string) => {
 };
 
 export const disconnectFromServer = () => {
-  cleanup();
+  clearCurrentServerSession();
+  cleanup({ clearPersistedSession: false });
+  unsubscribeFromServer?.();
+};
+
+export const switchServer = () => {
+  cleanup({ clearPersistedSession: false });
   unsubscribeFromServer?.();
 };
 

@@ -7,6 +7,7 @@ import {
 } from '@/features/server/hooks';
 import { LocalStorageKey } from '@/helpers/storage';
 import { cn } from '@/lib/utils';
+import { isDesktopClient } from '@/platform/environment';
 import { TestId } from '@sharkord/shared';
 import { memo } from 'react';
 import { Categories } from './categories';
@@ -17,7 +18,7 @@ import {
   useVoiceMoveSubscription
 } from './hooks';
 import { PluginButtons } from './plugin-buttons';
-import { ServerDropdownMenu } from './server-dropdown';
+import { ServerDropdownMenu, ServerSwitcher } from './server-dropdown';
 import { UserControl } from './user-control';
 import { VoiceControl } from './voice-control';
 
@@ -48,13 +49,20 @@ const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
       data-testid={TestId.LEFT_SIDEBAR}
     >
       <div className="flex w-full justify-between h-12 items-center border-b border-border px-4">
-        <h2
-          className="font-semibold text-foreground truncate cursor-pointer"
-          onClick={() => setSelectedChannelId(undefined)}
-          data-testid={TestId.LEFT_SIDEBAR_SERVER_NAME}
-        >
-          {serverName}
-        </h2>
+        {isDesktopClient() ? (
+          <ServerSwitcher
+            serverName={serverName}
+            data-testid={TestId.LEFT_SIDEBAR_SERVER_NAME}
+          />
+        ) : (
+          <h2
+            className="font-semibold text-foreground truncate cursor-pointer"
+            onClick={() => setSelectedChannelId(undefined)}
+            data-testid={TestId.LEFT_SIDEBAR_SERVER_NAME}
+          >
+            {serverName}
+          </h2>
+        )}
         <div>
           <ServerDropdownMenu />
         </div>

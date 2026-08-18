@@ -1,4 +1,4 @@
-const DTLN_WORKLET_URL = '/dtln/dtln-processor.js';
+const DTLN_WORKLET_URL = `${import.meta.env.BASE_URL}dtln/dtln-processor.js`;
 const DTLN_WORKLET_NAME = 'DtlnProcessor';
 
 const DTLN_READY_TIMEOUT_MS = 10000;

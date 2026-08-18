@@ -1,0 +1,47 @@
+name: Sign SandShark Desktop
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sign-windows-installer:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build and sign installer
+        working-directory: apps/desktop
+        run: bun run package
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
+      - name: Read desktop version
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Verify installer signature
+        working-directory: apps/desktop
+        run: bun run verify:signature -- -Path release\SandShark-${{ steps.version.outputs.version }}-Setup-x64.exe
+
+      - name: Upload signed installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandshark-windows-x64-signed
+          path: apps/desktop/release/SandShark-*-Setup-x64.exe
+          if-no-files-found: error

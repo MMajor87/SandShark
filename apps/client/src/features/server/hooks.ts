@@ -23,6 +23,8 @@ import {
   publicServerSettingsSelector,
   referenceableChannelsSelector,
   serverNameSelector,
+  totalUnreadMentionsSelector,
+  totalUnreadMessagesSelector,
   typingUsersByChannelIdSelector,
   typingUsersByThreadIdSelector,
   userRolesSelector,
@@ -37,6 +39,12 @@ export const useIsConnecting = () => useSelector(connectingSelector);
 export const useDisconnectInfo = () => useSelector(disconnectInfoSelector);
 
 export const useServerName = () => useSelector(serverNameSelector);
+
+export const useTotalUnreadMessages = () =>
+  useSelector(totalUnreadMessagesSelector);
+
+export const useTotalUnreadMentions = () =>
+  useSelector(totalUnreadMentionsSelector);
 
 export const usePublicServerSettings = () =>
   useSelector(publicServerSettingsSelector);

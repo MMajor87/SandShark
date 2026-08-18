@@ -18,11 +18,19 @@ import {
   modViewUserIdSelector,
   pluginSlotDebugSelector,
   selectedDmChannelIdSelector,
+  serverConnectionErrorSelector,
+  serverConnectionRequiredSelector,
   threadSidebarDataSelector,
   voiceChatSidebarDataSelector
 } from './selectors';
 
 export const useIsAppLoading = () => useSelector(appLoadingSelector);
+
+export const useServerConnectionRequired = () =>
+  useSelector(serverConnectionRequiredSelector);
+
+export const useServerConnectionError = () =>
+  useSelector(serverConnectionErrorSelector);
 
 export const useIsAutoConnecting = () => useSelector(isAutoConnectingSelector);
 

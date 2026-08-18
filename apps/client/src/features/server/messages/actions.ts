@@ -7,6 +7,9 @@ import {
 } from '@/features/app/selectors';
 import { store } from '@/features/store';
 import { getFileUrl } from '@/helpers/get-file-url';
+import { isChannelNotificationsMuted } from '@/helpers/muted-notification-channels';
+import { getActiveServerProfileId } from '@/helpers/server-connection';
+import { isDesktopClient } from '@/platform/environment';
 import {
   getPlainTextFromHtml,
   hasMention,
@@ -19,21 +22,18 @@ import {
   isChannelTextVisibleByIdSelector
 } from '../channels/selectors';
 import { pluginMetadataByIdSelector } from '../plugins/selectors';
+import { serverNameSelector } from '../selectors';
 import { serverSliceActions } from '../slice';
 import { playSound } from '../sounds/actions';
 import { SoundType } from '../types';
 import { ownUserIdSelector, userByIdSelector } from '../users/selectors';
 import { threadMessagesMapSelector } from './selectors';
 
-const sendBrowserNotification = (
+const sendMessageNotification = (
   message: TJoinedMessage,
   channelId: number,
   isDm = false
 ) => {
-  if (!('Notification' in window) || Notification.permission !== 'granted') {
-    return;
-  }
-
   const state = store.getState();
 
   const user = userByIdSelector(state, message.userId);
@@ -46,14 +46,31 @@ const sendBrowserNotification = (
   }
 
   const authorName = isPluginMessage && plugin ? plugin.name : user.name;
-  const textContent = getPlainTextFromHtml(message.content ?? '');
+  const textContent = getPlainTextFromHtml(message.content ?? '').trim();
+  const serverName = serverNameSelector(state) ?? 'SandShark';
 
   const title = isDm
-    ? `${authorName} (DM)`
-    : `${authorName} in #${channel?.name ?? 'unknown'}`;
+    ? `${serverName} - ${authorName} (DM)`
+    : `${serverName} - ${authorName} in #${channel.name ?? 'unknown'}`;
 
-  const body = textContent ? textContent : 'Sent an attachment';
+  const body = textContent.slice(0, 2_000) || 'Sent an attachment';
   const icon = user?.avatar ? getFileUrl(user.avatar) : undefined;
+
+  const target = {
+    profileId: getActiveServerProfileId(),
+    channelId,
+    messageId: message.parentMessageId ?? message.id,
+    isDm
+  };
+
+  if (isDesktopClient() && window.sandSharkDesktop) {
+    void window.sandSharkDesktop.showNotification({ title, body, target });
+    return;
+  }
+
+  if (!('Notification' in window) || Notification.permission !== 'granted') {
+    return;
+  }
 
   new Notification(title, { body, icon });
 };
@@ -131,7 +148,7 @@ export const addMessages = (
       channelId
     );
 
-    const isWindowHidden = document?.hidden;
+    const isWindowHidden = document.hidden;
 
     if (!isFromOwnUser) {
       const isThreadReply = !!targetMessage.parentMessageId;
@@ -147,36 +164,52 @@ export const addMessages = (
         playSound(SoundType.MESSAGE_RECEIVED);
       }
 
-      // only send browser notifications if the user is not currently viewing this channel
-      if (!isChannelTextVisible || isWindowHidden) {
+      const canSendNotification = isDesktopClient()
+        ? isWindowHidden
+        : !isChannelTextVisible || isWindowHidden;
+
+      if (canSendNotification && !isChannelNotificationsMuted(channelId)) {
         const channel = channelByIdSelector(state, channelId);
         const isDmChannel = !!channel?.isDm;
         const hasDmNotificationsEnabled =
           browserNotificationsForDmsSelector(state);
         const hasRepliesNotificationsEnabled =
           browserNotificationsForRepliesSelector(state);
+        const isMentioned = hasMention(
+          targetMessage.content ?? null,
+          ownUserId
+        );
+        let notificationSent = false;
 
         if (isDmChannel && hasDmNotificationsEnabled) {
-          sendBrowserNotification(targetMessage, channelId, true);
+          sendMessageNotification(targetMessage, channelId, true);
+          notificationSent = true;
         } else if (notificationsForMentionsOnly) {
-          const isMentioned = hasMention(
-            targetMessage.content ?? null,
-            ownUserId
-          );
-
           if (isMentioned) {
-            sendBrowserNotification(targetMessage, channelId);
+            sendMessageNotification(targetMessage, channelId);
+            notificationSent = true;
           }
         } else if (hasBrowserNotificationsEnabled) {
-          sendBrowserNotification(targetMessage, channelId);
+          sendMessageNotification(targetMessage, channelId);
+          notificationSent = true;
         } else if (hasRepliesNotificationsEnabled) {
           const isReplyToOwnMessage =
             !!targetMessage.replyToMessageId &&
             targetMessage.replyTo?.userId === ownUserId;
 
           if (isReplyToOwnMessage) {
-            sendBrowserNotification(targetMessage, channelId);
+            sendMessageNotification(targetMessage, channelId);
+            notificationSent = true;
           }
+        }
+
+        if (
+          notificationSent &&
+          (isDmChannel || isMentioned) &&
+          isDesktopClient() &&
+          window.sandSharkDesktop
+        ) {
+          void window.sandSharkDesktop.flashTaskbar();
         }
       }
     }

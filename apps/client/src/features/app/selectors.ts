@@ -3,6 +3,12 @@ import type { IRootState } from '../store';
 
 export const appLoadingSelector = (state: IRootState) => state.app.appLoading;
 
+export const serverConnectionRequiredSelector = (state: IRootState) =>
+  state.app.serverConnectionRequired;
+
+export const serverConnectionErrorSelector = (state: IRootState) =>
+  state.app.serverConnectionError;
+
 export const isAutoConnectingSelector = (state: IRootState) =>
   state.app.isAutoConnecting;
 

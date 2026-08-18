@@ -61,16 +61,17 @@ export const useFullscreen = (containerRef: RefObject<HTMLElement | null>) => {
   }, [isFullscreen, containerRef, resetIdleTimer]);
 
   const toggleFullscreen = useCallback(async () => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
     try {
-      if (document.fullscreenElement === containerRef.current) {
+      if (document.fullscreenElement === container) {
         await document.exitFullscreen();
       } else {
-        await containerRef.current.requestFullscreen();
+        await container.requestFullscreen({ navigationUI: 'hide' });
       }
-    } catch {
-      console.warn('Fullscreen toggle failed');
+    } catch (error) {
+      console.error('Fullscreen toggle failed', error);
     }
   }, [containerRef]);
 

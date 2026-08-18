@@ -14,7 +14,7 @@ import {
   Separator,
   Switch
 } from '@sharkord/ui';
-import { Download, Info, RefreshCw } from 'lucide-react';
+import { Download, FolderOpen, Info, RefreshCw } from 'lucide-react';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { PushToTalkSettings } from '../devices/push-to-talk-settings';
@@ -134,6 +134,16 @@ const Desktop = memo(() => {
     }
   }, [updateStatus.state]);
 
+  const openLogFolder = useCallback(async () => {
+    if (!window.sandSharkDesktop) return;
+
+    try {
+      await window.sandSharkDesktop.openLogFolder();
+    } catch {
+      toast.error('Could not open the SandShark log folder.');
+    }
+  }, []);
+
   const updateDescription =
     updateStatus.state === 'available'
       ? `Version ${updateStatus.version ?? 'unknown'} is ready to download.`
@@ -204,6 +214,23 @@ const Desktop = memo(() => {
             </AlertDescription>
           </Alert>
         )}
+
+        <Separator />
+
+        <Group
+          label="Open log folder"
+          description="Open SandShark desktop diagnostics in Windows Explorer."
+        >
+          <Button
+            variant="outline"
+            size="icon"
+            title="Open log folder"
+            aria-label="Open log folder"
+            onClick={() => void openLogFolder()}
+          >
+            <FolderOpen className="size-4" />
+          </Button>
+        </Group>
 
         <Separator />
 

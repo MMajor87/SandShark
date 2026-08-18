@@ -38,6 +38,7 @@ import {
 import type {
   TDesktopCaptureSource,
   TDesktopCaptureDiagnostic,
+  TDesktopLogDiagnostic,
   TDesktopDownloadProgress,
   TDesktopDownloadRequest,
   THardwareAccelerationSettings,
@@ -79,6 +80,9 @@ const trayIconPath = isDevelopment
 const startAtLoginArgs = ['--sandshark-start-minimized'];
 const isStartAtLoginSupported = process.platform === 'win32';
 const deepLinkSchemes = ['sandshark', 'sharkord'];
+const youtubeDesktopReferrer = 'https://sandshark.localhost/';
+const crashRecoveryWindowMs = 60_000;
+const maximumCrashRecoveryReloads = 2;
 
 const getDesktopPreferencesPath = () =>
   join(app.getPath('userData'), 'desktop-preferences.json');
@@ -88,13 +92,79 @@ const getDesktopCaptureLogPath = () =>
   join(app.getPath('logs'), 'screen-capture.log');
 const getChromiumMediaLogPath = () =>
   join(app.getPath('logs'), 'chromium-media.log');
+const getDesktopAppLogPath = () => join(app.getPath('logs'), 'sandshark.log');
+
+type TDesktopLogDetails = Record<string, boolean | number | string | undefined>;
+
+const sensitiveLogKeyPattern =
+  /(token|secret|password|authorization|cookie|session|credential|key)/i;
+const messageContentLogKeyPattern = /(message|content|body|text|markdown)/i;
+
+const sanitizeLogDetails = (details: TDesktopLogDetails = {}) =>
+  Object.fromEntries(
+    Object.entries(details).map(([key, value]) => {
+      if (value === undefined) return [key, undefined];
+      if (sensitiveLogKeyPattern.test(key)) return [key, '[redacted]'];
+      if (messageContentLogKeyPattern.test(key)) return [key, '[omitted]'];
+      if (typeof value === 'string') return [key, value.slice(0, 2_000)];
+
+      return [key, value];
+    })
+  );
+
+const writeDesktopLog = (
+  category: string,
+  message: string,
+  details: TDesktopLogDetails = {}
+) => {
+  try {
+    const logPath = getDesktopAppLogPath();
+    mkdirSync(dirname(logPath), { recursive: true });
+    appendFileSync(
+      logPath,
+      `${JSON.stringify({
+        timestamp: new Date().toISOString(),
+        category,
+        message,
+        appVersion: app.getVersion(),
+        electronVersion: process.versions.electron,
+        chromiumVersion: process.versions.chrome,
+        nodeVersion: process.versions.node,
+        platform: process.platform,
+        isPackaged: app.isPackaged,
+        details: sanitizeLogDetails(details)
+      })}\n`,
+      'utf8'
+    );
+  } catch (error) {
+    console.error('SandShark could not write desktop diagnostics.', error);
+  }
+};
+
+const ensureLogFiles = () => {
+  try {
+    const logDirectory = app.getPath('logs');
+    mkdirSync(logDirectory, { recursive: true });
+    for (const logPath of [
+      getDesktopAppLogPath(),
+      getDesktopCaptureLogPath(),
+      getChromiumMediaLogPath()
+    ]) {
+      if (!existsSync(logPath)) writeFileSync(logPath, '', 'utf8');
+    }
+  } catch (error) {
+    console.error('SandShark could not create log files.', error);
+  }
+};
 
 // Chromium reduces native audio-device startup failures to a generic DOM error.
 // Keep its verbose output narrowly scoped to media components for diagnosis.
 try {
   const chromiumMediaLogPath = getChromiumMediaLogPath();
   mkdirSync(dirname(chromiumMediaLogPath), { recursive: true });
-  writeFileSync(chromiumMediaLogPath, '', 'utf8');
+  if (!existsSync(chromiumMediaLogPath)) {
+    writeFileSync(chromiumMediaLogPath, '', 'utf8');
+  }
   app.commandLine.appendSwitch('enable-logging', 'file');
   app.commandLine.appendSwitch('log-file', chromiumMediaLogPath);
   app.commandLine.appendSwitch(
@@ -102,13 +172,18 @@ try {
     'audio*=2,media*=2,media_stream*=2,webrtc*=2'
   );
 } catch (error) {
-  console.error('SandShark could not configure Chromium media diagnostics.', error);
+  console.error(
+    'SandShark could not configure Chromium media diagnostics.',
+    error
+  );
 }
 
 const writeDesktopCaptureDiagnostic = (
   stage: string,
   details: Record<string, boolean | number | string | undefined> = {}
 ) => {
+  writeDesktopLog('screen-capture', stage, details);
+
   try {
     const logPath = getDesktopCaptureLogPath();
     mkdirSync(dirname(logPath), { recursive: true });
@@ -119,12 +194,15 @@ const writeDesktopCaptureDiagnostic = (
         version: app.getVersion(),
         platform: process.platform,
         stage,
-        ...details
+        ...sanitizeLogDetails(details)
       })}\n`,
       'utf8'
     );
   } catch (error) {
-    console.error('SandShark could not write screen capture diagnostics.', error);
+    console.error(
+      'SandShark could not write screen capture diagnostics.',
+      error
+    );
   }
 };
 
@@ -144,7 +222,8 @@ const isDesktopCaptureDiagnostic = (
   }
 
   if (diagnostic.details === undefined) return true;
-  if (!diagnostic.details || typeof diagnostic.details !== 'object') return false;
+  if (!diagnostic.details || typeof diagnostic.details !== 'object')
+    return false;
 
   return Object.entries(diagnostic.details as Record<string, unknown>).every(
     ([key, detail]) =>
@@ -158,7 +237,10 @@ const isDesktopCaptureDiagnostic = (
 };
 
 const isDesktopSecretKey = (value: unknown): value is string =>
-  typeof value === 'string' && value.length > 0 && value.length <= 512 && !/[\x00-\x1f]/.test(value);
+  typeof value === 'string' &&
+  value.length > 0 &&
+  value.length <= 512 &&
+  !/[\x00-\x1f]/.test(value);
 
 const isDesktopSecretRequest = (
   value: unknown
@@ -189,7 +271,9 @@ const isDesktopUpdateSettings = (
 
 const getDesktopSecrets = () => {
   try {
-    const value = JSON.parse(readFileSync(getDesktopSecretsPath(), 'utf8')) as unknown;
+    const value = JSON.parse(
+      readFileSync(getDesktopSecretsPath(), 'utf8')
+    ) as unknown;
     return value && typeof value === 'object'
       ? (value as Record<string, string>)
       : {};
@@ -207,7 +291,9 @@ const getDesktopSecret = (key: string) => {
 
   try {
     const value = getDesktopSecrets()[key];
-    return value ? safeStorage.decryptString(Buffer.from(value, 'base64')) : undefined;
+    return value
+      ? safeStorage.decryptString(Buffer.from(value, 'base64'))
+      : undefined;
   } catch {
     return undefined;
   }
@@ -267,7 +353,9 @@ const saveHardwareAccelerationEnabled = () => {
       'utf8'
     );
   } catch {
-    console.warn('SandShark hardware acceleration preference could not be saved.');
+    console.warn(
+      'SandShark hardware acceleration preference could not be saved.'
+    );
   }
 };
 
@@ -284,6 +372,45 @@ const DEFAULT_UPDATE_SETTINGS: TDesktopUpdateSettings = {
 let updateSettings: TDesktopUpdateSettings = {
   ...DEFAULT_UPDATE_SETTINGS,
   ...desktopPreferences.updateSettings
+};
+
+const isDesktopLogDiagnostic = (
+  value: unknown
+): value is TDesktopLogDiagnostic => {
+  if (!value || typeof value !== 'object') return false;
+
+  const diagnostic = value as Record<string, unknown>;
+
+  if (
+    typeof diagnostic.category !== 'string' ||
+    diagnostic.category.length === 0 ||
+    diagnostic.category.length > 64 ||
+    !/^[a-z0-9-]+$/i.test(diagnostic.category)
+  ) {
+    return false;
+  }
+
+  if (
+    typeof diagnostic.message !== 'string' ||
+    diagnostic.message.length === 0 ||
+    diagnostic.message.length > 256
+  ) {
+    return false;
+  }
+
+  if (diagnostic.details === undefined) return true;
+  if (!diagnostic.details || typeof diagnostic.details !== 'object')
+    return false;
+
+  return Object.entries(diagnostic.details as Record<string, unknown>).every(
+    ([key, detail]) =>
+      key.length <= 128 &&
+      (typeof detail === 'string'
+        ? detail.length <= 2_000
+        : typeof detail === 'boolean' ||
+          (typeof detail === 'number' && Number.isFinite(detail)) ||
+          detail === undefined)
+  );
 };
 let updateStatus: TDesktopUpdateStatus = {
   state: 'unsupported',
@@ -306,6 +433,15 @@ const saveUpdateSettings = () => {
 };
 
 const publishUpdateStatus = (status: TDesktopUpdateStatus) => {
+  if (status.state === 'error') {
+    writeDesktopLog('updates', 'Update failure', {
+      state: status.state,
+      version: status.version,
+      percent: status.percent,
+      message: status.message
+    });
+  }
+
   updateStatus = status;
   mainWindow?.webContents.send('sandshark:update-status', status);
 };
@@ -319,11 +455,17 @@ const configureAutoUpdater = () => {
 
 const checkForUpdates = async (): Promise<TDesktopUpdateStatus> => {
   configureAutoUpdater();
+  writeDesktopLog('updates', 'Update check requested', {
+    state: updateStatus.state
+  });
   return updateStatus;
 };
 
 const downloadUpdate = async (): Promise<TDesktopUpdateStatus> => {
   configureAutoUpdater();
+  writeDesktopLog('updates', 'Update download requested', {
+    state: updateStatus.state
+  });
   return updateStatus;
 };
 
@@ -340,7 +482,9 @@ const getDevelopmentRendererUrl = () =>
 
 const getPackagedRendererUrl = () =>
   addDesktopRendererParams(
-    pathToFileURL(join(process.resourcesPath, 'renderer', 'index.html')).toString()
+    pathToFileURL(
+      join(process.resourcesPath, 'renderer', 'index.html')
+    ).toString()
   );
 
 let mainWindow: BrowserWindow | null = null;
@@ -348,6 +492,8 @@ let tray: Tray | null = null;
 let selectedDesktopCaptureSourceId: string | undefined;
 let deepLinkRendererReady = false;
 let pendingDeepLinks: string[] = [];
+let crashRecoveryDialogVisible = false;
+let crashRecoveryReloads: number[] = [];
 type TPendingDownload = {
   id: string;
   filename: string;
@@ -382,6 +528,108 @@ let windowState: TStoredWindowState = {
   maximized: false
 };
 let saveWindowStateTimer: ReturnType<typeof setTimeout> | undefined;
+
+const openDesktopLogFolder = async () => {
+  ensureLogFiles();
+
+  const error = await shell.openPath(app.getPath('logs'));
+  if (error) throw new Error(error);
+};
+
+const canReloadAfterCrash = () => {
+  const now = Date.now();
+  crashRecoveryReloads = crashRecoveryReloads.filter(
+    (timestamp) => now - timestamp < crashRecoveryWindowMs
+  );
+
+  return crashRecoveryReloads.length < maximumCrashRecoveryReloads;
+};
+
+const showCrashRecoveryDialog = async (
+  process: 'renderer' | 'gpu',
+  details: TDesktopLogDetails
+) => {
+  if (crashRecoveryDialogVisible) return;
+
+  crashRecoveryDialogVisible = true;
+  const reloadAvailable = canReloadAfterCrash();
+  const buttons = reloadAvailable
+    ? ['Reload SandShark', 'Open log folder', 'Close SandShark']
+    : ['Open log folder', 'Close SandShark'];
+  const closeButtonIndex = buttons.length - 1;
+  const targetWindow =
+    mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+
+  try {
+    const result = targetWindow
+      ? await dialog.showMessageBox(targetWindow, {
+          type: 'error',
+          title: 'SandShark needs to recover',
+          message:
+            process === 'renderer'
+              ? 'The SandShark interface stopped unexpectedly.'
+              : 'The graphics process stopped unexpectedly.',
+          detail: reloadAvailable
+            ? 'Your local diagnostic logs have been preserved. You can reload SandShark or open the log folder for troubleshooting.'
+            : 'SandShark has already attempted to recover twice in the last minute. Its logs have been preserved; close the app to avoid a restart loop.',
+          buttons,
+          defaultId: reloadAvailable ? 0 : closeButtonIndex,
+          cancelId: closeButtonIndex,
+          noLink: true
+        })
+      : await dialog.showMessageBox({
+          type: 'error',
+          title: 'SandShark needs to recover',
+          message:
+            process === 'renderer'
+              ? 'The SandShark interface stopped unexpectedly.'
+              : 'The graphics process stopped unexpectedly.',
+          detail: reloadAvailable
+            ? 'Your local diagnostic logs have been preserved. You can reload SandShark or open the log folder for troubleshooting.'
+            : 'SandShark has already attempted to recover twice in the last minute. Its logs have been preserved; close the app to avoid a restart loop.',
+          buttons,
+          defaultId: reloadAvailable ? 0 : closeButtonIndex,
+          cancelId: closeButtonIndex,
+          noLink: true
+        });
+
+    if (result.response === buttons.indexOf('Open log folder')) {
+      writeDesktopLog('crash-recovery', 'Crash log folder opened', {
+        process,
+        ...details
+      });
+      await openDesktopLogFolder();
+      setTimeout(() => {
+        void showCrashRecoveryDialog(process, details);
+      }, 0);
+      return;
+    }
+
+    if (reloadAvailable && result.response === 0) {
+      crashRecoveryReloads.push(Date.now());
+      writeDesktopLog('crash-recovery', 'Reload requested after crash', {
+        process,
+        ...details
+      });
+      deepLinkRendererReady = false;
+      mainWindow?.webContents.reloadIgnoringCache();
+      return;
+    }
+
+    writeDesktopLog('crash-recovery', 'App closed after crash', {
+      process,
+      ...details
+    });
+    app.quit();
+  } catch (error) {
+    writeDesktopLog('crash-recovery', 'Crash recovery dialog failed', {
+      process,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  } finally {
+    crashRecoveryDialogVisible = false;
+  }
+};
 
 const getWindowStatePath = () =>
   join(app.getPath('userData'), 'window-state.json');
@@ -424,9 +672,7 @@ const loadWindowState = () => {
       closeToTray: state.closeToTray,
       minimizeToTray: state.minimizeToTray,
       startMinimized: state.startMinimized,
-      bounds: isRectangle(storedState.bounds)
-        ? storedState.bounds
-        : undefined,
+      bounds: isRectangle(storedState.bounds) ? storedState.bounds : undefined,
       maximized: storedState.maximized === true
     };
   } catch {
@@ -478,7 +724,10 @@ const getRestoredBounds = (): Electron.Rectangle | undefined => {
   const height = Math.min(Math.max(bounds.height, 640), workArea.height);
 
   return {
-    x: Math.min(Math.max(bounds.x, workArea.x), workArea.x + workArea.width - width),
+    x: Math.min(
+      Math.max(bounds.x, workArea.x),
+      workArea.x + workArea.width - width
+    ),
     y: Math.min(
       Math.max(bounds.y, workArea.y),
       workArea.y + workArea.height - height
@@ -751,9 +1000,7 @@ const stopGlobalInputHook = () => {
   globalInputHookStarted = false;
 };
 
-const setPushToTalk = (
-  config: TPushToTalkConfig
-): TPushToTalkRegistration => {
+const setPushToTalk = (config: TPushToTalkConfig): TPushToTalkRegistration => {
   if (process.platform !== 'win32') {
     return {
       registered: false,
@@ -831,7 +1078,9 @@ const sendDownloadProgress = (progress: TDesktopDownloadProgress) => {
 
 const configureDownloads = () => {
   session.defaultSession.on('will-download', (_event, item, webContents) => {
-    const pendingDownloads = pendingDownloadsByWebContentsId.get(webContents.id);
+    const pendingDownloads = pendingDownloadsByWebContentsId.get(
+      webContents.id
+    );
     if (!pendingDownloads?.length) return;
 
     const matchingIndex = pendingDownloads.findIndex(
@@ -952,8 +1201,10 @@ const isDesktopNotification = (
     notification.title.length > 0 &&
     notification.title.length <= 200 &&
     (notification.body === undefined ||
-      (typeof notification.body === 'string' && notification.body.length <= 2_000)) &&
-    (notification.silent === undefined || typeof notification.silent === 'boolean')
+      (typeof notification.body === 'string' &&
+        notification.body.length <= 2_000)) &&
+    (notification.silent === undefined ||
+      typeof notification.silent === 'boolean')
   );
 };
 
@@ -966,7 +1217,8 @@ const isDesktopNotificationTarget = (
 
   return (
     (target.profileId === undefined ||
-      (typeof target.profileId === 'string' && target.profileId.length <= 200)) &&
+      (typeof target.profileId === 'string' &&
+        target.profileId.length <= 200)) &&
     typeof target.channelId === 'number' &&
     Number.isSafeInteger(target.channelId) &&
     target.channelId > 0 &&
@@ -1058,6 +1310,34 @@ const configureWebContents = (window: BrowserWindow) => {
   window.webContents.on('will-redirect', handleNavigation);
   window.webContents.on('did-start-loading', () => {
     deepLinkRendererReady = false;
+  });
+
+  window.webContents.on(
+    'did-fail-load',
+    (_event, errorCode, errorDescription, validatedURL) => {
+      writeDesktopLog('renderer', 'Renderer load failed', {
+        errorCode,
+        errorDescription,
+        urlProtocol: (() => {
+          try {
+            return new URL(validatedURL).protocol;
+          } catch {
+            return undefined;
+          }
+        })()
+      });
+    }
+  );
+
+  window.webContents.on('render-process-gone', (_event, details) => {
+    if (window !== mainWindow) return;
+
+    const crashDetails = {
+      reason: details.reason,
+      exitCode: details.exitCode
+    };
+    writeDesktopLog('crash', 'Renderer process exited', crashDetails);
+    void showCrashRecoveryDialog('renderer', crashDetails);
   });
 
   window.webContents.on('will-attach-webview', (event) => {
@@ -1177,12 +1457,36 @@ const configureMediaPermissions = () => {
             : { video: source }
         );
       } catch (error) {
-        console.error('SandShark could not grant screen capture access.', error);
+        console.error(
+          'SandShark could not grant screen capture access.',
+          error
+        );
         writeDesktopCaptureDiagnostic('display-media-handler-error', {
           error: error instanceof Error ? error.message : String(error)
         });
         callback({});
       }
+    }
+  );
+};
+
+const configureYouTubeEmbedIdentity = () => {
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    {
+      urls: [
+        'https://www.youtube.com/*',
+        'https://youtube.com/*',
+        'https://www.youtube-nocookie.com/*',
+        'https://youtube-nocookie.com/*'
+      ]
+    },
+    (details, callback) => {
+      const requestHeaders = { ...details.requestHeaders };
+
+      requestHeaders.Referer ??= youtubeDesktopReferrer;
+      requestHeaders.Origin ??= youtubeDesktopReferrer.slice(0, -1);
+
+      callback({ requestHeaders });
     }
   );
 };
@@ -1219,7 +1523,9 @@ const registerDesktopIpcHandlers = () => {
     }
 
     if (!Notification.isSupported()) {
-      throw new Error('Desktop notifications are not supported on this system.');
+      throw new Error(
+        'Desktop notifications are not supported on this system.'
+      );
     }
 
     const notification = new Notification({
@@ -1268,18 +1574,21 @@ const registerDesktopIpcHandlers = () => {
         : source.thumbnail.toDataURL()
     }));
   });
-  ipcMain.handle('sandshark:set-desktop-capture-source', (event, sourceId: unknown) => {
-    getSenderWindow(event);
+  ipcMain.handle(
+    'sandshark:set-desktop-capture-source',
+    (event, sourceId: unknown) => {
+      getSenderWindow(event);
 
-    if (typeof sourceId !== 'string' || !/^(screen|window):/.test(sourceId)) {
-      throw new Error('Invalid desktop capture source.');
+      if (typeof sourceId !== 'string' || !/^(screen|window):/.test(sourceId)) {
+        throw new Error('Invalid desktop capture source.');
+      }
+
+      selectedDesktopCaptureSourceId = sourceId;
+      writeDesktopCaptureDiagnostic('source-selected', {
+        sourceType: sourceId.startsWith('screen:') ? 'screen' : 'window'
+      });
     }
-
-    selectedDesktopCaptureSourceId = sourceId;
-    writeDesktopCaptureDiagnostic('source-selected', {
-      sourceType: sourceId.startsWith('screen:') ? 'screen' : 'window'
-    });
-  });
+  );
   ipcMain.handle(
     'sandshark:report-desktop-capture-diagnostic',
     (event, diagnostic: unknown) => {
@@ -1301,6 +1610,26 @@ const registerDesktopIpcHandlers = () => {
     mkdirSync(dirname(logPath), { recursive: true });
     if (!existsSync(logPath)) writeFileSync(logPath, '', 'utf8');
     shell.showItemInFolder(logPath);
+  });
+  ipcMain.handle(
+    'sandshark:report-desktop-diagnostic',
+    (event, diagnostic: unknown) => {
+      getSenderWindow(event);
+
+      if (!isDesktopLogDiagnostic(diagnostic)) {
+        throw new Error('Invalid desktop diagnostic.');
+      }
+
+      writeDesktopLog(
+        diagnostic.category,
+        diagnostic.message,
+        diagnostic.details
+      );
+    }
+  );
+  ipcMain.handle('sandshark:open-log-folder', async (event) => {
+    getSenderWindow(event);
+    await openDesktopLogFolder();
   });
   ipcMain.handle('sandshark:set-push-to-talk', (event, config: unknown) => {
     getSenderWindow(event);
@@ -1348,16 +1677,19 @@ const registerDesktopIpcHandlers = () => {
     const { closeToTray, minimizeToTray, startMinimized } = windowState;
     return { closeToTray, minimizeToTray, startMinimized };
   });
-  ipcMain.handle('sandshark:set-window-behavior', (event, behavior: unknown) => {
-    getSenderWindow(event);
+  ipcMain.handle(
+    'sandshark:set-window-behavior',
+    (event, behavior: unknown) => {
+      getSenderWindow(event);
 
-    if (!isWindowBehavior(behavior)) {
-      throw new Error('Invalid window behavior.');
+      if (!isWindowBehavior(behavior)) {
+        throw new Error('Invalid window behavior.');
+      }
+
+      windowState = { ...windowState, ...behavior };
+      saveWindowState();
     }
-
-    windowState = { ...windowState, ...behavior };
-    saveWindowState();
-  });
+  );
   ipcMain.handle('sandshark:get-start-at-login', (event) => {
     getSenderWindow(event);
     return getStartAtLoginSettings();
@@ -1393,19 +1725,22 @@ const registerDesktopIpcHandlers = () => {
     getSenderWindow(event);
     return updateSettings;
   });
-  ipcMain.handle('sandshark:set-update-settings', (event, settings: unknown) => {
-    getSenderWindow(event);
+  ipcMain.handle(
+    'sandshark:set-update-settings',
+    (event, settings: unknown) => {
+      getSenderWindow(event);
 
-    if (!isDesktopUpdateSettings(settings)) {
-      throw new Error('Invalid update settings.');
+      if (!isDesktopUpdateSettings(settings)) {
+        throw new Error('Invalid update settings.');
+      }
+
+      updateSettings = settings;
+      saveUpdateSettings();
+      configureAutoUpdater();
+
+      return updateSettings;
     }
-
-    updateSettings = settings;
-    saveUpdateSettings();
-    configureAutoUpdater();
-
-    return updateSettings;
-  });
+  );
   ipcMain.handle('sandshark:get-update-status', (event) => {
     getSenderWindow(event);
     return updateStatus;
@@ -1429,7 +1764,8 @@ const registerDesktopIpcHandlers = () => {
   });
   ipcMain.handle('sandshark:get-secret', (event, key: unknown) => {
     getSenderWindow(event);
-    if (!isDesktopSecretKey(key)) throw new Error('Invalid desktop secret key.');
+    if (!isDesktopSecretKey(key))
+      throw new Error('Invalid desktop secret key.');
     return getDesktopSecret(key);
   });
   ipcMain.handle('sandshark:set-secret', (event, request: unknown) => {
@@ -1441,7 +1777,8 @@ const registerDesktopIpcHandlers = () => {
   });
   ipcMain.handle('sandshark:remove-secret', (event, key: unknown) => {
     getSenderWindow(event);
-    if (!isDesktopSecretKey(key)) throw new Error('Invalid desktop secret key.');
+    if (!isDesktopSecretKey(key))
+      throw new Error('Invalid desktop secret key.');
     removeDesktopSecret(key);
   });
   ipcMain.handle('sandshark:ready-for-deep-links', (event) => {
@@ -1468,9 +1805,8 @@ const registerDesktopIpcHandlers = () => {
     if (result.canceled || !result.filePath) return {};
 
     const id = crypto.randomUUID();
-    const pendingDownloads = pendingDownloadsByWebContentsId.get(
-      event.sender.id
-    ) ?? [];
+    const pendingDownloads =
+      pendingDownloadsByWebContentsId.get(event.sender.id) ?? [];
 
     pendingDownloads.push({
       id,
@@ -1483,16 +1819,19 @@ const registerDesktopIpcHandlers = () => {
 
     return { id };
   });
-  ipcMain.handle('sandshark:open-downloaded-file', async (event, id: unknown) => {
-    getSenderWindow(event);
+  ipcMain.handle(
+    'sandshark:open-downloaded-file',
+    async (event, id: unknown) => {
+      getSenderWindow(event);
 
-    if (!isDownloadId(id) || !completedDownloads.has(id)) {
-      throw new Error('The downloaded file is no longer available.');
+      if (!isDownloadId(id) || !completedDownloads.has(id)) {
+        throw new Error('The downloaded file is no longer available.');
+      }
+
+      const error = await shell.openPath(completedDownloads.get(id)!);
+      if (error) throw new Error(error);
     }
-
-    const error = await shell.openPath(completedDownloads.get(id)!);
-    if (error) throw new Error(error);
-  });
+  );
   ipcMain.handle('sandshark:show-downloaded-file', (event, id: unknown) => {
     getSenderWindow(event);
 
@@ -1612,6 +1951,18 @@ const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (!hasSingleInstanceLock) {
   app.quit();
 } else {
+  app.on('child-process-gone', (_event, details) => {
+    if (details.type !== 'GPU') return;
+
+    const crashDetails = {
+      reason: details.reason,
+      exitCode: details.exitCode,
+      serviceName: details.serviceName
+    };
+    writeDesktopLog('crash', 'GPU process exited', crashDetails);
+    void showCrashRecoveryDialog('gpu', crashDetails);
+  });
+
   app.on('second-instance', (_event, commandLine) => {
     handleDeepLinksFromArguments(commandLine);
   });
@@ -1622,10 +1973,19 @@ if (!hasSingleInstanceLock) {
   });
 
   app.whenReady().then(() => {
+    ensureLogFiles();
+    writeDesktopLog('startup', 'SandShark desktop starting', {
+      desktopVersion: app.getVersion(),
+      electronVersion: process.versions.electron,
+      chromiumVersion: process.versions.chrome,
+      hardwareAccelerationEnabled,
+      autoUpdatesConfigured: autoUpdaterConfigured
+    });
     Menu.setApplicationMenu(null);
     loadWindowState();
     registerDesktopIpcHandlers();
     configureMediaPermissions();
+    configureYouTubeEmbedIdentity();
     configureDownloads();
     createTray();
     void createMainWindow();
@@ -1648,6 +2008,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  writeDesktopLog('lifecycle', 'SandShark desktop quitting');
   if (saveWindowStateTimer) clearTimeout(saveWindowStateTimer);
   if (mainWindow && !mainWindow.isMaximized()) {
     windowState.bounds = mainWindow.getBounds();

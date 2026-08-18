@@ -20,6 +20,7 @@ import { ServerScreensProvider } from './components/server-screens/index.tsx';
 import { ThemeProvider } from './components/theme-provider/index.tsx';
 import { exposePluginStore } from './features/server/plugins/plugin-store.ts';
 import { store } from './features/store.ts';
+import { logDesktopDiagnostic } from './helpers/browser-logger.ts';
 import { exposeLibs, exposeReact } from './helpers/exposes.ts';
 import { LocalStorageKey } from './helpers/storage.ts';
 import './index.css';
@@ -27,6 +28,10 @@ import './index.css';
 exposeReact();
 exposeLibs();
 exposePluginStore();
+
+logDesktopDiagnostic('startup', 'SandShark client renderer starting', {
+  clientVersion: VITE_APP_VERSION
+});
 
 await i18nReady;
 

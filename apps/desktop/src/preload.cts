@@ -4,6 +4,7 @@ import type {
   TDesktopDownloadProgress,
   TDesktopDownloadRequest,
   TDesktopCaptureDiagnostic,
+  TDesktopLogDiagnostic,
   THardwareAccelerationSettings,
   TDesktopUpdateSettings,
   TDesktopUpdateStatus,
@@ -13,8 +14,8 @@ import type {
   TPushToTalkConfig,
   TTrayStatus,
   TWindowBehavior,
-  TStartAtLoginSettings
-  ,TTaskbarStatus
+  TStartAtLoginSettings,
+  TTaskbarStatus
 } from './desktop-api.js';
 
 const invoke = <T,>(channel: string, payload?: unknown): Promise<T> =>
@@ -53,6 +54,9 @@ const desktopApi: TSandSharkDesktopAPI = {
     invoke<void>('sandshark:report-desktop-capture-diagnostic', diagnostic),
   showDesktopCaptureLog: () =>
     invoke<void>('sandshark:show-desktop-capture-log'),
+  reportDesktopDiagnostic: (diagnostic: TDesktopLogDiagnostic) =>
+    invoke<void>('sandshark:report-desktop-diagnostic', diagnostic),
+  openLogFolder: () => invoke<void>('sandshark:open-log-folder'),
   setPushToTalk: (config: TPushToTalkConfig) =>
     invoke('sandshark:set-push-to-talk', config),
   clearPushToTalk: () => invoke<void>('sandshark:clear-push-to-talk'),
@@ -85,7 +89,8 @@ const desktopApi: TSandSharkDesktopAPI = {
   setTaskbarStatus: (status: TTaskbarStatus) =>
     invoke<void>('sandshark:set-taskbar-status', status),
   flashTaskbar: () => invoke<void>('sandshark:flash-taskbar'),
-  getWindowBehavior: () => invoke<TWindowBehavior>('sandshark:get-window-behavior'),
+  getWindowBehavior: () =>
+    invoke<TWindowBehavior>('sandshark:get-window-behavior'),
   setWindowBehavior: (behavior: TWindowBehavior) =>
     invoke<void>('sandshark:set-window-behavior', behavior),
   getStartAtLogin: () =>
@@ -93,7 +98,9 @@ const desktopApi: TSandSharkDesktopAPI = {
   setStartAtLogin: (enabled: boolean) =>
     invoke<TStartAtLoginSettings>('sandshark:set-start-at-login', enabled),
   getHardwareAcceleration: () =>
-    invoke<THardwareAccelerationSettings>('sandshark:get-hardware-acceleration'),
+    invoke<THardwareAccelerationSettings>(
+      'sandshark:get-hardware-acceleration'
+    ),
   setHardwareAcceleration: (enabled: boolean) =>
     invoke<THardwareAccelerationSettings>(
       'sandshark:set-hardware-acceleration',
@@ -123,7 +130,8 @@ const desktopApi: TSandSharkDesktopAPI = {
       ipcRenderer.removeListener('sandshark:update-status', handler);
     };
   },
-  getSecret: (key: string) => invoke<string | undefined>('sandshark:get-secret', key),
+  getSecret: (key: string) =>
+    invoke<string | undefined>('sandshark:get-secret', key),
   setSecret: (request: TDesktopSecretRequest) =>
     invoke<boolean>('sandshark:set-secret', request),
   removeSecret: (key: string) => invoke<void>('sandshark:remove-secret', key),

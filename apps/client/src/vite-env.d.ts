@@ -47,6 +47,12 @@ declare global {
         details?: Record<string, boolean | number | string | undefined>;
       }) => Promise<void>;
       showDesktopCaptureLog: () => Promise<void>;
+      reportDesktopDiagnostic: (diagnostic: {
+        category: string;
+        message: string;
+        details?: Record<string, boolean | number | string | undefined>;
+      }) => Promise<void>;
+      openLogFolder: () => Promise<void>;
       setPushToTalk: (config: {
         input:
           | { type: 'keyboard'; keyCode: number }

@@ -1086,15 +1086,15 @@ Require restart after changing.
 
 Desktop users need usable diagnostics.
 
-- [ ] Create desktop log location
-- [ ] Log application startup
-- [ ] Log Electron version
-- [ ] Log desktop-client version
-- [ ] Log server connection events
-- [ ] Log WebSocket reconnects
-- [ ] Log mediasoup connection errors
-- [ ] Log screen-share failures
-- [ ] Log update failures
+- [x] Create desktop log location
+- [x] Log application startup
+- [x] Log Electron version
+- [x] Log desktop-client version
+- [x] Log server connection events
+- [x] Log WebSocket reconnects
+- [x] Log mediasoup connection errors
+- [x] Log screen-share failures
+- [x] Log update failures
 
 Add:
 
@@ -1102,19 +1102,19 @@ Add:
 Settings > Desktop > Open Log Folder
 ```
 
-- [ ] Ensure authentication tokens are not logged
-- [ ] Ensure message contents are not unnecessarily logged
+- [x] Ensure authentication tokens are not logged
+- [x] Ensure message contents are not unnecessarily logged
 
 ---
 
 # Phase 37 - Crash Handling
 
-- [ ] Detect renderer crashes
-- [ ] Detect GPU-process crashes
-- [ ] Offer reload
-- [ ] Preserve logs
-- [ ] Recover cleanly where possible
-- [ ] Avoid restart loops
+- [x] Detect renderer crashes
+- [x] Detect GPU-process crashes
+- [x] Offer reload
+- [x] Preserve logs
+- [x] Recover cleanly where possible
+- [x] Avoid restart loops
 
 Optional:
 

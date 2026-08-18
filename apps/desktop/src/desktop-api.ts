@@ -24,14 +24,22 @@ export type TDesktopCaptureDiagnostic = {
   details?: Record<string, boolean | number | string | undefined>;
 };
 
+export type TDesktopLogDiagnostic = {
+  category: string;
+  message: string;
+  details?: Record<string, boolean | number | string | undefined>;
+};
+
 export type TPushToTalkConfig = {
-  input: {
-    type: 'keyboard';
-    keyCode: number;
-  } | {
-    type: 'mouse';
-    button: number;
-  };
+  input:
+    | {
+        type: 'keyboard';
+        keyCode: number;
+      }
+    | {
+        type: 'mouse';
+        button: number;
+      };
   modifiers: {
     control: boolean;
     shift: boolean;
@@ -129,6 +137,8 @@ export type TSandSharkDesktopAPI = {
     diagnostic: TDesktopCaptureDiagnostic
   ) => Promise<void>;
   showDesktopCaptureLog: () => Promise<void>;
+  reportDesktopDiagnostic: (diagnostic: TDesktopLogDiagnostic) => Promise<void>;
+  openLogFolder: () => Promise<void>;
   setPushToTalk: (
     config: TPushToTalkConfig
   ) => Promise<TPushToTalkRegistration>;
@@ -162,9 +172,7 @@ export type TSandSharkDesktopAPI = {
   removeSecret: (key: string) => Promise<void>;
   readyForDeepLinks: () => Promise<string[]>;
   onDeepLink: (listener: (url: string) => void) => () => void;
-  downloadFile: (
-    request: TDesktopDownloadRequest
-  ) => Promise<{ id?: string }>;
+  downloadFile: (request: TDesktopDownloadRequest) => Promise<{ id?: string }>;
   onDownloadProgress: (
     listener: (progress: TDesktopDownloadProgress) => void
   ) => () => void;

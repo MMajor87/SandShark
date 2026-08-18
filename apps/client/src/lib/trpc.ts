@@ -4,6 +4,7 @@ import { resetServerScreens } from '@/features/server-screens/actions';
 import { resetServerState, setDisconnectInfo } from '@/features/server/actions';
 import { playSound } from '@/features/server/sounds/actions';
 import { SoundType } from '@/features/server/types';
+import { logDesktopDiagnostic } from '@/helpers/browser-logger';
 import {
   clearCurrentServerAutoLogin,
   clearCurrentSessionToken,
@@ -17,6 +18,7 @@ let trpc: ReturnType<typeof createTRPCProxyClient<AppRouter>> | null = null;
 let currentUrl: string | null = null;
 let isCleaningUp = false;
 let ignoreNextClose = false;
+let reconnectAttempt = 0;
 
 // Firefox fires WebSocket onClose during page refresh; Chrome does not. When navigating away,
 // we must not clear auto-login localStorage or it will be lost on refresh in Firefox.
@@ -26,12 +28,27 @@ window.addEventListener('beforeunload', () => {
 });
 
 const initializeTRPC = (url: string) => {
+  logDesktopDiagnostic('server-connection', 'Creating WebSocket client');
+
   wsClient = createWSClient({
     url,
+    onOpen: () => {
+      reconnectAttempt = 0;
+      logDesktopDiagnostic('server-connection', 'WebSocket connected');
+    },
+    onError: () => {
+      logDesktopDiagnostic('server-connection', 'WebSocket error');
+    },
     // @ts-expect-error - the onclose type is not correct in trpc
     onClose: (cause: CloseEvent) => {
       const wasIntentionalClose = ignoreNextClose;
       ignoreNextClose = false;
+      logDesktopDiagnostic('server-connection', 'WebSocket closed', {
+        code: cause.code,
+        reason: cause.reason,
+        wasClean: cause.wasClean,
+        intentional: wasIntentionalClose
+      });
       cleanup();
 
       if (wasIntentionalClose) return;
@@ -44,8 +61,33 @@ const initializeTRPC = (url: string) => {
       });
 
       if (!cause.wasClean) {
+        logDesktopDiagnostic(
+          'server-connection',
+          'WebSocket disconnected uncleanly',
+          {
+            code: cause.code,
+            reason: cause.reason,
+            wasClean: cause.wasClean
+          }
+        );
         playSound(SoundType.SERVER_DISCONNECTED);
       }
+    },
+    retryDelayMs: (attemptIndex) => {
+      reconnectAttempt = attemptIndex + 1;
+      const delayMs =
+        attemptIndex === 0 ? 0 : Math.min(1000 * 2 ** attemptIndex, 30_000);
+
+      logDesktopDiagnostic(
+        'websocket-reconnect',
+        'Scheduling WebSocket reconnect',
+        {
+          attempt: reconnectAttempt,
+          delayMs
+        }
+      );
+
+      return delayMs;
     },
     connectionParams: async (): Promise<TConnectionParams> => {
       return {
@@ -64,15 +106,18 @@ const initializeTRPC = (url: string) => {
   });
 
   currentUrl = url;
+  logDesktopDiagnostic('server-connection', 'TRPC client initialized');
 
   return trpc;
 };
 
 const connectToTRPC = (url: string) => {
   if (trpc && currentUrl === url) {
+    logDesktopDiagnostic('server-connection', 'Reusing existing TRPC client');
     return trpc;
   }
 
+  logDesktopDiagnostic('server-connection', 'Connecting to server');
   return initializeTRPC(url);
 };
 
@@ -90,6 +135,9 @@ const cleanup = ({ clearPersistedSession = !isNavigatingAway } = {}) => {
   }
 
   isCleaningUp = true;
+  logDesktopDiagnostic('server-connection', 'Cleaning up server connection', {
+    clearPersistedSession
+  });
 
   if (wsClient) {
     ignoreNextClose = true;

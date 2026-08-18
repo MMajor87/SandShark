@@ -18,6 +18,9 @@ jobs:
   release-windows:
     name: Build signed Windows release
     runs-on: windows-latest
+    env:
+      WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+      WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,9 +38,6 @@ jobs:
       - name: Build and sign Windows installer
         working-directory: apps/desktop
         run: bun run package
-        env:
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
 
       - name: Read desktop version
         id: version
@@ -47,6 +47,7 @@ jobs:
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Verify installer signature
+        if: ${{ env.WIN_CSC_LINK != '' }}
         working-directory: apps/desktop
         run: bun run verify:signature -- -Path release\SandShark-${{ steps.version.outputs.version }}-Setup-x64.exe
 

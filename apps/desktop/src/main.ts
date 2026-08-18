@@ -14,7 +14,7 @@ import {
   safeStorage,
   type IpcMainInvokeEvent
 } from 'electron';
-import { autoUpdater, type ProgressInfo, type UpdateInfo } from 'electron-updater';
+import electronUpdater, { type ProgressInfo, type UpdateInfo } from 'electron-updater';
 import {
   appendFileSync,
   existsSync,
@@ -54,6 +54,8 @@ import type {
   TTrayStatus,
   TWindowBehavior
 } from './desktop-api.js';
+
+const { autoUpdater } = electronUpdater;
 
 app.setName('SandShark');
 app.setAppUserModelId('com.sandshark.desktop');

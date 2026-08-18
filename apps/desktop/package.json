@@ -1,6 +1,6 @@
 {
   "name": "@sandshark/desktop",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "description": "SandShark desktop client",
   "author": "SandShark contributors",
   "private": true,
@@ -15,7 +15,7 @@
     "build:renderer": "bun run --cwd ../client build",
     "package": "bun run build && electron-builder --config electron-builder.yml --publish never",
     "dist": "bun run package",
-    "verify:signature": "powershell -ExecutionPolicy Bypass -File scripts/verify-code-signature.ps1",
+    "verify:signature": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -ExecutionPolicy Bypass -File scripts/verify-code-signature.ps1",
     "check-types": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {

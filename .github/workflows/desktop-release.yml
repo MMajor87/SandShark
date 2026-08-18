@@ -20,7 +20,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   release-windows:
-    name: Validate and build signed Windows release
+    name: Validate and build Windows release
     needs: repository-ci
     runs-on: windows-latest
     env:
@@ -59,14 +59,24 @@ jobs:
 
           "version=$desktopVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Require code-signing certificate
+      - name: Report code-signing mode
+        id: signing
         shell: pwsh
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:WIN_CSC_LINK) -or [string]::IsNullOrWhiteSpace($env:WIN_CSC_KEY_PASSWORD)) {
-            throw "SandShark Windows releases require WIN_CSC_LINK and WIN_CSC_KEY_PASSWORD secrets."
+          $isSigned = -not [string]::IsNullOrWhiteSpace($env:WIN_CSC_LINK) -and -not [string]::IsNullOrWhiteSpace($env:WIN_CSC_KEY_PASSWORD)
+
+          if ($isSigned) {
+            "signed=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "release_name=SandShark ${{ steps.version.outputs.version }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "prerelease=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Warning "WIN_CSC_LINK and WIN_CSC_KEY_PASSWORD are not configured. Building an unsigned SandShark installer."
+            "signed=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "release_name=SandShark ${{ steps.version.outputs.version }} (unsigned)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "prerelease=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           }
 
-      - name: Build signed Windows installer
+      - name: Build Windows installer
         working-directory: apps/desktop
         run: bun run package
 
@@ -75,6 +85,7 @@ jobs:
         run: bun run test:packaged-startup
 
       - name: Verify installer signature
+        if: ${{ steps.signing.outputs.signed == 'true' }}
         working-directory: apps/desktop
         run: bun run verify:signature -- -Path release\SandShark-${{ steps.version.outputs.version }}-Setup-x64.exe
 
@@ -88,13 +99,25 @@ jobs:
             ForEach-Object { "$($_.Hash)  $($_.Path | Split-Path -Leaf)" } |
             Set-Content release\SHA256SUMS.txt
 
+      - name: Write release summary
+        working-directory: apps/desktop
+        shell: pwsh
+        run: |
+          if ('${{ steps.signing.outputs.signed }}' -eq 'true') {
+            'This SandShark Windows installer is code-signed and signature-verified by the release workflow.' | Set-Content release\RELEASE_NOTES.md
+          } else {
+            'This SandShark Windows installer is unsigned because code-signing secrets are not configured for this repository yet.' | Set-Content release\RELEASE_NOTES.md
+          }
+
       - name: Publish GitHub release and update metadata
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
-          name: SandShark ${{ steps.version.outputs.version }}
+          name: ${{ steps.signing.outputs.release_name }}
           draft: true
+          prerelease: ${{ steps.signing.outputs.prerelease }}
           generate_release_notes: true
+          body_path: apps/desktop/release/RELEASE_NOTES.md
           files: |
             apps/desktop/release/SandShark-*-Setup-x64.exe
             apps/desktop/release/latest.yml

@@ -1,0 +1,132 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1769619685540,
+      "tag": "0000_rich_jetstream",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1771530010367,
+      "tag": "0001_strange_starjammers",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1771718400000,
+      "tag": "0002_add_view_user_sensitive_data_to_owner",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1772243907890,
+      "tag": "0003_polite_mach_iv",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1772480756476,
+      "tag": "0004_tense_crystal",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1772730000000,
+      "tag": "0005_normalize_user_identities",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1772733600000,
+      "tag": "0006_lowercase_remaining_identities",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1772897866100,
+      "tag": "0007_overrated_carnage",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1773427281204,
+      "tag": "0008_stiff_killmonger",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1773685648905,
+      "tag": "0009_third_thunderbolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1774512000000,
+      "tag": "0010_rename_execute_plugin_commands",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1775219959496,
+      "tag": "0011_soft_quentin_quire",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1775222119919,
+      "tag": "0012_futuristic_skullbuster",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1775396737105,
+      "tag": "0013_amusing_stingray",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1778692740435,
+      "tag": "0014_calm_dracula",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1778880637581,
+      "tag": "0015_brief_exiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1778933632644,
+      "tag": "0016_new_black_tom",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1786049599269,
+      "tag": "0017_banner_color_to_profile_color",
+      "breakpoints": true
+    }
+  ]
+}

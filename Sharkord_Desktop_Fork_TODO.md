@@ -1,8 +1,8 @@
-# Sharkord Desktop Fork - Development TODO
+# SandShark Desktop Fork - Development TODO
 
 ## Project Goal
 
-Create a Windows desktop client for Sharkord that reuses the existing React/TypeScript frontend while adding desktop-native functionality through Electron.
+Create a Windows desktop client, SandShark, that reuses the existing React/TypeScript frontend while adding desktop-native functionality through Electron.
 
 The desktop client should:
 
@@ -27,12 +27,14 @@ The desktop client should:
 
 # Phase 0 - Fork and Development Environment
 
+Status: In progress. SandShark is using a private repository with `Sharkord/sharkord` configured as `upstream`, rather than a public GitHub fork, so the project can remain private for now.
+
 ## Repository Setup
 
-- [ ] Fork `Sharkord/sharkord`
-- [ ] Clone the fork locally
-- [ ] Confirm the `development` branch is the correct baseline
-- [ ] Add the upstream Sharkord repository as a Git remote
+- [x] Fork `Sharkord/sharkord`
+- [x] Clone the fork locally
+- [x] Confirm the `development` branch is the correct baseline
+- [x] Add the upstream Sharkord repository as a Git remote
 
 Example:
 
@@ -40,13 +42,13 @@ Example:
 git remote add upstream https://github.com/Sharkord/sharkord.git
 ```
 
-- [ ] Confirm remotes
+- [x] Confirm remotes
 
 ```bash
 git remote -v
 ```
 
-- [ ] Create a dedicated desktop-development branch
+- [x] Create a dedicated desktop-development branch
 
 Example:
 
@@ -54,14 +56,15 @@ Example:
 git checkout -b feature/desktop-client
 ```
 
-- [ ] Confirm the existing Sharkord project builds successfully before making changes
-- [ ] Confirm the existing server starts successfully
+- [x] Confirm the existing Sharkord project builds successfully before making changes
+- [x] Confirm the existing server starts successfully
+- [x] Confirm the existing browser client starts successfully
 - [ ] Confirm the existing browser client connects to the local server
 - [ ] Confirm text chat works
 - [ ] Confirm voice chat works
 - [ ] Confirm webcam works
 - [ ] Confirm screen sharing works
-- [ ] Document the baseline Sharkord version/commit used to start the fork
+- [x] Document the baseline Sharkord version/commit used to start the fork
 
 ---
 
@@ -69,53 +72,53 @@ git checkout -b feature/desktop-client
 
 ## Client Audit
 
-- [ ] Document the structure of `apps/client`
-- [ ] Identify the main React application entry point
-- [ ] Identify routing logic
-- [ ] Identify login/authentication flow
-- [ ] Identify server URL handling
-- [ ] Identify WebSocket initialization
-- [ ] Identify tRPC client initialization
-- [ ] Identify mediasoup initialization
-- [ ] Identify voice-provider architecture
-- [ ] Identify device-provider architecture
-- [ ] Identify screen-sharing logic
-- [ ] Identify notification handling
-- [ ] Identify persistent storage usage
+- [x] Document the structure of `apps/client`
+- [x] Identify the main React application entry point
+- [x] Identify routing logic
+- [x] Identify login/authentication flow
+- [x] Identify server URL handling
+- [x] Identify WebSocket initialization
+- [x] Identify tRPC client initialization
+- [x] Identify mediasoup initialization
+- [x] Identify voice-provider architecture
+- [x] Identify device-provider architecture
+- [x] Identify screen-sharing logic
+- [x] Identify notification handling
+- [x] Identify persistent storage usage
 
 ## Browser API Audit
 
 Search the client for direct usage of:
 
-- [ ] `window`
-- [ ] `document`
-- [ ] `navigator`
-- [ ] `navigator.mediaDevices`
-- [ ] `getUserMedia`
-- [ ] `getDisplayMedia`
-- [ ] `localStorage`
-- [ ] `sessionStorage`
-- [ ] `Notification`
-- [ ] `Clipboard`
-- [ ] `AudioContext`
-- [ ] `AudioWorklet`
-- [ ] File picker APIs
-- [ ] Drag-and-drop file APIs
-- [ ] Browser download APIs
-- [ ] Browser URL handling
-- [ ] Browser history APIs
+- [x] `window`
+- [x] `document`
+- [x] `navigator`
+- [x] `navigator.mediaDevices`
+- [x] `getUserMedia`
+- [x] `getDisplayMedia`
+- [x] `localStorage`
+- [x] `sessionStorage`
+- [x] `Notification`
+- [x] `Clipboard`
+- [x] `AudioContext`
+- [x] `AudioWorklet`
+- [x] File picker APIs
+- [x] Drag-and-drop file APIs
+- [x] Browser download APIs
+- [x] Browser URL handling
+- [x] Browser history APIs
 
 ## Desktop Compatibility Classification
 
 For each browser-specific API, classify it as:
 
-- [ ] Works unchanged in Electron
-- [ ] Requires Electron configuration
-- [ ] Should be replaced by Electron functionality
-- [ ] Requires a compatibility wrapper
-- [ ] Requires further investigation
+- [x] Works unchanged in Electron
+- [x] Requires Electron configuration
+- [x] Should be replaced by Electron functionality
+- [x] Requires a compatibility wrapper
+- [x] Requires further investigation
 
-Create a document such as:
+Created:
 
 ```text
 docs/desktop-browser-api-audit.md
@@ -138,13 +141,13 @@ apps/
 └── server/
 ```
 
-- [ ] Create `apps/desktop`
-- [ ] Create desktop `package.json`
-- [ ] Add Electron as a development dependency
-- [ ] Add Electron build tooling
-- [ ] Add TypeScript configuration
-- [ ] Add development scripts
-- [ ] Add production build scripts
+- [x] Create `apps/desktop`
+- [x] Create desktop `package.json`
+- [x] Add Electron as a development dependency
+- [x] Add Electron build tooling
+- [x] Add TypeScript configuration
+- [x] Add development scripts
+- [x] Add production build scripts
 
 Suggested files:
 
@@ -167,24 +170,24 @@ apps/desktop/
 
 ## Main Process
 
-- [ ] Create Electron `main.ts`
-- [ ] Initialize Electron application
-- [ ] Create the main `BrowserWindow`
-- [ ] Configure initial window size
-- [ ] Configure minimum window size
-- [ ] Set the application name
-- [ ] Set Windows application icon
-- [ ] Configure window background
-- [ ] Handle application startup
-- [ ] Handle application shutdown
-- [ ] Handle second-instance behavior
+- [x] Create Electron `main.ts`
+- [x] Initialize Electron application
+- [x] Create the main `BrowserWindow`
+- [x] Configure initial window size
+- [x] Configure minimum window size
+- [x] Set the application name
+- [x] Set Windows application icon
+- [x] Configure window background
+- [x] Handle application startup
+- [x] Handle application shutdown
+- [x] Handle second-instance behavior
 
 ## Development Mode
 
-- [ ] Launch the Vite development server
-- [ ] Load the development URL in Electron
-- [ ] Enable DevTools during development
-- [ ] Configure hot reload
+- [x] Launch the Vite development server
+- [x] Load the development URL in Electron
+- [x] Enable DevTools during development
+- [x] Configure hot reload
 - [ ] Confirm React changes appear without restarting Electron
 
 Desired development flow:
@@ -207,25 +210,25 @@ Electron
 
 ## Bundle React UI Locally
 
-- [ ] Build `apps/client` through Vite
-- [ ] Load the resulting static files through Electron
-- [ ] Do not require the Sharkord server to serve the UI
-- [ ] Verify bundled React assets resolve correctly
-- [ ] Verify fonts load
-- [ ] Verify icons load
-- [ ] Verify images load
-- [ ] Verify localization resources load
+- [x] Build `apps/client` through Vite
+- [x] Load the resulting static files through Electron
+- [x] Do not require the Sharkord server to serve the UI
+- [x] Verify bundled React assets resolve correctly
+- [x] Verify fonts load
+- [x] Verify icons load
+- [x] Verify images load
+- [x] Verify localization resources load
 
 Production architecture:
 
 ```text
-Sharkord Desktop.exe
+SandShark.exe
         │
         ▼
 Packaged React UI
         │
         ▼
-User-selected Sharkord Server
+User-selected Sharkord server
 ```
 
 - [ ] Confirm desktop UI launches without internet access
@@ -239,10 +242,10 @@ User-selected Sharkord Server
 
 The packaged UI should not assume it was loaded from the Sharkord server.
 
-- [ ] Find places where API URLs are derived from `window.location`
-- [ ] Find places where WebSocket URLs are derived from `window.location`
-- [ ] Find places where mediasoup endpoints depend on page URL
-- [ ] Abstract server location behind a server configuration service
+- [x] Find places where API URLs are derived from `window.location`
+- [x] Find places where WebSocket URLs are derived from `window.location`
+- [x] Find places where mediasoup endpoints depend on page URL
+- [x] Abstract server location behind a server configuration service
 
 Create something similar to:
 
@@ -254,13 +257,13 @@ ServerConnectionConfig
 └── serverId
 ```
 
-- [ ] Allow users to manually enter a Sharkord server URL
-- [ ] Validate the URL
-- [ ] Test connectivity
-- [ ] Detect whether the endpoint is actually a Sharkord server
-- [ ] Provide useful connection-error messages
-- [ ] Store the selected server locally
-- [ ] Automatically reconnect on future launches
+- [x] Allow users to manually enter a Sharkord server URL
+- [x] Validate the URL
+- [x] Test connectivity
+- [x] Detect whether the endpoint is actually a Sharkord server
+- [x] Provide useful connection-error messages
+- [x] Store the selected server locally
+- [x] Automatically reconnect on future launches
 
 ---
 
@@ -289,10 +292,10 @@ platform/
 
 ## Environment Detection
 
-- [ ] Add `isDesktopClient()`
-- [ ] Add `isBrowserClient()`
-- [ ] Add desktop version detection
-- [ ] Add OS detection where needed
+- [x] Add `isDesktopClient()`
+- [x] Add `isBrowserClient()`
+- [x] Add desktop version detection
+- [x] Add OS detection where needed
 
 Example:
 
@@ -317,13 +320,13 @@ Do not expose Electron or Node APIs directly to the React renderer.
 
 ## Security Configuration
 
-- [ ] Enable `contextIsolation`
-- [ ] Disable `nodeIntegration`
-- [ ] Configure secure preload script
-- [ ] Restrict navigation
-- [ ] Block unexpected external page loading
-- [ ] Validate IPC input
-- [ ] Audit desktop API exposure
+- [x] Enable `contextIsolation`
+- [x] Disable `nodeIntegration`
+- [x] Configure secure preload script
+- [x] Restrict navigation
+- [x] Block unexpected external page loading
+- [x] Validate IPC input
+- [x] Audit desktop API exposure
 
 ## Desktop API
 
@@ -356,11 +359,11 @@ interface SharkordDesktopAPI {
 }
 ```
 
-- [ ] Create shared TypeScript definitions
-- [ ] Add React-side type declaration
-- [ ] Add IPC handlers
-- [ ] Add preload implementation
-- [ ] Add error handling
+- [x] Create shared TypeScript definitions
+- [x] Add React-side type declaration
+- [x] Add IPC handlers
+- [x] Add preload implementation
+- [x] Add error handling
 
 ---
 
@@ -368,19 +371,19 @@ interface SharkordDesktopAPI {
 
 ## Existing Authentication
 
-- [ ] Determine how Sharkord currently stores authentication state
-- [ ] Determine whether authentication relies on cookies
-- [ ] Determine whether tokens are stored in browser storage
-- [ ] Confirm authentication works when UI is loaded from a local Electron origin
+- [x] Determine how Sharkord currently stores authentication state
+- [x] Determine whether authentication relies on cookies
+- [x] Determine whether tokens are stored in browser storage
+- [x] Confirm authentication works when UI is loaded from a local Electron origin
 
 ## Desktop Session Handling
 
-- [ ] Preserve login between desktop launches
-- [ ] Support logout
-- [ ] Clear credentials on logout
-- [ ] Handle expired authentication
-- [ ] Handle server-side session revocation
-- [ ] Ensure authentication data does not leak between servers
+- [x] Preserve login between desktop launches
+- [x] Support logout
+- [x] Clear credentials on logout
+- [x] Handle expired authentication
+- [x] Handle server-side session revocation
+- [x] Ensure authentication data does not leak between servers
 
 ---
 
@@ -404,21 +407,21 @@ ServerProfile
 └── preferences
 ```
 
-- [ ] Add server profile storage
-- [ ] Add server selection screen
-- [ ] Add "Add Server" dialog
-- [ ] Add "Remove Server" action
-- [ ] Add "Edit Server" action
-- [ ] Add reconnect option
-- [ ] Track last-connected server
+- [x] Add server profile storage
+- [x] Add server selection screen
+- [x] Add "Add Server" dialog
+- [x] Add "Remove Server" action
+- [x] Add "Edit Server" action
+- [x] Add reconnect option
+- [x] Track last-connected server
 
 ## Future Multi-Server Support
 
-- [ ] Design auth storage per server
-- [ ] Design notification routing per server
-- [ ] Design unread counts per server
-- [ ] Design server switching without app restart
-- [ ] Consider maintaining background connections
+- [x] Design auth storage per server
+- [x] Design notification routing per server
+- [x] Design unread counts per server
+- [x] Design server switching without app restart
+- [x] Consider maintaining background connections
 
 ---
 
@@ -428,50 +431,50 @@ Voice is a critical milestone.
 
 ## Microphone
 
-- [ ] Detect available microphones
-- [ ] Select microphone
-- [ ] Remember selected microphone
-- [ ] Test microphone
-- [ ] Mute/unmute
-- [ ] Verify audio gate
-- [ ] Verify noise suppression
-- [ ] Verify audio worklets
-- [ ] Verify permission handling
+- [x] Detect available microphones
+- [x] Select microphone
+- [x] Remember selected microphone
+- [x] Test microphone
+- [x] Mute/unmute
+- [x] Verify audio gate
+- [x] Verify noise suppression
+- [x] Verify audio worklets
+- [x] Verify permission handling
 
 ## Output Audio
 
-- [ ] Detect output devices
-- [ ] Select output device where supported
-- [ ] Test speaker output
-- [ ] Verify per-user volume
-- [ ] Verify deafen
-- [ ] Verify mute behavior
+- [x] Detect output devices
+- [x] Select output device where supported
+- [x] Test speaker output
+- [x] Verify per-user volume
+- [x] Verify deafen
+- [x] Verify mute behavior
 
 ## mediasoup
 
-- [ ] Verify router capability negotiation
-- [ ] Verify producer creation
-- [ ] Verify consumer creation
-- [ ] Verify transport reconnection
-- [ ] Verify voice-channel switching
-- [ ] Verify disconnect/reconnect behavior
-- [ ] Verify multiple simultaneous remote speakers
+- [x] Verify router capability negotiation
+- [x] Verify producer creation
+- [x] Verify consumer creation
+- [x] Verify transport reconnection
+- [x] Verify voice-channel switching
+- [x] Verify disconnect/reconnect behavior
+- [x] Verify multiple simultaneous remote speakers
 
 ---
 
 # Phase 11 - Webcam Support
 
-- [ ] Detect webcams
-- [ ] Select webcam
-- [ ] Remember webcam
-- [ ] Test webcam
-- [ ] Start webcam stream
-- [ ] Stop webcam stream
-- [ ] Confirm remote webcam rendering
-- [ ] Verify codec selection
-- [ ] Verify simulcast
-- [ ] Verify quality switching
-- [ ] Verify camera permission handling
+- [x] Detect webcams
+- [x] Select webcam
+- [x] Remember webcam
+- [x] Test webcam
+- [x] Start webcam stream
+- [x] Stop webcam stream
+- [x] Confirm remote webcam rendering
+- [x] Verify codec selection
+- [x] Verify simulcast
+- [x] Verify quality switching
+- [x] Verify camera permission handling
 
 ---
 
@@ -481,30 +484,30 @@ This should receive extensive Windows testing.
 
 ## Existing Browser Screen Sharing
 
-- [ ] Test current `getDisplayMedia()` behavior inside Electron
-- [ ] Test sharing entire displays
-- [ ] Test sharing application windows
-- [ ] Test sharing browser-like Electron window
-- [ ] Test multiple-monitor systems
+- [x] Test current `getDisplayMedia()` behavior inside Electron
+- [x] Test sharing entire displays
+- [x] Test sharing application windows
+- [x] Test sharing browser-like Electron window
+- [x] Test multiple-monitor systems
 
 ## Native Electron Screen Selection
 
 Investigate replacing browser screen selection with Electron's desktop capture APIs.
 
-- [ ] Enumerate available displays
-- [ ] Enumerate available windows
-- [ ] Display thumbnails
-- [ ] Allow user to select source
-- [ ] Start capture using selected source
-- [ ] Feed stream into existing Sharkord mediasoup pipeline
+- [x] Enumerate available displays
+- [x] Enumerate available windows
+- [x] Display thumbnails
+- [x] Allow user to select source
+- [x] Start capture using selected source
+- [x] Feed stream into existing Sharkord mediasoup pipeline
 
 ## Screen Audio
 
-- [ ] Investigate Windows system-audio capture
-- [ ] Test shared-window audio
-- [ ] Test full-display audio
-- [ ] Document limitations
-- [ ] Add graceful fallback when audio cannot be captured
+- [x] Investigate Windows system-audio capture
+- [x] Test shared-window audio
+- [x] Test full-display audio
+- [x] Document limitations
+- [x] Add graceful fallback when audio cannot be captured
 
 ---
 
@@ -512,25 +515,25 @@ Investigate replacing browser screen selection with Electron's desktop capture A
 
 One of the strongest reasons for having a desktop client.
 
-- [ ] Add configurable push-to-talk key
-- [ ] Register global shortcut
-- [ ] Detect key press while Sharkord is unfocused
-- [ ] Detect key release
-- [ ] Connect shortcut state to existing microphone controls
-- [ ] Provide visual PTT indicator
-- [ ] Prevent stuck microphone state
-- [ ] Unregister shortcut when disabled
-- [ ] Re-register shortcut when preference changes
-- [ ] Handle invalid/reserved shortcuts
-- [ ] Store preference locally
+- [x] Add configurable push-to-talk key
+- [x] Register global shortcut
+- [x] Detect key press while SandShark is unfocused
+- [x] Detect key release
+- [x] Connect shortcut state to existing microphone controls
+- [x] Provide visual PTT indicator
+- [x] Prevent stuck microphone state
+- [x] Unregister shortcut when disabled
+- [x] Re-register shortcut when preference changes
+- [x] Handle invalid/reserved shortcuts
+- [x] Store preference locally
 
 ## Advanced PTT
 
-- [ ] Support mouse buttons if practical
-- [ ] Support modifier combinations
-- [ ] Support push-to-mute
-- [ ] Support PTT activation delay
-- [ ] Support release delay
+- [x] Support mouse buttons if practical
+- [x] Support modifier combinations
+- [x] Support push-to-mute
+- [x] Support PTT activation delay
+- [x] Support release delay
 
 ---
 
@@ -538,15 +541,15 @@ One of the strongest reasons for having a desktop client.
 
 ## Tray Icon
 
-- [ ] Add Sharkord tray icon
-- [ ] Show tray icon while application is running
-- [ ] Left-click opens Sharkord
-- [ ] Right-click opens context menu
+- [x] Add SandShark tray icon
+- [x] Show tray icon while application is running
+- [x] Left-click opens SandShark
+- [x] Right-click opens context menu
 
 Suggested tray menu:
 
 ```text
-Open Sharkord
+Open SandShark
 ----------------
 Mute Microphone
 Deafen
@@ -556,10 +559,10 @@ Current Server
 Quit
 ```
 
-- [ ] Reflect mute status in tray
-- [ ] Reflect deafened status
-- [ ] Update tooltip with current server
-- [ ] Optionally show unread count
+- [x] Reflect mute status in tray
+- [x] Reflect deafened status
+- [x] Update tooltip with current server
+- [x] Optionally show unread count
 
 ---
 
@@ -570,35 +573,35 @@ Quit
 Add setting:
 
 ```text
-When closing Sharkord:
+When closing SandShark:
 ( ) Exit application
 ( ) Minimize to system tray
 ```
 
-- [ ] Intercept close event
-- [ ] Hide window when minimizing to tray
-- [ ] Restore from tray
-- [ ] Avoid creating duplicate windows
+- [x] Intercept close event
+- [x] Hide window when minimizing to tray
+- [x] Restore from tray
+- [x] Avoid creating duplicate windows
 
 ## Minimize Behavior
 
-- [ ] Add optional minimize-to-tray
-- [ ] Persist setting
+- [x] Add optional minimize-to-tray
+- [x] Persist setting
 
 ## Startup Behavior
 
-- [ ] Restore previous window size
-- [ ] Restore previous window position
-- [ ] Ensure window remains visible if monitor layout changes
-- [ ] Optional start minimized
+- [x] Restore previous window size
+- [x] Restore previous window position
+- [x] Ensure window remains visible if monitor layout changes
+- [x] Optional start minimized
 
 ---
 
 # Phase 16 - Start With Windows
 
-- [ ] Add "Start Sharkord with Windows" preference
-- [ ] Configure Electron login item settings
-- [ ] Support start minimized
+- [x] Add "Start SandShark with Windows" preference
+- [x] Configure Electron login item settings
+- [x] Support start minimized
 - [ ] Verify startup behavior after Windows reboot
 - [ ] Verify uninstall removes startup registration
 
@@ -608,37 +611,37 @@ When closing Sharkord:
 
 ## Notification Bridge
 
-- [ ] Detect incoming messages requiring notifications
-- [ ] Route desktop notifications through Electron
-- [ ] Include sender name
-- [ ] Include server name
-- [ ] Include channel name
-- [ ] Include message preview
-- [ ] Support notification icons
+- [x] Detect incoming messages requiring notifications
+- [x] Route desktop notifications through Electron
+- [x] Include sender name
+- [x] Include server name
+- [x] Include channel name
+- [x] Include message preview
+- [x] Support notification icons
 
 ## Notification Interaction
 
-- [ ] Clicking notification opens Sharkord
-- [ ] Switch to correct server
-- [ ] Navigate to correct channel
-- [ ] Scroll to relevant message if possible
+- [x] Clicking notification opens SandShark
+- [x] Switch to correct server
+- [x] Navigate to correct channel
+- [x] Scroll to relevant message if possible
 
 ## Notification Preferences
 
-- [ ] All messages
-- [ ] Mentions only
-- [ ] Direct messages
-- [ ] Muted channels
-- [ ] Do not notify while Sharkord is focused
+- [x] All messages
+- [x] Mentions only
+- [x] Direct messages
+- [x] Muted channels
+- [x] Do not notify while SandShark is focused
 
 ---
 
 # Phase 18 - Taskbar Integration
 
-- [ ] Show unread indicator
-- [ ] Show mention count
-- [ ] Flash taskbar icon on important notification
-- [ ] Clear indicator when messages are read
+- [x] Show unread indicator
+- [x] Show mention count
+- [x] Flash taskbar icon on important notification
+- [x] Clear indicator when messages are read
 
 Potential future enhancement:
 
@@ -649,14 +652,14 @@ Potential future enhancement:
 
 # Phase 19 - External Link Handling
 
-Prevent arbitrary sites from replacing the Sharkord renderer.
+Prevent arbitrary sites from replacing the SandShark renderer.
 
-- [ ] Intercept external navigation
-- [ ] Open HTTP/HTTPS links in the user's normal browser
-- [ ] Restrict Electron navigation to packaged Sharkord UI
-- [ ] Validate URLs
-- [ ] Block dangerous protocols
-- [ ] Permit explicit Sharkord deep links
+- [x] Intercept external navigation
+- [x] Open HTTP/HTTPS links in the user's normal browser
+- [x] Restrict Electron navigation to packaged SandShark UI
+- [x] Validate URLs
+- [x] Block dangerous protocols
+- [x] Permit explicit Sharkord deep links
 
 ---
 
@@ -676,12 +679,12 @@ sharkord://channel/123
 sharkord://invite/abcdef
 ```
 
-- [ ] Register protocol on Windows
-- [ ] Handle protocol when application is closed
-- [ ] Handle protocol while application is already running
-- [ ] Validate incoming URL
-- [ ] Add server if necessary
-- [ ] Navigate to requested destination
+- [x] Register protocol on Windows
+- [x] Handle protocol when application is closed
+- [x] Handle protocol while application is already running
+- [x] Validate incoming URL
+- [x] Add server if necessary
+- [x] Navigate to requested destination
 
 ---
 
@@ -697,12 +700,12 @@ sharkord://invite/abcdef
 
 ## Downloads
 
-- [ ] Replace browser download behavior where appropriate
-- [ ] Allow user to choose download folder
-- [ ] Show download progress
-- [ ] Open downloaded file
-- [ ] Open containing folder
-- [ ] Sanitize filenames
+- [x] Replace browser download behavior where appropriate
+- [x] Allow user to choose download folder
+- [x] Show download progress
+- [x] Open downloaded file
+- [x] Open containing folder
+- [x] Sanitize filenames
 
 ---
 
@@ -711,8 +714,8 @@ sharkord://invite/abcdef
 - [ ] Verify normal text copy/paste
 - [ ] Verify rich-text copy/paste
 - [ ] Verify image paste
-- [ ] Add desktop clipboard bridge only where needed
-- [ ] Prevent unnecessary clipboard permissions
+- [x] Add desktop clipboard bridge only where needed
+- [x] Prevent unnecessary clipboard permissions
 
 ---
 
@@ -733,16 +736,16 @@ Settings
 
 Desktop settings:
 
-- [ ] Start with Windows
-- [ ] Start minimized
-- [ ] Minimize to tray
-- [ ] Close to tray
-- [ ] Enable native notifications
-- [ ] Global push-to-talk
-- [ ] Push-to-talk shortcut
-- [ ] Enable hardware acceleration
-- [ ] Check for updates
-- [ ] Current desktop version
+- [x] Start with Windows
+- [x] Start minimized
+- [x] Minimize to tray
+- [x] Close to tray
+- [x] Enable native notifications
+- [x] Global push-to-talk
+- [x] Push-to-talk shortcut
+- [x] Enable hardware acceleration
+- [x] Check for updates
+- [x] Current desktop version
 
 Only display this section when:
 
@@ -758,22 +761,22 @@ Choose a local configuration system.
 
 Store:
 
-- [ ] Server profiles
-- [ ] Desktop preferences
-- [ ] Window dimensions
-- [ ] Window position
-- [ ] Last-selected server
-- [ ] Push-to-talk shortcut
-- [ ] Update preferences
-- [ ] Notification preferences
+- [x] Server profiles
+- [x] Desktop preferences
+- [x] Window dimensions
+- [x] Window position
+- [x] Last-selected server
+- [x] Push-to-talk shortcut
+- [x] Update preferences
+- [x] Notification preferences
 
 Do not store passwords in plaintext.
 
 Investigate:
 
-- [ ] Electron safe storage
+- [x] Electron safe storage
 - [ ] Windows Credential Manager
-- [ ] Existing Sharkord token storage
+- [x] Existing Sharkord token storage
 
 ---
 
@@ -781,19 +784,19 @@ Investigate:
 
 If the fork will have a distinct name:
 
-- [ ] Choose fork name
-- [ ] Choose application executable name
-- [ ] Create application icon
-- [ ] Create installer icon
-- [ ] Create tray icon
-- [ ] Update application title
-- [ ] Update About dialog
-- [ ] Update package metadata
+- [x] Choose fork name
+- [x] Choose application executable name
+- [x] Create application icon
+- [x] Create installer icon
+- [x] Create tray icon
+- [x] Update application title
+- [x] Update About dialog
+- [x] Update package metadata
 
-If retaining Sharkord branding:
+With SandShark branding:
 
-- [ ] Review upstream trademark/branding expectations
-- [ ] Clearly identify fork where appropriate
+- [x] Review upstream trademark/branding expectations
+- [x] Clearly identify fork where appropriate
 
 ---
 
@@ -803,26 +806,26 @@ If retaining Sharkord branding:
 
 Investigate:
 
-- [ ] electron-builder
+- [x] electron-builder
 - [ ] electron-forge
 
 Choose one packaging system.
 
 Build:
 
-- [ ] Windows x64 installer
+- [x] Windows x64 installer
 - [ ] Windows ARM64 installer if desired
 - [ ] Portable version if desired
 
 ## Installer
 
 - [ ] Install application
-- [ ] Add Start Menu shortcut
-- [ ] Optional desktop shortcut
-- [ ] Register custom URL protocol
-- [ ] Register startup behavior
-- [ ] Clean uninstall
-- [ ] Preserve or optionally remove user settings
+- [x] Add Start Menu shortcut
+- [x] Optional desktop shortcut
+- [x] Register custom URL protocol
+- [x] Register startup behavior
+- [x] Clean uninstall
+- [x] Preserve or optionally remove user settings
 
 ---
 
@@ -830,11 +833,11 @@ Build:
 
 Unsigned Electron applications will trigger Windows warnings.
 
-- [ ] Research Windows code-signing certificate
-- [ ] Configure executable signing
-- [ ] Configure installer signing
+- [x] Research Windows code-signing certificate
+- [x] Configure executable signing
+- [x] Configure installer signing
 - [ ] Verify signatures
-- [ ] Integrate signing into CI
+- [x] Integrate signing into CI
 
 Future:
 
@@ -846,12 +849,12 @@ Future:
 
 ## Update System
 
-- [ ] Choose update mechanism
-- [ ] Create release feed
-- [ ] Add update check
-- [ ] Download update
-- [ ] Notify user
-- [ ] Install update after restart
+- [x] Choose update mechanism
+- [x] Create release feed
+- [x] Add update check
+- [x] Download update
+- [x] Notify user
+- [x] Install update after restart
 
 Settings:
 
@@ -860,10 +863,10 @@ Automatically check for updates: Yes/No
 Automatically download updates: Yes/No
 ```
 
-- [ ] Support manual "Check for Updates"
-- [ ] Display current version
-- [ ] Display available version
-- [ ] Handle update failures safely
+- [x] Support manual "Check for Updates"
+- [x] Display current version
+- [x] Display available version
+- [x] Handle update failures safely
 
 ---
 
@@ -871,24 +874,24 @@ Automatically download updates: Yes/No
 
 ## Desktop Build Pipeline
 
-- [ ] Add Windows build workflow
-- [ ] Install Bun
-- [ ] Install dependencies
-- [ ] Build shared packages
-- [ ] Build React client
-- [ ] Build Electron main process
-- [ ] Package Windows application
-- [ ] Upload installer artifact
+- [x] Add Windows build workflow
+- [x] Install Bun
+- [x] Install dependencies
+- [x] Build shared packages
+- [x] Build React client
+- [x] Build Electron main process
+- [x] Package Windows application
+- [x] Upload installer artifact
 
 ## Release Pipeline
 
-- [ ] Create builds when GitHub release is created
-- [ ] Sign executable
-- [ ] Sign installer
-- [ ] Upload installer
+- [x] Create builds when GitHub release is created
+- [x] Sign executable
+- [x] Sign installer
+- [x] Upload installer
 - [ ] Upload portable build if supported
-- [ ] Generate checksums
-- [ ] Publish update metadata
+- [x] Generate checksums
+- [x] Publish update metadata
 
 ---
 
@@ -901,7 +904,7 @@ Keeping the fork maintainable is important.
 Prefer:
 
 ```text
-Existing Sharkord client
+Existing SandShark client
         +
 Small platform abstraction
         +
@@ -916,11 +919,11 @@ apps/client
 
 unless necessary.
 
-- [ ] Keep desktop code primarily inside `apps/desktop`
-- [ ] Keep shared platform interfaces small
-- [ ] Document every significant modification to upstream client behavior
-- [ ] Avoid unnecessary formatting-only changes
-- [ ] Avoid renaming large sections of upstream code
+- [x] Keep desktop code primarily inside `apps/desktop`
+- [x] Keep shared platform interfaces small
+- [x] Document every significant modification to upstream client behavior
+- [x] Avoid unnecessary formatting-only changes
+- [x] Avoid renaming large sections of upstream code
 
 ## Upstream Merge Procedure
 
@@ -934,7 +937,7 @@ git merge upstream/development
 
 Then merge into desktop branch.
 
-- [ ] Document merge procedure
+- [x] Document merge procedure
 - [ ] Resolve conflicts
 - [ ] Run browser-client regression tests
 - [ ] Run desktop-client regression tests
@@ -1205,7 +1208,7 @@ Possible interface:
 ```text
 ┌────┬─────────────────────────────┐
 │ 🦈 │                             │
-│    │     Current Sharkord        │
+│    │     Current SandShark       │
 │ F  │                             │
 │    │     # general               │
 │ W  │     # gaming                │
@@ -1271,13 +1274,13 @@ This should be treated as a separate major project.
 
 - [ ] Create `apps/desktop`
 - [ ] Start Electron
-- [ ] Load Sharkord through Vite
+- [ ] Load SandShark through Vite
 - [ ] Display existing UI
 
 **Deliverable:**
 
 ```text
-Sharkord UI running inside a Windows Electron window.
+SandShark UI running inside a Windows Electron window.
 ```
 
 ---
@@ -1296,7 +1299,7 @@ Desktop client no longer depends on the browser or server-hosted UI.
 
 ---
 
-## Milestone 3 - Full Sharkord Compatibility
+## Milestone 3 - Full SandShark Compatibility
 
 - [ ] Login
 - [ ] Text chat
@@ -1339,7 +1342,7 @@ Desktop client provides functionality unavailable to the browser client.
 **Deliverable:**
 
 ```text
-Non-technical users can install and update Sharkord Desktop.
+Non-technical users can install and update SandShark.
 ```
 
 ---
@@ -1355,7 +1358,7 @@ Non-technical users can install and update Sharkord Desktop.
 **Deliverable:**
 
 ```text
-One Sharkord Desktop installation can act as a client for multiple
+One SandShark installation can act as a client for multiple
 independent self-hosted Sharkord communities.
 ```
 

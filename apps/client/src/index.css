@@ -1,0 +1,433 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@source "../../../packages/ui/src";
+
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+html,
+body,
+[data-overlay-container='true'] {
+  height: 100%;
+  overflow: hidden;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  height: 100%;
+}
+
+/* Define CSS variables for light and dark themes */
+:root {
+  --scrollbar-width: 12px;
+  --scrollbar-track-color-light: #f1f1f1;
+  --scrollbar-thumb-color-light: #888;
+  --scrollbar-thumb-hover-color-light: #555;
+
+  --scrollbar-track-color-dark: #2e2e2e;
+  --scrollbar-thumb-color-dark: #555;
+  --scrollbar-thumb-hover-color-dark: #888;
+}
+
+/* Light theme scrollbars */
+body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb-color-light)
+    var(--scrollbar-track-color-light);
+}
+
+/* Webkit Browsers */
+::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-color-light);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb-color-light);
+  border-radius: 10px;
+  border: 2px solid var(--scrollbar-track-color-light);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover-color-light);
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb-color-dark)
+      var(--scrollbar-track-color-dark);
+  }
+
+  /* Webkit Browsers */
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track-color-dark);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb-color-dark);
+    border: 2px solid var(--scrollbar-track-color-dark);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover-color-dark);
+  }
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb-color-light)
+    var(--scrollbar-track-color-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb-color-dark)
+      var(--scrollbar-track-color-dark);
+  }
+}
+
+#portal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+}
+
+.line-break {
+  white-space: pre-wrap;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.tiptap,
+.msg-content {
+  line-height: 1.6;
+
+  :first-child {
+    margin-top: 0;
+  }
+
+  .emoji-image:not(.ProseMirror-separator) {
+    height: 1.6em;
+    width: 1.6em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    border: none;
+    outline: none;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    line-height: 1;
+  }
+
+  img.emoji-image:not(.ProseMirror-separator),
+  .emoji-image img:not(.ProseMirror-separator) {
+    height: 100%;
+    width: 100%;
+    display: block;
+    object-fit: contain;
+    border: none;
+    outline: none;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .ProseMirror-separator {
+    display: none;
+  }
+
+  a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+.msg-content.emoji-only {
+  font-size: 2.5rem;
+  line-height: 1.2;
+
+  .emoji-image:not(.ProseMirror-separator) {
+    height: 1.2em;
+    width: 1.2em;
+  }
+}
+
+.msg-content.msg-edited > *:nth-last-child(2) {
+  display: inline;
+}
+
+.msg-content p:empty {
+  min-height: 1em;
+}
+
+/* speaking indicators */
+
+/* quiet */
+@keyframes speaking-glow-low {
+  0% {
+    box-shadow:
+      0 0 0 1px rgb(134, 239, 172, 0.4),
+      0 0 10px rgb(134, 239, 172, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgb(134, 239, 172, 0.6),
+      0 0 15px rgb(134, 239, 172, 0.3);
+  }
+  100% {
+    box-shadow:
+      0 0 0 1px rgb(134, 239, 172, 0.4),
+      0 0 10px rgb(134, 239, 172, 0.2);
+  }
+}
+
+/* normal */
+@keyframes speaking-glow-medium {
+  0% {
+    box-shadow:
+      0 0 0 2px rgb(34, 197, 94, 0.6),
+      0 0 20px rgb(34, 197, 94, 0.4),
+      0 0 30px rgb(34, 197, 94, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgb(34, 197, 94, 0.8),
+      0 0 30px rgb(34, 197, 94, 0.6),
+      0 0 45px rgb(34, 197, 94, 0.3);
+  }
+  100% {
+    box-shadow:
+      0 0 0 2px rgb(34, 197, 94, 0.6),
+      0 0 20px rgb(34, 197, 94, 0.4),
+      0 0 30px rgb(34, 197, 94, 0.2);
+  }
+}
+
+/* loud */
+@keyframes speaking-glow-high {
+  0% {
+    box-shadow:
+      0 0 0 3px rgb(22, 163, 74, 0.8),
+      0 0 25px rgb(22, 163, 74, 0.6),
+      0 0 50px rgb(22, 163, 74, 0.4),
+      0 0 75px rgb(22, 163, 74, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px rgb(22, 163, 74, 1),
+      0 0 40px rgb(22, 163, 74, 0.8),
+      0 0 70px rgb(22, 163, 74, 0.6),
+      0 0 100px rgb(22, 163, 74, 0.3);
+  }
+  100% {
+    box-shadow:
+      0 0 0 3px rgb(22, 163, 74, 0.8),
+      0 0 25px rgb(22, 163, 74, 0.6),
+      0 0 50px rgb(22, 163, 74, 0.4),
+      0 0 75px rgb(22, 163, 74, 0.2);
+  }
+}
+
+.speaking-effect-low {
+  animation: speaking-glow-low 2.5s ease-in-out infinite;
+}
+
+.speaking-effect-medium {
+  animation: speaking-glow-medium 1.2s ease-in-out infinite;
+}
+
+.speaking-effect-high {
+  animation: speaking-glow-high 0.8s ease-in-out infinite;
+}
+
+.media-masonry-grid {
+  --masonry-max-width: 56rem;
+  --masonry-gutter: 8px;
+  --masonry-gap: 8px;
+  --masonry-tile-max-height: 18rem;
+
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  margin-left: calc(var(--masonry-gutter) * -1);
+  max-width: min(100%, var(--masonry-max-width));
+  width: auto;
+}
+
+@media (max-width: 700px) {
+  .media-masonry-grid {
+    --masonry-gutter: 12px;
+    --masonry-gap: 12px;
+  }
+}
+
+.media-masonry-grid_column {
+  padding-left: var(--masonry-gutter);
+  background-clip: padding-box;
+}
+
+.media-masonry-grid_column > div {
+  margin-bottom: var(--masonry-gap);
+}
+
+.media-masonry-item {
+  overflow: hidden;
+}
+
+.media-masonry-asset {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+
+.media-masonry-image {
+  height: auto;
+  max-height: var(--masonry-tile-max-height);
+  object-fit: cover;
+  object-position: center;
+}
+
+.media-masonry-video {
+  width: 100% !important;
+  max-width: 100% !important;
+}

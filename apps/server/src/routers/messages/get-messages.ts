@@ -1,0 +1,199 @@
+import {
+  DEFAULT_MESSAGES_LIMIT,
+  ServerEvents,
+  type TMessage
+} from '@sharkord/shared';
+import { and, count, desc, eq, gte, inArray, isNull, lt } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/sqlite-core';
+import { z } from 'zod';
+import { config } from '../../config';
+import { db } from '../../db';
+import { getChannelsReadStatesForUser } from '../../db/queries/channels';
+import { joinMessagesWithRelations } from '../../db/queries/messages';
+import { channelReadStates, channels, messages } from '../../db/schema';
+import { assertChannelAccess } from '../../helpers/assert-channel-access';
+import { invariant } from '../../utils/invariant';
+import { pubsub } from '../../utils/pubsub';
+import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
+
+const getMessagesRoute = rateLimitedProcedure(protectedProcedure, {
+  maxRequests: config.rateLimiters.getMessages.maxRequests,
+  windowMs: config.rateLimiters.getMessages.windowMs,
+  logLabel: 'getMessages'
+})
+  .input(
+    z.object({
+      channelId: z.number(),
+      cursor: z.number().nullish(),
+      targetMessageId: z.number().nullish(),
+      limit: z.number().default(DEFAULT_MESSAGES_LIMIT)
+    })
+  )
+  .meta({ infinite: true })
+  .query(async ({ ctx, input }) => {
+    await assertChannelAccess(ctx, input.channelId);
+
+    const { channelId, cursor, limit, targetMessageId } = input;
+
+    const channel = await db
+      .select({
+        id: channels.id
+      })
+      .from(channels)
+      .where(eq(channels.id, channelId))
+      .get();
+
+    invariant(channel, {
+      code: 'NOT_FOUND',
+      message: 'Channel not found'
+    });
+
+    const baseWhere = and(
+      eq(messages.channelId, channelId),
+      isNull(messages.parentMessageId)
+    );
+
+    let rows: TMessage[];
+    let nextCursor: number | null = null;
+
+    if (targetMessageId) {
+      // fetch all messages from newest down to (and including) the target
+      const targetMessage = await db
+        .select({
+          id: messages.id,
+          createdAt: messages.createdAt,
+          parentMessageId: messages.parentMessageId
+        })
+        .from(messages)
+        .where(
+          and(
+            eq(messages.id, targetMessageId),
+            eq(messages.channelId, channelId)
+          )
+        )
+        .get();
+
+      invariant(targetMessage, {
+        code: 'NOT_FOUND',
+        message: 'Target message not found'
+      });
+
+      invariant(!targetMessage.parentMessageId, {
+        code: 'BAD_REQUEST',
+        message: 'Target message must be a root message'
+      });
+
+      // fetch everything from newest down to the target, plus 20 older messages
+      // for context around the target
+      const olderMessages = await db
+        .select()
+        .from(messages)
+        .where(and(baseWhere, lt(messages.createdAt, targetMessage.createdAt)))
+        .orderBy(desc(messages.createdAt))
+        .limit(20);
+
+      const newerMessages = await db
+        .select()
+        .from(messages)
+        .where(and(baseWhere, gte(messages.createdAt, targetMessage.createdAt)))
+        .orderBy(desc(messages.createdAt));
+
+      rows = [...newerMessages, ...olderMessages];
+    } else {
+      // standard cursor-based pagination
+      rows = await db
+        .select()
+        .from(messages)
+        .where(
+          cursor ? and(baseWhere, lt(messages.createdAt, cursor)) : baseWhere
+        )
+        .orderBy(desc(messages.createdAt))
+        .limit(limit + 1);
+
+      if (rows.length > limit) {
+        rows.pop();
+
+        const lastReturnedMessage = rows.at(-1);
+
+        nextCursor = lastReturnedMessage ? lastReturnedMessage.createdAt : null;
+      }
+    }
+
+    if (rows.length === 0) {
+      return { messages: [], nextCursor };
+    }
+
+    const messagesWithRelations = await joinMessagesWithRelations(rows);
+
+    const messageIds = rows.map((m) => m.id);
+    const replies = alias(messages, 'replies');
+
+    const replyCountRows = await db
+      .select({
+        parentMessageId: replies.parentMessageId,
+        count: count()
+      })
+      .from(replies)
+      .where(inArray(replies.parentMessageId, messageIds))
+      .groupBy(replies.parentMessageId);
+
+    const replyCountByMessage = replyCountRows.reduce<Record<number, number>>(
+      (acc, r) => {
+        if (r.parentMessageId !== null) {
+          acc[r.parentMessageId] = r.count;
+        }
+        return acc;
+      },
+      {}
+    );
+
+    const messagesWithReplyCounts = messagesWithRelations.map((msg) => ({
+      ...msg,
+      replyCount: replyCountByMessage[msg.id] ?? 0
+    }));
+
+    // always update read state to the absolute latest message in the channel
+    // (not just the newest in this batch, in case user is scrolling back through history)
+    // this is not ideal, but it's good enough for now
+    const latestMessage = await db
+      .select()
+      .from(messages)
+      .where(
+        and(eq(messages.channelId, channelId), isNull(messages.parentMessageId))
+      )
+      .orderBy(desc(messages.createdAt))
+      .limit(1)
+      .get();
+
+    if (latestMessage) {
+      await db
+        .insert(channelReadStates)
+        .values({
+          channelId,
+          userId: ctx.userId,
+          lastReadMessageId: latestMessage.id,
+          lastReadAt: Date.now()
+        })
+        .onConflictDoUpdate({
+          target: [channelReadStates.channelId, channelReadStates.userId],
+          set: {
+            lastReadMessageId: latestMessage.id,
+            lastReadAt: Date.now()
+          }
+        });
+
+      const updatedReadStates = await getChannelsReadStatesForUser(
+        ctx.userId,
+        channelId
+      );
+
+      pubsub.publishFor(ctx.userId, ServerEvents.CHANNEL_READ_STATES_UPDATE, {
+        channelId,
+        count: updatedReadStates[channelId] ?? 0
+      });
+    }
+
+    return { messages: messagesWithReplyCounts, nextCursor };
+  });
+
+export { getMessagesRoute };

@@ -1,0 +1,4 @@
+node_modules/
+dist/
+release/
+.phase3-dev*.log

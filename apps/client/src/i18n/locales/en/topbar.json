@@ -1,0 +1,18 @@
+{
+  "closeVoiceChat": "Close Voice Chat",
+  "openVoiceChat": "Open Voice Chat",
+  "closeMembersSidebar": "Close Members Sidebar",
+  "openMembersSidebar": "Open Members Sidebar",
+  "searchContent": "Search for content...",
+  "voiceOptions": "Voice Options",
+  "hideNonVideoParticipants": "Hide non-video participants",
+  "displayUserBanners": "Display user banners",
+  "alwaysShowVoiceControls": "Always show voice controls",
+  "hideOwnScreenShare": "Hide own screen share",
+  "audioControls": "Audio Controls",
+  "stream_one": "stream",
+  "stream_other": "streams",
+  "noRemoteAudioStreams": "No remote audio streams available.",
+  "volumeControls": "Volume Controls",
+  "externalAudio": "External Audio"
+}

@@ -1,0 +1,267 @@
+import { useDevices } from '@/components/devices-provider/hooks/use-devices';
+import { UserAvatar } from '@/components/user-avatar';
+import { useStreamVolumeControl } from '@/components/voice-provider/hooks/use-stream-volume-control';
+import { useWebRtcSimulcastEnabled } from '@/features/server/hooks';
+import type { TVoiceUser } from '@/features/server/types';
+import { useIsOwnUser } from '@/features/server/users/hooks';
+import {
+  useShowUserBannersInVoice,
+  useSpeakingState,
+  useVoice
+} from '@/features/server/voice/hooks';
+import { getFileUrl } from '@/helpers/get-file-url';
+import { cn } from '@/lib/utils';
+import { StreamKind } from '@sharkord/shared';
+import { HeadphoneOff, MicOff, Monitor, Video } from 'lucide-react';
+import { memo, useCallback, useMemo, useRef } from 'react';
+import { CardTheme } from './card-theme';
+import { cardControlClass, cardDensity } from './helpers';
+import { FullscreenButton } from './fullscreen-button';
+import { useFullscreen } from './hooks/use-fullscreen';
+import { useVideoStats } from './hooks/use-video-stats';
+import { useVoiceRefs } from './hooks/use-voice-refs';
+import { PictureInPictureButton } from './picture-in-picture-button';
+import { PinButton } from './pin-button';
+import { QualityButton } from './quality-button';
+import { VolumeButton } from './volume-button';
+
+type TVoiceUserCardProps = {
+  userId: number;
+  onPin: () => void;
+  onUnpin: () => void;
+  showPinControls?: boolean;
+  voiceUser: TVoiceUser;
+  className?: string;
+  isPinned?: boolean;
+  isAnyCardPinned?: boolean;
+  showScreenShare?: boolean;
+};
+
+const VoiceUserCard = memo(
+  ({
+    userId,
+    onPin,
+    onUnpin,
+    className,
+    isPinned = false,
+    showPinControls = true,
+    voiceUser,
+    isAnyCardPinned = false,
+    showScreenShare = true
+  }: TVoiceUserCardProps) => {
+    const {
+      videoRef,
+      screenShareRef,
+      screenShareAudioRef,
+      hasVideoStream,
+      hasScreenShareStream,
+      hasScreenShareAudioStream
+    } = useVoiceRefs(userId);
+    const { volumeKey } = useStreamVolumeControl({ type: 'user', userId });
+    const { devices } = useDevices();
+    const isOwnUser = useIsOwnUser(userId);
+    const showUserBanners = useShowUserBannersInVoice();
+    const webRtcSimulcastEnabled = useWebRtcSimulcastEnabled();
+    const { isSimulcastConsumer } = useVoice();
+    const { isActivelySpeaking, speakingEffectClass } =
+      useSpeakingState(userId);
+
+    const isCompact = isAnyCardPinned && !isPinned;
+    const density = cardDensity(isCompact);
+    const isShowingScreenShare = showScreenShare && hasScreenShareStream;
+    const hasVisualStream = isShowingScreenShare || hasVideoStream;
+    const visualStreamKind = isShowingScreenShare
+      ? StreamKind.SCREEN
+      : StreamKind.VIDEO;
+    const visualRef = isShowingScreenShare ? screenShareRef : videoRef;
+    const videoStats = useVideoStats(visualRef, hasVisualStream);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const { isFullscreen, toggleFullscreen, handleDoubleClick } =
+      useFullscreen(containerRef);
+    const showQualityControl =
+      !isOwnUser && webRtcSimulcastEnabled && hasVisualStream;
+
+    const handlePinToggle = useCallback(() => {
+      if (isPinned) {
+        onUnpin?.();
+      } else {
+        onPin?.();
+      }
+    }, [isPinned, onPin, onUnpin]);
+
+    const handleToggleFullscreen = useCallback(() => {
+      void toggleFullscreen();
+    }, [toggleFullscreen]);
+
+    const backgroundStyle = useMemo(
+      () =>
+        hasVisualStream
+          ? { backgroundColor: '#000000' }
+          : { backgroundImage: `url("${getFileUrl(voiceUser.banner)}")` },
+      [hasVisualStream, voiceUser.banner]
+    );
+
+    return (
+      <div
+        ref={containerRef}
+        className={cn(
+          'relative bg-card overflow-hidden group/voice-user-card',
+          'flex items-center justify-center',
+          'size-full',
+          isFullscreen ? 'rounded-none border-none' : 'rounded border border-border',
+          isActivelySpeaking && speakingEffectClass,
+          className
+        )}
+        onDoubleClick={isShowingScreenShare ? handleDoubleClick : undefined}
+      >
+        {voiceUser.banner && showUserBanners ? (
+          <div
+            className="h-full w-full rounded bg-center bg-cover blur-sm brightness-50 bg-no-repeat absolute inset-0"
+            style={backgroundStyle}
+          />
+        ) : (
+          <CardTheme
+            profileColor={voiceUser.profileColor}
+            hasVideoStream={hasVisualStream}
+          />
+        )}
+
+        {hasVisualStream && (
+          <video
+            ref={visualRef}
+            autoPlay
+            muted
+            playsInline
+            className={cn(
+              'absolute inset-0 w-full h-full object-contain',
+              !isShowingScreenShare &&
+                isOwnUser &&
+                devices.mirrorOwnVideo &&
+                '-scale-x-100'
+            )}
+          />
+        )}
+        {isShowingScreenShare && hasScreenShareAudioStream && (
+          <audio ref={screenShareAudioRef} autoPlay playsInline className="hidden" />
+        )}
+        {!hasVisualStream && (
+          <UserAvatar
+            userId={userId}
+            className={cn(
+              'pointer-events-none',
+              isPinned
+                ? 'w-16 h-16 md:w-20 md:h-20 lg:w-32 lg:h-32'
+                : isCompact
+                  ? 'w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-14'
+                  : 'w-12 h-12 md:w-16 md:h-16 lg:w-24 lg:h-24'
+            )}
+            showStatusBadge={false}
+          />
+        )}
+
+        <div
+          className={cn(
+            'absolute top-0 right-0 z-10 min-h-4 items-center',
+            density.inset,
+            density.controls,
+            'hidden group-hover/voice-user-card:inline-flex',
+            'has-[[data-state=open]]:inline-flex'
+          )}
+        >
+          {!isOwnUser && (
+            <VolumeButton
+              volumeKey={volumeKey}
+              size={density.icon}
+              className={cardControlClass(isCompact)}
+            />
+          )}
+          {showQualityControl && (
+            <QualityButton
+              streamId={userId}
+              kind={visualStreamKind}
+              disabled={!isSimulcastConsumer(userId, visualStreamKind)}
+              size={density.icon}
+              className={cardControlClass(isCompact)}
+            />
+          )}
+          {hasVisualStream && (
+            <PictureInPictureButton
+              videoRef={visualRef}
+              size={density.icon}
+              className={cardControlClass(isCompact)}
+            />
+          )}
+          {isShowingScreenShare && (
+            <FullscreenButton
+              isFullscreen={isFullscreen}
+              handleToggleFullscreen={handleToggleFullscreen}
+              size={density.icon}
+              className={cardControlClass(isCompact, isFullscreen)}
+            />
+          )}
+          {showPinControls && (
+            <PinButton
+              isPinned={isPinned}
+              handlePinToggle={handlePinToggle}
+              size={density.icon}
+              className={cardControlClass(isCompact, isPinned)}
+            />
+          )}
+        </div>
+
+        <div
+          className={cn('absolute bottom-0 left-0 right-0 flex', density.inset)}
+        >
+          <div
+            className={cn(
+              'inline-flex min-w-0 min-h-4 py-2 items-center bg-black/70 rounded overflow-hidden truncate',
+              density.badge,
+              !voiceUser.state.micMuted &&
+                !voiceUser.state.soundMuted &&
+                !voiceUser.state.webcamEnabled &&
+                !voiceUser.state.sharingScreen &&
+                'hidden group-hover/voice-stage:inline-flex'
+            )}
+          >
+            {voiceUser.state.micMuted && !voiceUser.state.soundMuted && (
+              <MicOff
+                className="text-red-400/80 shrink-0 size-3"
+                fill="currentColor"
+              />
+            )}
+            {voiceUser.state.soundMuted && (
+              <HeadphoneOff
+                className="text-red-400/80 size-3"
+                fill="currentColor"
+              />
+            )}
+            {voiceUser.state.webcamEnabled && (
+              <Video className="text-white/80 size-3" fill="currentColor" />
+            )}
+            {voiceUser.state.sharingScreen && (
+              <Monitor className="text-white/80 size-3" />
+            )}
+            <p
+              className={cn(
+                'hidden group-hover/voice-stage:block truncate leading-none',
+                density.label
+              )}
+            >
+              {voiceUser.name}
+            </p>
+            {isShowingScreenShare && videoStats && (
+              <span className="text-muted-foreground text-xs ml-2 leading-none shrink-0">
+                {videoStats.width}x{videoStats.height}
+                {videoStats.frameRate > 0 && ` ${videoStats.frameRate}fps`}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+);
+
+VoiceUserCard.displayName = 'VoiceUserCard';
+
+export { VoiceUserCard };

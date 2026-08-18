@@ -1,0 +1,68 @@
+import { ImagePicker } from '@/components/image-picker';
+import { uploadImage } from '@/helpers/upload-file';
+import { useFilePicker } from '@/hooks/use-file-picker';
+import { getTRPCClient } from '@/lib/trpc';
+import type { TFile } from '@sharkord/shared';
+import { Group } from '@sharkord/ui';
+import { memo, useCallback } from 'react';
+import { toast } from 'sonner';
+
+type TLogoManagerProps = {
+  logo: TFile | null;
+  refetch: () => Promise<void>;
+};
+
+const LogoManager = memo(({ logo, refetch }: TLogoManagerProps) => {
+  const openFilePicker = useFilePicker();
+
+  const removeLogo = useCallback(async () => {
+    const trpc = getTRPCClient();
+
+    try {
+      await trpc.others.changeLogo.mutate({ fileId: undefined });
+      await refetch();
+
+      toast.success('Logo removed successfully!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Could not remove logo. Please try again.');
+    }
+  }, [refetch]);
+
+  const onLogoClick = useCallback(async () => {
+    const trpc = getTRPCClient();
+
+    try {
+      const [file] = await openFilePicker('image/*');
+
+      const temporaryFile = await uploadImage(file);
+
+      if (!temporaryFile) {
+        return;
+      }
+
+      await trpc.others.changeLogo.mutate({ fileId: temporaryFile.id });
+      await refetch();
+
+      toast.success('Logo updated successfully!');
+    } catch {
+      toast.error('Could not update logo. Please try again.');
+    }
+  }, [openFilePicker, refetch]);
+
+  return (
+    <Group
+      label="Logo"
+      description="Square image is recommended. If your image is not perfectly square, the PWA icons will fall back to the default Sharkord icon."
+    >
+      <ImagePicker
+        image={logo}
+        onImageClick={onLogoClick}
+        onRemoveImageClick={removeLogo}
+        className="object-scale-down"
+      />
+    </Group>
+  );
+});
+
+export { LogoManager };

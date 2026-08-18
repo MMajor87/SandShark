@@ -1,0 +1,507 @@
+import { logVoice } from '@/helpers/browser-logger';
+import { getTRPCClient } from '@/lib/trpc';
+import type { TRemoteUserStreamKinds } from '@/types';
+import {
+  type ConsumerType,
+  getMediasoupKind,
+  StreamKind,
+  type TStreamQualityLayer
+} from '@sharkord/shared';
+import { TRPCClientError } from '@trpc/client';
+import {
+  type AppData,
+  type Consumer,
+  type Device,
+  type RtpCapabilities,
+  type Transport
+} from 'mediasoup-client/types';
+import { useCallback, useRef } from 'react';
+import { getStoredStreamQuality } from '../helpers';
+
+type TUseTransportParams = {
+  onTransportFailed: () => void;
+  addRemoteUserStream: (
+    userId: number,
+    stream: MediaStream,
+    kind: TRemoteUserStreamKinds
+  ) => void;
+  removeRemoteUserStream: (
+    userId: number,
+    kind: TRemoteUserStreamKinds
+  ) => void;
+  addExternalStreamTrack: (
+    streamId: number,
+    stream: MediaStream,
+    kind: StreamKind.EXTERNAL_AUDIO | StreamKind.EXTERNAL_VIDEO
+  ) => void;
+  removeExternalStreamTrack: (
+    streamId: number,
+    kind: StreamKind.EXTERNAL_AUDIO | StreamKind.EXTERNAL_VIDEO
+  ) => void;
+  setRemoteConsumerType: (
+    remoteId: number,
+    kind: StreamKind,
+    consumerType: ConsumerType | undefined
+  ) => void;
+  setRemoteStreamQualityLayers: (
+    remoteId: number,
+    kind: StreamKind,
+    layers: TStreamQualityLayer[]
+  ) => void;
+  clearRemoteConsumerMetadata: () => void;
+};
+
+const useTransports = ({
+  onTransportFailed,
+  addRemoteUserStream,
+  removeRemoteUserStream,
+  addExternalStreamTrack,
+  removeExternalStreamTrack,
+  setRemoteConsumerType,
+  setRemoteStreamQualityLayers,
+  clearRemoteConsumerMetadata
+}: TUseTransportParams) => {
+  const producerTransport = useRef<Transport<AppData> | undefined>(undefined);
+  const consumerTransport = useRef<Transport<AppData> | undefined>(undefined);
+  const consumers = useRef<{
+    [userId: number]: {
+      [kind: string]: Consumer<AppData>;
+    };
+  }>({});
+  const consumerCodecs = useRef<Map<string, string>>(new Map());
+  const consumeOperationsInProgress = useRef<Set<string>>(new Set());
+
+  const createProducerTransport = useCallback(async (device: Device) => {
+    logVoice('Creating producer transport', { device });
+
+    const trpc = getTRPCClient();
+
+    try {
+      const params = await trpc.voice.createProducerTransport.mutate();
+
+      logVoice('Got producer transport parameters', { params });
+
+      producerTransport.current = device.createSendTransport(params);
+
+      producerTransport.current.on(
+        'connect',
+        async ({ dtlsParameters }, callback, errback) => {
+          logVoice('Producer transport connected', { dtlsParameters });
+
+          try {
+            await trpc.voice.connectProducerTransport.mutate({
+              dtlsParameters
+            });
+
+            callback();
+          } catch (error) {
+            errback(error as Error);
+            logVoice('Error connecting producer transport', { error });
+          }
+        }
+      );
+
+      producerTransport.current.on('connectionstatechange', (state) => {
+        logVoice('Producer transport connection state changed', { state });
+
+        if (state === 'failed') {
+          logVoice(`Producer transport ${state}`);
+          producerTransport.current?.close();
+          onTransportFailed();
+        } else if (state === 'closed') {
+          logVoice('Producer transport closed');
+          producerTransport.current = undefined;
+        }
+      });
+
+      producerTransport.current.on('icecandidateerror', (error) => {
+        logVoice('Producer transport ICE candidate error', { error });
+      });
+
+      producerTransport.current.on(
+        'produce',
+        async ({ rtpParameters, appData }, callback, errback) => {
+          logVoice('Producing new track', { rtpParameters, appData });
+
+          const { kind, qualityLayers } = appData as {
+            kind: StreamKind;
+            qualityLayers?: TStreamQualityLayer[];
+          };
+
+          if (!producerTransport.current) return;
+
+          try {
+            const producerId = await trpc.voice.produce.mutate({
+              transportId: producerTransport.current.id,
+              kind,
+              rtpParameters,
+              qualityLayers
+            });
+
+            callback({ id: producerId });
+          } catch (error) {
+            if (error instanceof TRPCClientError) {
+              if (error.data.code === 'FORBIDDEN') {
+                logVoice('Permission denied to produce track', { kind });
+                errback(
+                  new Error(
+                    `You don't have permission to ${kind} in this channel`
+                  )
+                );
+
+                return;
+              }
+            }
+
+            logVoice('Error producing new track', { error });
+            errback(error as Error);
+          }
+        }
+      );
+    } catch (error) {
+      logVoice('Error creating producer transport', { error });
+      throw error;
+    }
+  }, [onTransportFailed]);
+
+  const createConsumerTransport = useCallback(async (device: Device) => {
+    logVoice('Creating consumer transport', { device });
+
+    const trpc = getTRPCClient();
+
+    try {
+      const params = await trpc.voice.createConsumerTransport.mutate();
+
+      logVoice('Got consumer transport parameters', { params });
+
+      consumerTransport.current = device.createRecvTransport(params);
+
+      consumerTransport.current.on(
+        'connect',
+        async ({ dtlsParameters }, callback, errback) => {
+          logVoice('Consumer transport connected', { dtlsParameters });
+
+          try {
+            await trpc.voice.connectConsumerTransport.mutate({
+              dtlsParameters
+            });
+
+            callback();
+          } catch (error) {
+            errback(error as Error);
+            logVoice('Consumer transport connect error', { error });
+          }
+        }
+      );
+
+      consumerTransport.current.on('connectionstatechange', (state) => {
+        logVoice('Consumer transport connection state changed', { state });
+
+        if (state === 'failed') {
+          logVoice(`Consumer transport ${state}, attempting cleanup`);
+
+          Object.values(consumers.current).forEach((userConsumers) => {
+            Object.values(userConsumers).forEach((consumer) => {
+              consumer.close();
+            });
+          });
+          consumers.current = {};
+
+          consumerTransport.current?.close();
+          consumerTransport.current = undefined;
+          onTransportFailed();
+        } else if (state === 'closed') {
+          logVoice('Consumer transport closed');
+          consumerTransport.current = undefined;
+        }
+      });
+
+      consumerTransport.current.on('icecandidateerror', (error) => {
+        logVoice('Consumer transport ICE candidate error', { error });
+      });
+    } catch (error) {
+      logVoice('Failed to create consumer transport', { error });
+      throw error;
+    }
+  }, [onTransportFailed]);
+
+  const consume = useCallback(
+    async (
+      remoteId: number,
+      kind: StreamKind,
+      rtpCapabilities: RtpCapabilities
+    ) => {
+      if (!consumerTransport.current) {
+        logVoice('Consumer transport not available');
+        return;
+      }
+
+      const operationKey = `${remoteId}-${kind}`;
+
+      if (consumeOperationsInProgress.current.has(operationKey)) {
+        logVoice('Consume operation already in progress', {
+          remoteId,
+          kind
+        });
+        return;
+      }
+
+      consumeOperationsInProgress.current.add(operationKey);
+
+      try {
+        logVoice('Consuming remote producer', { remoteId, kind });
+
+        const trpc = getTRPCClient();
+
+        const {
+          producerId,
+          consumerId,
+          consumerKind,
+          consumerRtpParameters,
+          consumerType,
+          qualityLayers
+        } = await trpc.voice.consume.mutate({
+          kind,
+          remoteId,
+          rtpCapabilities
+        });
+
+        logVoice('Got consumer parameters', {
+          producerId,
+          consumerId,
+          consumerKind,
+          consumerType,
+          qualityLayers,
+          consumerRtpParameters
+        });
+
+        if (!consumers.current[remoteId]) {
+          consumers.current[remoteId] = {};
+        }
+
+        const existingConsumer = consumers.current[remoteId][consumerKind];
+
+        if (existingConsumer && !existingConsumer.closed) {
+          logVoice('Closing existing consumer before creating new one');
+
+          existingConsumer.close();
+          delete consumers.current[remoteId][consumerKind];
+        }
+
+        const newConsumer = await consumerTransport.current.consume({
+          id: consumerId,
+          producerId: producerId,
+          kind: getMediasoupKind(consumerKind),
+          rtpParameters: consumerRtpParameters
+        });
+
+        logVoice('Created new consumer', { newConsumer });
+
+        const cleanupEvents = [
+          'transportclose',
+          'trackended',
+          '@close',
+          'close'
+        ];
+
+        cleanupEvents.forEach((event) => {
+          // @ts-expect-error - YOLO
+          newConsumer?.on(event, () => {
+            logVoice(`Consumer cleanup event "${event}" triggered`, {
+              remoteId,
+              kind
+            });
+
+            if (
+              kind === StreamKind.EXTERNAL_VIDEO ||
+              kind === StreamKind.EXTERNAL_AUDIO
+            ) {
+              removeExternalStreamTrack(remoteId, kind);
+            } else {
+              removeRemoteUserStream(remoteId, kind);
+            }
+
+            if (consumers.current[remoteId]?.[consumerKind]) {
+              delete consumers.current[remoteId][consumerKind];
+            }
+
+            consumerCodecs.current.delete(`${remoteId}-${kind}`);
+
+            setRemoteConsumerType(remoteId, kind, undefined);
+            setRemoteStreamQualityLayers(remoteId, kind, []);
+          });
+        });
+
+        consumers.current[remoteId][consumerKind] = newConsumer;
+
+        setRemoteConsumerType(remoteId, kind, consumerType);
+        setRemoteStreamQualityLayers(remoteId, kind, qualityLayers);
+
+        const codecKey = `${remoteId}-${kind}`;
+
+        const negotiatedCodec =
+          newConsumer.rtpParameters?.codecs?.[0]?.mimeType;
+
+        if (negotiatedCodec) {
+          consumerCodecs.current.set(codecKey, negotiatedCodec);
+        }
+
+        if (
+          consumerType === 'simulcast' &&
+          (kind === StreamKind.VIDEO ||
+            kind === StreamKind.SCREEN ||
+            kind === StreamKind.EXTERNAL_VIDEO)
+        ) {
+          const quality = getStoredStreamQuality(remoteId, kind, qualityLayers);
+
+          if (quality.mode === 'layer') {
+            await trpc.voice.setConsumerQuality.mutate({
+              remoteId,
+              kind,
+              quality
+            });
+          }
+        }
+
+        const stream = new MediaStream();
+
+        stream.addTrack(newConsumer.track);
+
+        if (
+          kind === StreamKind.EXTERNAL_VIDEO ||
+          kind === StreamKind.EXTERNAL_AUDIO
+        ) {
+          addExternalStreamTrack(remoteId, stream, kind);
+        } else {
+          addRemoteUserStream(remoteId, stream, kind);
+        }
+      } catch (error) {
+        logVoice('Error consuming remote producer', { error });
+      } finally {
+        consumeOperationsInProgress.current.delete(operationKey);
+      }
+    },
+    [
+      addRemoteUserStream,
+      removeRemoteUserStream,
+      addExternalStreamTrack,
+      removeExternalStreamTrack,
+      setRemoteConsumerType,
+      setRemoteStreamQualityLayers
+    ]
+  );
+
+  const consumeExistingProducers = useCallback(
+    async (
+      rtpCapabilities: RtpCapabilities,
+      externalStreamTracks?: {
+        [streamId: number]: { audio?: boolean; video?: boolean };
+      }
+    ) => {
+      logVoice('Consuming existing producers', { rtpCapabilities });
+
+      const trpc = getTRPCClient();
+
+      try {
+        const {
+          remoteAudioIds,
+          remoteScreenIds,
+          remoteScreenAudioIds,
+          remoteVideoIds,
+          remoteExternalStreamIds
+        } = await trpc.voice.getProducers.query();
+
+        logVoice('Got existing producers', {
+          remoteAudioIds,
+          remoteScreenIds,
+          remoteVideoIds,
+          remoteExternalStreamIds
+        });
+
+        remoteAudioIds.forEach((remoteId) => {
+          consume(remoteId, StreamKind.AUDIO, rtpCapabilities);
+        });
+
+        remoteVideoIds.forEach((remoteId) => {
+          consume(remoteId, StreamKind.VIDEO, rtpCapabilities);
+        });
+
+        remoteScreenIds.forEach((remoteId) => {
+          consume(remoteId, StreamKind.SCREEN, rtpCapabilities);
+        });
+
+        remoteScreenAudioIds.forEach((remoteId) => {
+          consume(remoteId, StreamKind.SCREEN_AUDIO, rtpCapabilities);
+        });
+
+        remoteExternalStreamIds.forEach((streamId: number) => {
+          const tracks = externalStreamTracks?.[streamId];
+
+          if (tracks?.audio !== false) {
+            consume(streamId, StreamKind.EXTERNAL_AUDIO, rtpCapabilities);
+          }
+          if (tracks?.video !== false) {
+            consume(streamId, StreamKind.EXTERNAL_VIDEO, rtpCapabilities);
+          }
+        });
+      } catch (error) {
+        logVoice('Error consuming existing producers', { error });
+      }
+    },
+    [consume]
+  );
+
+  const getConsumerCodec = useCallback(
+    (remoteId: number, kind: StreamKind): string | undefined => {
+      return consumerCodecs.current.get(`${remoteId}-${kind}`);
+    },
+    []
+  );
+
+  const cleanupTransports = useCallback(() => {
+    logVoice('Cleaning up transports');
+
+    Object.values(consumers.current).forEach((userConsumers) => {
+      Object.values(userConsumers).forEach((consumer) => {
+        if (!consumer.closed) {
+          consumer.close();
+        }
+      });
+    });
+
+    consumers.current = {};
+    consumerCodecs.current.clear();
+
+    clearRemoteConsumerMetadata();
+
+    consumeOperationsInProgress.current.clear();
+
+    if (producerTransport.current && !producerTransport.current.closed) {
+      producerTransport.current.close();
+    }
+
+    producerTransport.current = undefined;
+
+    if (consumerTransport.current && !consumerTransport.current.closed) {
+      consumerTransport.current.close();
+    }
+
+    consumerTransport.current = undefined;
+
+    logVoice('Transports cleanup complete');
+  }, [clearRemoteConsumerMetadata]);
+
+  return {
+    producerTransport,
+    consumerTransport,
+    consumers,
+    createProducerTransport,
+    createConsumerTransport,
+    consume,
+    consumeExistingProducers,
+    cleanupTransports,
+    getConsumerCodec
+  };
+};
+
+export { useTransports };

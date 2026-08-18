@@ -1,0 +1,34 @@
+import { getErrorMessage, type TFile } from '@sharkord/shared';
+import { eq } from 'drizzle-orm';
+import fs from 'fs/promises';
+import path from 'path';
+import { db } from '..';
+import { PUBLIC_PATH } from '../../helpers/paths';
+import { logger } from '../../logger';
+import { files, messageFiles } from '../schema';
+
+const removeFile = async (fileId: number): Promise<TFile | undefined> => {
+  await db.delete(messageFiles).where(eq(messageFiles.fileId, fileId));
+
+  const removedFile = await db
+    .delete(files)
+    .where(eq(files.id, fileId))
+    .returning()
+    .get();
+
+  if (removedFile) {
+    try {
+      const filePath = path.join(PUBLIC_PATH, removedFile.name);
+
+      logger.debug('Deleting file from disk: %s', filePath);
+
+      await fs.unlink(filePath);
+    } catch (error) {
+      logger.error('Error deleting file from disk: %s', getErrorMessage(error));
+    }
+  }
+
+  return removedFile;
+};
+
+export { removeFile };

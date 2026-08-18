@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+/node_modules
 
 # Build outputs
 dist/
@@ -24,3 +25,10 @@ pnpm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
+/.github/copilot-instructions.md
+/cenas.txt
+/cenas.md
+/DockerCenas
+/experiments
+.capture-runtime-profile/
+.direnv/

@@ -1,0 +1,74 @@
+name: Release SandShark Desktop
+
+on:
+  push:
+    tags:
+      - 'sandshark-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing SandShark tag to release'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    name: Build signed Windows release
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build and sign Windows installer
+        working-directory: apps/desktop
+        run: bun run package
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
+      - name: Read desktop version
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Verify installer signature
+        working-directory: apps/desktop
+        run: bun run verify:signature -- -Path release\SandShark-${{ steps.version.outputs.version }}-Setup-x64.exe
+
+      - name: Generate checksums
+        working-directory: apps/desktop
+        shell: pwsh
+        run: |
+          Get-ChildItem release -File |
+            Where-Object { $_.Name -like 'SandShark-*-Setup-x64.exe' -or $_.Name -eq 'latest.yml' -or $_.Extension -eq '.blockmap' } |
+            Get-FileHash -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash)  $($_.Path | Split-Path -Leaf)" } |
+            Set-Content release\SHA256SUMS.txt
+
+      - name: Publish GitHub release and update metadata
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          name: SandShark ${{ steps.version.outputs.version }}
+          draft: true
+          generate_release_notes: true
+          files: |
+            apps/desktop/release/SandShark-*-Setup-x64.exe
+            apps/desktop/release/latest.yml
+            apps/desktop/release/*.blockmap
+            apps/desktop/release/SHA256SUMS.txt

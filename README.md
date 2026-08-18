@@ -10,9 +10,7 @@ This repository is initialized as the SandShark project shell. The implementatio
 
 ## Testing Server
 
-Use this Sharkord server for development and integration testing:
 
-https://redacted.invalid/
 
 ## Privacy
 

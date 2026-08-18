@@ -13,7 +13,7 @@
     "build": "bun run build:main && bun run build:renderer",
     "build:main": "tsc --project tsconfig.json",
     "build:renderer": "bun run --cwd ../client build",
-    "package": "bun run build && electron-builder --config electron-builder.yml",
+    "package": "bun run build && electron-builder --config electron-builder.yml --publish never",
     "dist": "bun run package",
     "verify:signature": "powershell -ExecutionPolicy Bypass -File scripts/verify-code-signature.ps1",
     "check-types": "tsc --noEmit --project tsconfig.json"

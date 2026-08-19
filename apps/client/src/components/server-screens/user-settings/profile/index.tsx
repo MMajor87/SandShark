@@ -28,10 +28,19 @@ const Profile = memo(() => {
   const { t } = useTranslation('settings');
   const ownPublicUser = useOwnPublicUser();
   const [saving, setSaving] = useState(false);
+  const legacyBannerColor = (
+    ownPublicUser as
+      | (typeof ownPublicUser & { bannerColor?: unknown })
+      | undefined
+  )?.bannerColor;
   const { setTrpcErrors, r, values, onChange } = useForm({
     name: ownPublicUser?.name ?? '',
     profileColor: ownPublicUser?.profileColor ?? DEFAULT_PROFILE_COLOR,
-    bio: ownPublicUser?.bio ?? ''
+    bio: ownPublicUser?.bio ?? '',
+    // Older Sharkord servers require this legacy field even though SandShark
+    // now uses profileColor. Newer servers ignore it.
+    bannerColor:
+      typeof legacyBannerColor === 'string' ? legacyBannerColor : '#FFFFFF'
   });
 
   const handleColorChange = useCallback(

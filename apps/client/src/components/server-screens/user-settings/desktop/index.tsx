@@ -14,7 +14,14 @@ import {
   Separator,
   Switch
 } from '@sharkord/ui';
-import { Download, FolderOpen, Info, RefreshCw } from 'lucide-react';
+import {
+  Download,
+  ExternalLink,
+  FolderOpen,
+  Info,
+  Power,
+  RefreshCw
+} from 'lucide-react';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { PushToTalkSettings } from '../devices/push-to-talk-settings';
@@ -118,7 +125,17 @@ const Desktop = memo(() => {
     [updateSettings]
   );
 
-  const handleUpdateAction = useCallback(async () => {
+  const handleManualUpdateCheck = useCallback(async () => {
+    if (!window.sandSharkDesktop) return;
+
+    try {
+      setUpdateStatus(await window.sandSharkDesktop.checkForUpdates());
+    } catch {
+      toast.error('Could not check for updates.');
+    }
+  }, []);
+
+  const handleAvailableUpdateAction = useCallback(async () => {
     if (!window.sandSharkDesktop) return;
 
     try {
@@ -126,13 +143,23 @@ const Desktop = memo(() => {
         setUpdateStatus(await window.sandSharkDesktop.downloadUpdate());
       } else if (updateStatus.state === 'downloaded') {
         await window.sandSharkDesktop.installUpdate();
-      } else {
-        setUpdateStatus(await window.sandSharkDesktop.checkForUpdates());
       }
     } catch {
       toast.error('Could not complete the update action.');
     }
   }, [updateStatus.state]);
+
+  const openLatestRelease = useCallback(async () => {
+    if (!window.sandSharkDesktop) return;
+
+    try {
+      await window.sandSharkDesktop.openExternal(
+        'https://github.com/MMajor87/SandShark/releases/latest'
+      );
+    } catch {
+      toast.error('Could not open the SandShark release page.');
+    }
+  }, []);
 
   const openLogFolder = useCallback(async () => {
     if (!window.sandSharkDesktop) return;
@@ -150,7 +177,7 @@ const Desktop = memo(() => {
       : updateStatus.state === 'downloading'
         ? `Downloading update${updateStatus.percent !== undefined ? ` (${updateStatus.percent}%)` : ''}.`
         : updateStatus.state === 'downloaded'
-          ? `Version ${updateStatus.version ?? 'unknown'} will install when SandShark restarts.`
+          ? `Version ${updateStatus.version ?? 'unknown'} is ready to install now.`
           : updateStatus.state === 'not-available'
             ? 'SandShark is up to date.'
             : updateStatus.state === 'error'
@@ -234,33 +261,34 @@ const Desktop = memo(() => {
 
         <Separator />
 
-        <Group label="Check for updates" description={updateDescription}>
-          <Button
-            variant="outline"
-            size="icon"
-            title={
-              updateStatus.state === 'available'
-                ? 'Download update'
-                : updateStatus.state === 'downloaded'
-                  ? 'Restart and install update'
-                  : 'Check for updates'
-            }
-            aria-label="Update action"
-            disabled={
-              isUpdateActionBusy || updateStatus.state === 'unsupported'
-            }
-            onClick={() => void handleUpdateAction()}
-          >
-            {updateStatus.state === 'available' ? (
-              <Download className="size-4" />
-            ) : (
-              <RefreshCw
-                className={
-                  isUpdateActionBusy ? 'size-4 animate-spin' : 'size-4'
-                }
-              />
-            )}
-          </Button>
+        <Group label="Update status" description={updateDescription}>
+          {(updateStatus.state === 'available' ||
+            updateStatus.state === 'downloaded') && (
+            <Button
+              variant="outline"
+              size="icon"
+              title={
+                updateStatus.state === 'available'
+                  ? 'Download update'
+                  : 'Install update now'
+              }
+              aria-label={
+                updateStatus.state === 'available'
+                  ? 'Download update'
+                  : 'Install update now'
+              }
+              onClick={() => void handleAvailableUpdateAction()}
+            >
+              {updateStatus.state === 'available' ? (
+                <Download className="size-4" />
+              ) : (
+                <Power className="size-4" />
+              )}
+            </Button>
+          )}
+          {isUpdateActionBusy && (
+            <RefreshCw className="size-4 animate-spin text-muted-foreground" />
+          )}
         </Group>
 
         <Group
@@ -293,9 +321,32 @@ const Desktop = memo(() => {
           label="About SandShark"
           description="A Sharkord-compatible desktop client."
         >
-          <span className="text-sm text-muted-foreground">
-            Version {version ?? 'Unknown'}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              Version {version ?? 'Unknown'}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              title="Check for updates"
+              aria-label="Check for updates"
+              disabled={
+                isUpdateActionBusy || updateStatus.state === 'unsupported'
+              }
+              onClick={() => void handleManualUpdateCheck()}
+            >
+              <RefreshCw className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              title="Open latest SandShark release"
+              aria-label="Open latest SandShark release"
+              onClick={() => void openLatestRelease()}
+            >
+              <ExternalLink className="size-4" />
+            </Button>
+          </div>
         </Group>
       </CardContent>
     </Card>

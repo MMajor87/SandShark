@@ -1,4 +1,8 @@
 node_modules/
 dist/
 release/
+/bin/
+/native/bin/
+/native/process-audio-capture/bin/
+/native/process-audio-capture/obj/
 .phase3-dev*.log

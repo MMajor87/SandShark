@@ -1,4 +1,5 @@
 import { t } from '../utils/trpc';
+import { calendarRouter } from './calendar';
 import { categoriesRouter } from './categories';
 import { channelsRouter } from './channels';
 import { dmsRouter } from './dms';
@@ -24,6 +25,7 @@ const appRouter = t.router({
   invites: invitesRouter,
   voice: voiceRouter,
   categories: categoriesRouter,
+  calendar: calendarRouter,
   plugins: pluginsRouter
 });
 

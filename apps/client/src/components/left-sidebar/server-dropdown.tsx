@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@sharkord/ui';
-import { Check, ChevronDown, Menu, Server } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, Menu, Server } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from '../dialogs/dialogs';
@@ -188,6 +188,13 @@ const ServerDropdownMenu = memo(() => {
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuLabel>{t('server')}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => openServerScreen(ServerScreen.CALENDAR)}
+        >
+          <CalendarDays className="mr-2 h-4 w-4" />
+          Calendar
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <Protect permission={Permission.MANAGE_CATEGORIES}>
           <DropdownMenuItem onClick={() => openDialog(Dialog.CREATE_CATEGORY)}>

@@ -7,6 +7,8 @@ $ErrorActionPreference = "Stop"
 
 $resolvedExecutable = Resolve-Path -LiteralPath $ExecutablePath -ErrorAction Stop
 $userDataDir = Join-Path ([System.IO.Path]::GetTempPath()) ("sandshark-smoke-" + [Guid]::NewGuid().ToString("N"))
+$previousSmokeTest = $env:SANDSHARK_SMOKE_TEST
+$previousSmokeUserDataDir = $env:SANDSHARK_SMOKE_USER_DATA_DIR
 
 function Stop-ProcessTree {
   param([int]$ProcessId)
@@ -20,12 +22,12 @@ function Stop-ProcessTree {
 }
 
 New-Item -ItemType Directory -Path $userDataDir | Out-Null
+$env:SANDSHARK_SMOKE_TEST = "1"
+$env:SANDSHARK_SMOKE_USER_DATA_DIR = $userDataDir
 
 try {
   $process = Start-Process `
     -FilePath $resolvedExecutable `
-    -ArgumentList @("--sandshark-smoke-user-data-dir=$userDataDir", "--sandshark-smoke-test") `
-    -WindowStyle Hidden `
     -PassThru
 
   Start-Sleep -Seconds $StartupSeconds
@@ -41,6 +43,9 @@ try {
     Status = "Running"
   } | Format-List
 } finally {
+  $env:SANDSHARK_SMOKE_TEST = $previousSmokeTest
+  $env:SANDSHARK_SMOKE_USER_DATA_DIR = $previousSmokeUserDataDir
+
   if ($process -and -not $process.HasExited) {
     Stop-ProcessTree -ProcessId $process.Id
   }

@@ -51,14 +51,32 @@ const Profile = memo(() => {
   );
 
   const onUpdateUser = useCallback(async () => {
-    if (saving) return;
+    if (saving || !ownPublicUser) return;
 
     setSaving(true);
     const trpc = getTRPCClient();
 
     try {
-      const updatedUser = await trpc.users.update.mutate(values);
-      updateUser(updatedUser.id, updatedUser);
+      const updatedUser = (await trpc.users.update.mutate(values)) as unknown;
+      if (
+        updatedUser &&
+        typeof updatedUser === 'object' &&
+        'id' in updatedUser &&
+        typeof updatedUser.id === 'number'
+      ) {
+        updateUser(
+          updatedUser.id,
+          updatedUser as Partial<NonNullable<typeof ownPublicUser>>
+        );
+      } else {
+        // Older Sharkord servers apply the update but return no user payload.
+        // Keep the current profile in sync until its normal event arrives.
+        updateUser(ownPublicUser.id, {
+          name: values.name,
+          profileColor: values.profileColor,
+          bio: values.bio
+        });
+      }
       toast.success(t('profileUpdated'));
     } catch (error) {
       setTrpcErrors(error);
@@ -66,7 +84,7 @@ const Profile = memo(() => {
     } finally {
       setSaving(false);
     }
-  }, [saving, values, setTrpcErrors, t]);
+  }, [saving, ownPublicUser, values, setTrpcErrors, t]);
 
   const handleSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {

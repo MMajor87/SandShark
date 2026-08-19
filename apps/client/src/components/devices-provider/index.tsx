@@ -29,7 +29,7 @@ const getDefaultDeviceSettings = (): TDeviceSettings => ({
   webcamResolution: Resolution['720p'],
   webcamFramerate: 30,
   echoCancellation: false,
-  noiseSuppression: NoiseSuppression.NONE,
+  noiseSuppression: NoiseSuppression.STANDARD,
   autoGainControl: true,
   noiseGateEnabled: false,
   noiseGateThresholdDb: MICROPHONE_GATE_DEFAULT_THRESHOLD_DB,
@@ -40,7 +40,7 @@ const getDefaultDeviceSettings = (): TDeviceSettings => ({
   simulcastEnabled: true,
   screenResolution: Resolution['720p'],
   screenFramerate: 30,
-  screenCodec: VideoCodec.AUTO,
+  screenCodec: VideoCodec.AV1,
   screenBitrate: DEFAULT_BITRATE
 });
 

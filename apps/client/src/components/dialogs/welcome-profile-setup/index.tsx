@@ -1,4 +1,5 @@
 import { useServerName } from '@/features/server/hooks';
+import { updateUser } from '@/features/server/users/actions';
 import { useOwnPublicUser } from '@/features/server/users/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { getInitialsFromName } from '@/helpers/get-initials-from-name';
@@ -41,6 +42,11 @@ const WelcomeProfileSetupDialog = memo(
       name: ownPublicUser?.name ?? '',
       bio: ownPublicUser?.bio ?? ''
     });
+    const legacyBannerColor = (
+      ownPublicUser as
+        | (typeof ownPublicUser & { bannerColor?: unknown })
+        | undefined
+    )?.bannerColor;
 
     const onAvatarClick = useCallback(async () => {
       const trpc = getTRPCClient();
@@ -107,20 +113,50 @@ const WelcomeProfileSetupDialog = memo(
       setLoading(true);
 
       try {
-        await trpc.users.update.mutate({
+        const updateInput = {
           name: values.name.trim(),
           profileColor: ownPublicUser.profileColor ?? DEFAULT_PROFILE_COLOR,
-          bio: trimmedBio || undefined
-        });
+          bio: trimmedBio || undefined,
+          // Older Sharkord servers require this field. Newer servers ignore it.
+          bannerColor:
+            typeof legacyBannerColor === 'string'
+              ? legacyBannerColor
+              : '#FFFFFF'
+        };
+        const updatedUser = (await trpc.users.update.mutate(
+          updateInput
+        )) as unknown;
+        if (
+          updatedUser &&
+          typeof updatedUser === 'object' &&
+          'id' in updatedUser &&
+          typeof updatedUser.id === 'number'
+        ) {
+          updateUser(
+            updatedUser.id,
+            updatedUser as Partial<NonNullable<typeof ownPublicUser>>
+          );
+        } else {
+          updateUser(ownPublicUser.id, updateInput);
+        }
 
         toast.success(t('welcomeProfileSaved'));
         close();
       } catch (error) {
         setTrpcErrors(error);
+        toast.error(getTrpcError(error, 'Could not save your profile.'));
       } finally {
         setLoading(false);
       }
-    }, [close, ownPublicUser, setTrpcErrors, t, values.bio, values.name]);
+    }, [
+      close,
+      legacyBannerColor,
+      ownPublicUser,
+      setTrpcErrors,
+      t,
+      values.bio,
+      values.name
+    ]);
 
     if (!ownPublicUser) return null;
 

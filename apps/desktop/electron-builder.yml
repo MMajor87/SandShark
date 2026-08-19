@@ -12,6 +12,10 @@ extraResources:
     to: renderer
   - from: sandshark.png
     to: sandshark.png
+  - from: native/bin
+    to: native
+    filter:
+      - ProcessAudioCapture.exe
 asar: true
 asarUnpack:
   - node_modules/uiohook-napi/**

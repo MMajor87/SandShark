@@ -1,6 +1,8 @@
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import {
   activityLog,
+  calendarEventInvitees,
+  calendarEvents,
   categories,
   channelReadStates,
   channelRolePermissions,
@@ -40,6 +42,10 @@ export type TEmoji = InferSelectModel<typeof emojis>;
 export type TMessageReaction = InferSelectModel<typeof messageReactions>;
 export type TInvite = InferSelectModel<typeof invites>;
 export type TActivityLog = InferSelectModel<typeof activityLog>;
+export type TCalendarEvent = InferSelectModel<typeof calendarEvents>;
+export type TCalendarEventInvitee = InferSelectModel<
+  typeof calendarEventInvitees
+>;
 export type TUserRole = InferSelectModel<typeof userRoles>;
 export type TChannelRolePermission = InferSelectModel<
   typeof channelRolePermissions
@@ -64,6 +70,10 @@ export type TIEmoji = InferInsertModel<typeof emojis>;
 export type TIMessageReaction = InferInsertModel<typeof messageReactions>;
 export type TIInvite = InferInsertModel<typeof invites>;
 export type TIActivityLog = InferInsertModel<typeof activityLog>;
+export type TICalendarEvent = InferInsertModel<typeof calendarEvents>;
+export type TICalendarEventInvitee = InferInsertModel<
+  typeof calendarEventInvitees
+>;
 export type TIUserRole = InferInsertModel<typeof userRoles>;
 export type TIChannelRolePermission = InferInsertModel<
   typeof channelRolePermissions

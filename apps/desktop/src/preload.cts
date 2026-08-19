@@ -4,6 +4,7 @@ import type {
   TDesktopDownloadProgress,
   TDesktopDownloadRequest,
   TDesktopCaptureDiagnostic,
+  TApplicationAudioCapture,
   TDesktopLogDiagnostic,
   THardwareAccelerationSettings,
   TDesktopUpdateSettings,
@@ -50,6 +51,30 @@ const desktopApi: TSandSharkDesktopAPI = {
     invoke('sandshark:get-desktop-capture-sources'),
   setDesktopCaptureSource: (sourceId: string) =>
     invoke<void>('sandshark:set-desktop-capture-source', sourceId),
+  startApplicationAudioCapture: (sourceId: string) =>
+    invoke<TApplicationAudioCapture>(
+      'sandshark:start-application-audio-capture',
+      sourceId
+    ),
+  stopApplicationAudioCapture: () =>
+    invoke<void>('sandshark:stop-application-audio-capture'),
+  onApplicationAudioData: (listener) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      captureId: unknown,
+      data: unknown
+    ) => {
+      if (typeof captureId !== 'string' || !(data instanceof Uint8Array)) return;
+
+      listener(captureId, data);
+    };
+
+    ipcRenderer.on('sandshark:application-audio-data', handler);
+
+    return () => {
+      ipcRenderer.removeListener('sandshark:application-audio-data', handler);
+    };
+  },
   reportDesktopCaptureDiagnostic: (diagnostic: TDesktopCaptureDiagnostic) =>
     invoke<void>('sandshark:report-desktop-capture-diagnostic', diagnostic),
   showDesktopCaptureLog: () =>

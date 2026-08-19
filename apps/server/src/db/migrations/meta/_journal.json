@@ -127,6 +127,13 @@
       "when": 1786049599269,
       "tag": "0017_banner_color_to_profile_color",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1787109319980,
+      "tag": "0018_quiet_the_order",
+      "breakpoints": true
     }
   ]
 }

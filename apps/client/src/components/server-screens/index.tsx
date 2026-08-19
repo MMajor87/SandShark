@@ -3,6 +3,7 @@ import { closeServerScreens } from '@/features/server-screens/actions';
 import { useServerScreenInfo } from '@/features/server-screens/hooks';
 import { createElement, memo, useCallback, useEffect, type JSX } from 'react';
 import { createPortal } from 'react-dom';
+import { CalendarScreen } from './calendar';
 import { CategorySettings } from './category-settings';
 import { ChannelSettings } from './channel-settings';
 import { ServerScreen } from './screens';
@@ -13,7 +14,8 @@ const ScreensMap = {
   [ServerScreen.SERVER_SETTINGS]: ServerSettings,
   [ServerScreen.CHANNEL_SETTINGS]: ChannelSettings,
   [ServerScreen.USER_SETTINGS]: UserSettings,
-  [ServerScreen.CATEGORY_SETTINGS]: CategorySettings
+  [ServerScreen.CATEGORY_SETTINGS]: CategorySettings,
+  [ServerScreen.CALENDAR]: CalendarScreen
 };
 
 const portalRoot = document.getElementById('portal')!;

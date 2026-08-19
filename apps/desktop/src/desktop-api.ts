@@ -24,6 +24,15 @@ export type TDesktopCaptureDiagnostic = {
   details?: Record<string, boolean | number | string | undefined>;
 };
 
+export type TApplicationAudioCapture = {
+  active: boolean;
+  captureId?: string;
+  sampleRate?: number;
+  channels?: number;
+  format?: 'f32' | 's16';
+  reason?: string;
+};
+
 export type TDesktopLogDiagnostic = {
   category: string;
   message: string;
@@ -133,6 +142,13 @@ export type TSandSharkDesktopAPI = {
   openExternal: (url: string) => Promise<void>;
   getDesktopCaptureSources: () => Promise<TDesktopCaptureSource[]>;
   setDesktopCaptureSource: (sourceId: string) => Promise<void>;
+  startApplicationAudioCapture: (
+    sourceId: string
+  ) => Promise<TApplicationAudioCapture>;
+  stopApplicationAudioCapture: () => Promise<void>;
+  onApplicationAudioData: (
+    listener: (captureId: string, data: Uint8Array) => void
+  ) => () => void;
   reportDesktopCaptureDiagnostic: (
     diagnostic: TDesktopCaptureDiagnostic
   ) => Promise<void>;

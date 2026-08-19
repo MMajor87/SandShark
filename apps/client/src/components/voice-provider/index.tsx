@@ -85,6 +85,10 @@ import {
 import { useTransports } from './hooks/use-transports';
 import { useVoiceControls } from './hooks/use-voice-controls';
 import { useVoiceEvents } from './hooks/use-voice-events';
+import {
+  createProcessAudioTrack,
+  type TProcessAudioTrack
+} from './process-audio-capture';
 import { SIMULCAST_WEBCAM_MAX_BITRATE } from './statics';
 import { VolumeControlProvider } from './volume-control-context';
 
@@ -459,6 +463,9 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     null
   );
   const nsAudioContextsRef = useRef<AudioContext[]>([]);
+  const processAudioTrackRef = useRef<TProcessAudioTrack | undefined>(
+    undefined
+  );
   const micMutedRef = useRef(ownVoiceState.micMuted);
   const pushToTalkActiveRef = useRef(pushToTalkActive);
   const pushToTalkModeRef = useRef<'talk' | 'mute' | undefined>(undefined);
@@ -502,6 +509,13 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
 
     transmitMicrophoneTrackRef.current?.stop();
     transmitMicrophoneTrackRef.current = null;
+  }, []);
+
+  const stopProcessAudioTrack = useCallback(async () => {
+    const processAudioTrack = processAudioTrackRef.current;
+    processAudioTrackRef.current = undefined;
+
+    await processAudioTrack?.stop();
   }, []);
 
   useEffect(() => {
@@ -899,6 +913,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
 
     localScreenShareAudioProducer.current?.close();
     localScreenShareAudioProducer.current = undefined;
+    void stopProcessAudioTrack();
 
     setScreenShareProducer(null);
     setLocalScreenShare(undefined);
@@ -909,12 +924,14 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     setLocalScreenShareAudio,
     localScreenShareProducer,
     localScreenShareAudioProducer,
-    setScreenShareProducer
+    setScreenShareProducer,
+    stopProcessAudioTrack
   ]);
 
   const startScreenShareStream = useCallback(async () => {
     try {
       logVoice('Starting screen share stream');
+      await stopProcessAudioTrack();
       const canRestrictOwnAudio = getRestrictOwnAudioSupport();
       const canSuppressLocalAudioPlayback =
         getSuppressLocalAudioPlaybackSupport();
@@ -926,6 +943,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         frameRate: { max: screenCaptureFrameRate }
       };
       const isDesktopScreenShare = isDesktopClient();
+      let processAudioTrack: TProcessAudioTrack | undefined;
 
       const displayMediaConstraints: MediaStreamConstraints = {
         video: screenCaptureConstraints,
@@ -984,6 +1002,51 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
           systemAudioRequested: Boolean(devices.shareSystemAudio)
         });
         await desktopApi.setDesktopCaptureSource(desktopCaptureSource.id);
+        if (
+          devices.shareSystemAudio &&
+          desktopCaptureSource.type === 'window'
+        ) {
+          const applicationAudio =
+            await desktopApi.startApplicationAudioCapture(
+              desktopCaptureSource.id
+            );
+
+          if (
+            applicationAudio.active &&
+            applicationAudio.captureId &&
+            applicationAudio.sampleRate &&
+            applicationAudio.channels &&
+            applicationAudio.format
+          ) {
+            try {
+              processAudioTrack = await createProcessAudioTrack({
+                captureId: applicationAudio.captureId,
+                sampleRate: applicationAudio.sampleRate,
+                channels: applicationAudio.channels,
+                format: applicationAudio.format
+              });
+              processAudioTrackRef.current = processAudioTrack;
+              displayMediaConstraints.audio = false;
+              reportDesktopCaptureDiagnostic('application-audio-enabled', {
+                sampleRate: applicationAudio.sampleRate,
+                channels: applicationAudio.channels,
+                format: applicationAudio.format
+              });
+            } catch (error) {
+              await desktopApi.stopApplicationAudioCapture();
+              logVoice(
+                'Could not create application audio track, using system audio',
+                {
+                  error
+                }
+              );
+            }
+          } else {
+            reportDesktopCaptureDiagnostic('application-audio-fallback', {
+              reason: applicationAudio.reason
+            });
+          }
+        }
         // Electron grants the selected desktop source and Windows loopback
         // audio as one request. A second display request can fail because
         // Chromium only has one active picker/capture authorization.
@@ -1000,7 +1063,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       setLocalScreenShare(stream);
 
       const videoTrack = stream.getVideoTracks()[0];
-      const audioTrack = stream.getAudioTracks()[0];
+      const audioTrack = processAudioTrack?.track ?? stream.getAudioTracks()[0];
 
       reportDesktopCaptureDiagnostic('capture-obtained', {
         videoTracks: stream.getVideoTracks().length,
@@ -1146,6 +1209,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
           localScreenShareProducer.current = undefined;
           localScreenShareAudioProducer.current?.close();
           localScreenShareAudioProducer.current = undefined;
+          void stopProcessAudioTrack();
 
           setScreenShareProducer(null);
           setLocalScreenShare(undefined);
@@ -1188,6 +1252,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
             localScreenShareAudioProducer.current?.close();
             localScreenShareAudioProducer.current = undefined;
             setLocalScreenShareAudio(undefined);
+            void stopProcessAudioTrack();
           };
         }
 
@@ -1200,6 +1265,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       localScreenShareAudioProducer.current = undefined;
       localScreenShareProducer.current?.close();
       localScreenShareProducer.current = undefined;
+      await stopProcessAudioTrack();
 
       setLocalScreenShare(undefined);
       setLocalScreenShareAudio(undefined);
@@ -1229,12 +1295,14 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     devices.restrictOwnAudio,
     devices.suppressLocalAudioPlayback,
     simulcastEnabled,
-    chooseDesktopCaptureSource
+    chooseDesktopCaptureSource,
+    stopProcessAudioTrack
   ]);
 
   const cleanup = useCallback(() => {
     logVoice('Running voice provider cleanup');
 
+    void stopProcessAudioTrack();
     stopMonitoring();
     resetStats();
     cleanupMicProcessingResources();
@@ -1252,7 +1320,8 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     clearLocalStreams,
     clearRemoteUserStreams,
     clearExternalStreams,
-    cleanupTransports
+    cleanupTransports,
+    stopProcessAudioTrack
   ]);
 
   const recoverTransports = useCallback(async () => {

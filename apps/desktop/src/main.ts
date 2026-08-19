@@ -15,6 +15,9 @@ import {
   type IpcMainInvokeEvent
 } from 'electron';
 import type { autoUpdater as ElectronAutoUpdater } from 'electron-updater';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import type { EventEmitter } from 'node:events';
 import {
   appendFileSync,
   existsSync,
@@ -38,6 +41,7 @@ import {
 } from 'uiohook-napi';
 import type {
   TDesktopCaptureSource,
+  TApplicationAudioCapture,
   TDesktopCaptureDiagnostic,
   TDesktopLogDiagnostic,
   TDesktopDownloadProgress,
@@ -58,16 +62,16 @@ import type {
 
 app.setName('SandShark');
 app.setAppUserModelId('com.sandshark.desktop');
+app.on('before-quit', () => {
+  stopApplicationAudioCapture();
+});
 
 const currentDirectory = dirname(fileURLToPath(import.meta.url));
 const isDevelopment = !app.isPackaged;
 const developmentRendererUrl =
   process.env.SANDSHARK_RENDERER_URL ?? 'http://127.0.0.1:5173';
-const smokeTestUserDataArgPrefix = '--sandshark-smoke-user-data-dir=';
-const smokeTestUserDataDir = process.argv
-  .find((arg) => arg.startsWith(smokeTestUserDataArgPrefix))
-  ?.slice(smokeTestUserDataArgPrefix.length);
-const isPackagedSmokeTest = Boolean(smokeTestUserDataDir);
+const smokeTestUserDataDir = process.env.SANDSHARK_SMOKE_USER_DATA_DIR;
+const isPackagedSmokeTest = process.env.SANDSHARK_SMOKE_TEST === '1';
 
 if (smokeTestUserDataDir) {
   app.setPath('userData', smokeTestUserDataDir);
@@ -588,6 +592,12 @@ const getPackagedRendererUrl = () =>
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let selectedDesktopCaptureSourceId: string | undefined;
+type TActiveApplicationAudioCapture = {
+  captureId: string;
+  sourceId: string;
+  process: ChildProcess;
+};
+let activeApplicationAudioCapture: TActiveApplicationAudioCapture | undefined;
 let deepLinkRendererReady = false;
 let pendingDeepLinks: string[] = [];
 let crashRecoveryDialogVisible = false;
@@ -1453,6 +1463,157 @@ const configureWebContents = (window: BrowserWindow) => {
   });
 };
 
+const getProcessAudioCaptureExecutablePath = () =>
+  isDevelopment
+    ? join(currentDirectory, '../native/bin/ProcessAudioCapture.exe')
+    : join(process.resourcesPath, 'native', 'ProcessAudioCapture.exe');
+
+const stopApplicationAudioCapture = () => {
+  const capture = activeApplicationAudioCapture;
+  activeApplicationAudioCapture = undefined;
+
+  if (capture && !capture.process.killed) {
+    capture.process.kill();
+  }
+};
+
+const startApplicationAudioCapture = async (
+  sourceId: string,
+  sender: Electron.WebContents
+): Promise<TApplicationAudioCapture> => {
+  stopApplicationAudioCapture();
+
+  if (process.platform !== 'win32' || !sourceId.startsWith('window:')) {
+    return { active: false, reason: 'Application audio is only available for Windows application windows.' };
+  }
+
+  const executablePath = getProcessAudioCaptureExecutablePath();
+  if (!existsSync(executablePath)) {
+    writeDesktopCaptureDiagnostic('application-audio-unavailable', {
+      reason: 'helper-not-found'
+    });
+    return { active: false, reason: 'Application audio capture is not installed.' };
+  }
+
+  return new Promise((resolve) => {
+    const captureId = randomUUID();
+    const captureProcess = spawn(executablePath, [sourceId], {
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+    let startupBuffer = Buffer.alloc(0);
+    let settled = false;
+    const startupTimeout = setTimeout(() => {
+      finish({ active: false, reason: 'Application audio capture timed out while starting.' });
+    }, 10_000);
+
+    const finish = (result: TApplicationAudioCapture) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(startupTimeout);
+
+      if (!result.active) {
+        if (!captureProcess.killed) captureProcess.kill();
+        if (activeApplicationAudioCapture?.captureId === captureId) {
+          activeApplicationAudioCapture = undefined;
+        }
+      }
+
+      resolve(result);
+    };
+
+    const sendAudioData = (data: Buffer) => {
+      if (
+        !activeApplicationAudioCapture ||
+        activeApplicationAudioCapture.captureId !== captureId ||
+        sender.isDestroyed()
+      ) {
+        return;
+      }
+
+      sender.send('sandshark:application-audio-data', captureId, data);
+    };
+
+    const consumeOutput = (data: Buffer) => {
+      if (settled) {
+        sendAudioData(data);
+        return;
+      }
+
+      startupBuffer = Buffer.concat([startupBuffer, data]);
+      const lineEnd = startupBuffer.indexOf(10);
+      if (lineEnd < 0) return;
+
+      const header = startupBuffer.subarray(0, lineEnd).toString('utf8');
+      const remainingAudio = startupBuffer.subarray(lineEnd + 1);
+      startupBuffer = Buffer.alloc(0);
+      const prefix = 'SANDSHARK_PROCESS_AUDIO ';
+
+      if (!header.startsWith(prefix)) {
+        finish({ active: false, reason: 'Application audio capture returned an invalid response.' });
+        return;
+      }
+
+      try {
+        const details = JSON.parse(header.slice(prefix.length)) as {
+          sampleRate?: unknown;
+          channels?: unknown;
+          format?: unknown;
+        };
+        if (
+          typeof details.sampleRate !== 'number' ||
+          typeof details.channels !== 'number' ||
+          (details.format !== 'f32' && details.format !== 's16')
+        ) {
+          throw new Error('invalid audio format');
+        }
+
+        activeApplicationAudioCapture = {
+          captureId,
+          sourceId,
+          process: captureProcess
+        };
+        writeDesktopCaptureDiagnostic('application-audio-started', {
+          sampleRate: details.sampleRate,
+          channels: details.channels,
+          format: details.format
+        });
+        finish({
+          active: true,
+          captureId,
+          sampleRate: details.sampleRate,
+          channels: details.channels,
+          format: details.format
+        });
+        if (remainingAudio.length > 0) sendAudioData(remainingAudio);
+      } catch {
+        finish({ active: false, reason: 'Application audio capture returned an invalid format.' });
+      }
+    };
+
+    captureProcess.stdout.on('data', consumeOutput);
+    captureProcess.stderr.on('data', (data: Buffer) => {
+      writeDesktopCaptureDiagnostic('application-audio-helper', {
+        message: data.toString('utf8').trim().slice(0, 1_000)
+      });
+    });
+    // Bun's Node compatibility types omit EventEmitter methods from the
+    // overloaded spawn return type even though Electron exposes them at runtime.
+    const processEvents = captureProcess as unknown as EventEmitter;
+    processEvents.once('error', (error: Error) => {
+      finish({ active: false, reason: error.message });
+    });
+    processEvents.once('exit', (code: number | null) => {
+      if (!settled) {
+        finish({ active: false, reason: `Application audio capture stopped before starting (${code ?? 'unknown'}).` });
+      } else if (activeApplicationAudioCapture?.captureId === captureId) {
+        activeApplicationAudioCapture = undefined;
+        writeDesktopCaptureDiagnostic('application-audio-stopped', { code: code ?? undefined });
+      }
+    });
+  });
+};
+
 const configureMediaPermissions = () => {
   const canUseMedia = (
     webContents: Electron.WebContents | null,
@@ -1543,11 +1704,17 @@ const configureMediaPermissions = () => {
           return;
         }
 
+        const useApplicationAudio =
+          request.audioRequested &&
+          activeApplicationAudioCapture?.sourceId === sourceId;
         const includeLoopbackAudio =
-          request.audioRequested && process.platform === 'win32';
+          request.audioRequested &&
+          process.platform === 'win32' &&
+          !useApplicationAudio;
         writeDesktopCaptureDiagnostic('display-media-granted', {
           sourceType: source.id.startsWith('screen:') ? 'screen' : 'window',
-          loopbackAudio: includeLoopbackAudio
+          loopbackAudio: includeLoopbackAudio,
+          applicationAudio: useApplicationAudio
         });
         callback(
           includeLoopbackAudio
@@ -1687,6 +1854,22 @@ const registerDesktopIpcHandlers = () => {
       });
     }
   );
+  ipcMain.handle(
+    'sandshark:start-application-audio-capture',
+    async (event, sourceId: unknown) => {
+      const senderWindow = getSenderWindow(event);
+
+      if (typeof sourceId !== 'string' || !sourceId.startsWith('window:')) {
+        throw new Error('Application audio requires a valid application window.');
+      }
+
+      return startApplicationAudioCapture(sourceId, senderWindow.webContents);
+    }
+  );
+  ipcMain.handle('sandshark:stop-application-audio-capture', (event) => {
+    getSenderWindow(event);
+    stopApplicationAudioCapture();
+  });
   ipcMain.handle(
     'sandshark:report-desktop-capture-diagnostic',
     (event, diagnostic: unknown) => {
@@ -2048,7 +2231,8 @@ const createMainWindow = async () => {
 
 registerDeepLinkProtocols();
 
-const hasSingleInstanceLock = app.requestSingleInstanceLock();
+const hasSingleInstanceLock =
+  isPackagedSmokeTest || app.requestSingleInstanceLock();
 
 if (!hasSingleInstanceLock) {
   app.quit();

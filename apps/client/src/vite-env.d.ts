@@ -42,6 +42,18 @@ declare global {
         }>
       >;
       setDesktopCaptureSource: (sourceId: string) => Promise<void>;
+      startApplicationAudioCapture: (sourceId: string) => Promise<{
+        active: boolean;
+        captureId?: string;
+        sampleRate?: number;
+        channels?: number;
+        format?: 'f32' | 's16';
+        reason?: string;
+      }>;
+      stopApplicationAudioCapture: () => Promise<void>;
+      onApplicationAudioData: (
+        listener: (captureId: string, data: Uint8Array) => void
+      ) => () => void;
       reportDesktopCaptureDiagnostic: (diagnostic: {
         stage: string;
         details?: Record<string, boolean | number | string | undefined>;

@@ -520,6 +520,55 @@ const directMessages = sqliteTable(
   ]
 );
 
+const calendarEvents = sqliteTable(
+  'calendar_events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    title: text('title').notNull(),
+    description: text('description'),
+    startsAt: integer('starts_at').notNull(),
+    endsAt: integer('ends_at'),
+    creatorId: integer('creator_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (t) => [
+    index('calendar_events_starts_at_idx').on(t.startsAt),
+    index('calendar_events_creator_idx').on(t.creatorId)
+  ]
+);
+
+const calendarEventInvitees = sqliteTable(
+  'calendar_event_invitees',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    eventId: integer('event_id')
+      .notNull()
+      .references(() => calendarEvents.id, { onDelete: 'cascade' }),
+    userId: integer('user_id').references(() => users.id, {
+      onDelete: 'cascade'
+    }),
+    roleId: integer('role_id').references(() => roles.id, {
+      onDelete: 'cascade'
+    }),
+    createdAt: integer('created_at').notNull()
+  },
+  (t) => [
+    index('calendar_event_invitees_user_idx').on(t.userId),
+    index('calendar_event_invitees_role_idx').on(t.roleId),
+    uniqueIndex('calendar_event_invitees_user_unique_idx').on(
+      t.eventId,
+      t.userId
+    ),
+    uniqueIndex('calendar_event_invitees_role_unique_idx').on(
+      t.eventId,
+      t.roleId
+    )
+  ]
+);
+
 const pluginData = sqliteTable('plugin_data', {
   pluginId: text('plugin_id').notNull().primaryKey(),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
@@ -531,6 +580,8 @@ const pluginData = sqliteTable('plugin_data', {
 
 export {
   activityLog,
+  calendarEventInvitees,
+  calendarEvents,
   categories,
   channelReadStates,
   channelRolePermissions,

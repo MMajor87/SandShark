@@ -34,7 +34,7 @@ internal static class Program
         }
         catch (Exception error)
         {
-            Console.Error.WriteLine(error.Message);
+            Console.Error.WriteLine($"{error.GetType().Name} (0x{error.HResult:X8}): {error.Message}");
             return 1;
         }
     }
@@ -76,6 +76,7 @@ internal sealed class ProcessLoopbackCapture : IDisposable
 {
     private const uint AudclntStreamFlagsLoopback = 0x00020000;
     private const uint AudclntStreamFlagsEventCallback = 0x00040000;
+    private const uint AudclntStreamFlagsAutoConvertPcm = 0x80000000;
     private const uint AudclntBufferFlagsSilent = 0x00000002;
     private const string VirtualProcessLoopbackDevice = "VAD\\Process_Loopback";
 
@@ -142,26 +143,34 @@ internal sealed class ProcessLoopbackCapture : IDisposable
 
         if (_audioClient is null) throw new InvalidOperationException("Windows did not activate process audio capture.");
 
-        Marshal.ThrowExceptionForHR(_audioClient.GetMixFormat(out _mixFormat));
-        Format = WaveFormat.FromNative(_mixFormat);
-        if (Format.Channels is < 1 or > 2 || (Format.BitsPerSample != 16 && !Format.IsFloat))
+        Format = new WaveFormat(44100, 2, 16, 4, false);
+        _mixFormat = Marshal.AllocCoTaskMem(Marshal.SizeOf<WaveFormatEx>());
+        Marshal.StructureToPtr(new WaveFormatEx
         {
-            throw new InvalidOperationException("The selected application uses an unsupported audio format.");
-        }
+            FormatTag = NativeMethods.WaveFormatPcm,
+            Channels = Format.Channels,
+            SamplesPerSec = Format.SampleRate,
+            AverageBytesPerSec = Format.SampleRate * Format.BlockAlign,
+            BlockAlign = Format.BlockAlign,
+            BitsPerSample = Format.BitsPerSample,
+            ExtraSize = 0
+        }, _mixFormat, false);
 
-        Marshal.ThrowExceptionForHR(_audioClient.Initialize(
+        ThrowOnFailure("initialize process audio capture", _audioClient.Initialize(
             AudioClientShareMode.Shared,
-            AudclntStreamFlagsLoopback | AudclntStreamFlagsEventCallback,
+            AudclntStreamFlagsLoopback |
+                AudclntStreamFlagsEventCallback |
+                AudclntStreamFlagsAutoConvertPcm,
             0,
             0,
             _mixFormat,
             IntPtr.Zero));
-        Marshal.ThrowExceptionForHR(_audioClient.SetEventHandle(_sampleReady.SafeWaitHandle.DangerousGetHandle()));
+        ThrowOnFailure("set process audio capture event", _audioClient.SetEventHandle(_sampleReady.SafeWaitHandle.DangerousGetHandle()));
         var captureClientId = typeof(IAudioCaptureClient).GUID;
-        Marshal.ThrowExceptionForHR(_audioClient.GetService(ref captureClientId, out var captureClient));
+        ThrowOnFailure("get process audio capture service", _audioClient.GetService(ref captureClientId, out var captureClient));
         _captureClient = (IAudioCaptureClient)Marshal.GetObjectForIUnknown(captureClient);
         Marshal.Release(captureClient);
-        Marshal.ThrowExceptionForHR(_audioClient.Start());
+        ThrowOnFailure("start process audio capture", _audioClient.Start());
     }
 
     public void CopyTo(Stream output)
@@ -215,6 +224,11 @@ internal sealed class ProcessLoopbackCapture : IDisposable
         _sampleReady.Dispose();
         _stopRequested.Dispose();
         NativeMethods.CoUninitialize();
+    }
+
+    private static void ThrowOnFailure(string operation, int result)
+    {
+        if (result < 0) throw new COMException($"Could not {operation}.", result);
     }
 }
 
@@ -272,8 +286,8 @@ internal struct AudioClientActivationParams
 [StructLayout(LayoutKind.Sequential)]
 internal struct AudioClientProcessLoopbackParams
 {
-    public ProcessLoopbackMode ProcessLoopbackMode;
     public uint TargetProcessId;
+    public ProcessLoopbackMode ProcessLoopbackMode;
 }
 
 internal enum AudioClientActivationType { Default, ProcessLoopback }
@@ -353,6 +367,7 @@ internal static class NativeMethods
 {
     internal const uint CoinitMultithreaded = 0;
     internal const ushort VtBlob = 65;
+    internal const ushort WaveFormatPcm = 1;
     internal const ushort WaveFormatIeeeFloat = 3;
     internal const ushort WaveFormatExtensible = 0xFFFE;
     internal static readonly Guid KsDataFormatSubTypeIeeeFloat = new("00000003-0000-0010-8000-00AA00389B71");

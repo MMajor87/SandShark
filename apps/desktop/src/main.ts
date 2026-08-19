@@ -1502,6 +1502,7 @@ const startApplicationAudioCapture = async (
       stdio: ['ignore', 'pipe', 'pipe']
     });
     let startupBuffer = Buffer.alloc(0);
+    let helperError = '';
     let settled = false;
     const startupTimeout = setTimeout(() => {
       finish({ active: false, reason: 'Application audio capture timed out while starting.' });
@@ -1593,19 +1594,30 @@ const startApplicationAudioCapture = async (
 
     captureProcess.stdout.on('data', consumeOutput);
     captureProcess.stderr.on('data', (data: Buffer) => {
+      helperError = `${helperError}${data.toString('utf8')}`
+        .trim()
+        .slice(0, 1_000);
       writeDesktopCaptureDiagnostic('application-audio-helper', {
-        message: data.toString('utf8').trim().slice(0, 1_000)
+        helperError
       });
     });
     // Bun's Node compatibility types omit EventEmitter methods from the
     // overloaded spawn return type even though Electron exposes them at runtime.
     const processEvents = captureProcess as unknown as EventEmitter;
     processEvents.once('error', (error: Error) => {
-      finish({ active: false, reason: error.message });
+      finish({
+        active: false,
+        reason: helperError || error.message
+      });
     });
     processEvents.once('exit', (code: number | null) => {
       if (!settled) {
-        finish({ active: false, reason: `Application audio capture stopped before starting (${code ?? 'unknown'}).` });
+        finish({
+          active: false,
+          reason:
+            helperError ||
+            `Application audio capture stopped before starting (${code ?? 'unknown'}).`
+        });
       } else if (activeApplicationAudioCapture?.captureId === captureId) {
         activeApplicationAudioCapture = undefined;
         writeDesktopCaptureDiagnostic('application-audio-stopped', { code: code ?? undefined });

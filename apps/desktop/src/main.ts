@@ -14,7 +14,7 @@ import {
   safeStorage,
   type IpcMainInvokeEvent
 } from 'electron';
-import { autoUpdater } from 'electron-updater';
+import type { autoUpdater as ElectronAutoUpdater } from 'electron-updater';
 import {
   appendFileSync,
   existsSync,
@@ -416,6 +416,8 @@ const isDesktopLogDiagnostic = (
 };
 let updateStatus: TDesktopUpdateStatus = { state: 'idle' };
 let autoUpdaterConfigured = false;
+let autoUpdater: typeof ElectronAutoUpdater | undefined;
+let autoUpdaterLoadPromise: Promise<typeof ElectronAutoUpdater | undefined> | undefined;
 
 const saveUpdateSettings = () => {
   try {
@@ -444,71 +446,99 @@ const publishUpdateStatus = (status: TDesktopUpdateStatus) => {
   mainWindow?.webContents.send('sandshark:update-status', status);
 };
 
-const configureAutoUpdater = () => {
+const configureAutoUpdater = async (): Promise<typeof ElectronAutoUpdater | undefined> => {
   if (isDevelopment || isPackagedSmokeTest) {
     publishUpdateStatus({
       state: 'unsupported',
       message: 'Updates are only available in installed SandShark builds.'
     });
-    return;
+    return undefined;
   }
 
-  autoUpdater.autoDownload = updateSettings.automaticallyDownload;
+  if (autoUpdaterConfigured && autoUpdater) {
+    autoUpdater.autoDownload = updateSettings.automaticallyDownload;
+    return autoUpdater;
+  }
 
-  if (autoUpdaterConfigured) return;
-  autoUpdaterConfigured = true;
+  if (!autoUpdaterLoadPromise) {
+    autoUpdaterLoadPromise = import('electron-updater')
+      .then(({ autoUpdater: loadedAutoUpdater }) => loadedAutoUpdater)
+      .catch((error) => {
+        writeDesktopLog('updates', 'Electron updater module failed to load', {
+          error: error instanceof Error ? error.message : String(error)
+        });
+        publishUpdateStatus({
+          state: 'error',
+          message: 'Automatic updates are unavailable in this build.'
+        });
+        return undefined;
+      });
+  }
 
-  autoUpdater.setFeedURL({
-    provider: 'github',
-    owner: 'MMajor87',
-    repo: 'SandShark',
-    private: false,
-    releaseType: 'release'
-  });
-  autoUpdater.allowPrerelease = false;
-  autoUpdater.autoInstallOnAppQuit = true;
+  const loadedAutoUpdater = await autoUpdaterLoadPromise;
+  if (!loadedAutoUpdater) return undefined;
 
-  autoUpdater.on('checking-for-update', () => {
-    publishUpdateStatus({ state: 'checking' });
-  });
-  autoUpdater.on('update-available', (info) => {
-    publishUpdateStatus({ state: 'available', version: info.version });
-  });
-  autoUpdater.on('update-not-available', () => {
-    publishUpdateStatus({ state: 'not-available' });
-  });
-  autoUpdater.on('download-progress', (progress) => {
-    publishUpdateStatus({
-      state: 'downloading',
-      percent: Math.round(progress.percent)
+  try {
+    autoUpdater = loadedAutoUpdater;
+    autoUpdater.autoDownload = updateSettings.automaticallyDownload;
+    autoUpdater.allowPrerelease = false;
+    autoUpdater.autoInstallOnAppQuit = true;
+
+    autoUpdater.on('checking-for-update', () => {
+      publishUpdateStatus({ state: 'checking' });
     });
-  });
-  autoUpdater.on('update-downloaded', (info) => {
-    publishUpdateStatus({ state: 'downloaded', version: info.version });
-  });
-  autoUpdater.on('error', (error) => {
-    writeDesktopLog('updates', 'Electron updater error', {
-      error: error.message
+    autoUpdater.on('update-available', (info) => {
+      publishUpdateStatus({ state: 'available', version: info.version });
+    });
+    autoUpdater.on('update-not-available', () => {
+      publishUpdateStatus({ state: 'not-available' });
+    });
+    autoUpdater.on('download-progress', (progress) => {
+      publishUpdateStatus({
+        state: 'downloading',
+        percent: Math.round(progress.percent)
+      });
+    });
+    autoUpdater.on('update-downloaded', (info) => {
+      publishUpdateStatus({ state: 'downloaded', version: info.version });
+    });
+    autoUpdater.on('error', (error) => {
+      writeDesktopLog('updates', 'Electron updater error', {
+        error: error.message
+      });
+      publishUpdateStatus({
+        state: 'error',
+        message: 'Could not check for SandShark updates.'
+      });
+    });
+
+    autoUpdaterConfigured = true;
+    if (updateSettings.automaticallyCheck) void checkForUpdates();
+    return autoUpdater;
+  } catch (error) {
+    autoUpdater = undefined;
+    autoUpdaterLoadPromise = undefined;
+    writeDesktopLog('updates', 'Electron updater configuration failed', {
+      error: error instanceof Error ? error.message : String(error)
     });
     publishUpdateStatus({
       state: 'error',
-      message: 'Could not check for SandShark updates.'
+      message: 'Automatic updates are unavailable in this build.'
     });
-  });
-
-  if (updateSettings.automaticallyCheck) void checkForUpdates();
+    return undefined;
+  }
 };
 
 const checkForUpdates = async (): Promise<TDesktopUpdateStatus> => {
-  configureAutoUpdater();
+  const configuredAutoUpdater = await configureAutoUpdater();
   writeDesktopLog('updates', 'Update check requested', {
     state: updateStatus.state
   });
 
-  if (!autoUpdaterConfigured) return updateStatus;
+  if (!configuredAutoUpdater) return updateStatus;
 
   try {
-    await autoUpdater.checkForUpdates();
+    await configuredAutoUpdater.checkForUpdates();
   } catch (error) {
     writeDesktopLog('updates', 'Electron updater check failed', {
       error: error instanceof Error ? error.message : String(error)
@@ -519,15 +549,15 @@ const checkForUpdates = async (): Promise<TDesktopUpdateStatus> => {
 };
 
 const downloadUpdate = async (): Promise<TDesktopUpdateStatus> => {
-  configureAutoUpdater();
+  const configuredAutoUpdater = await configureAutoUpdater();
   writeDesktopLog('updates', 'Update download requested', {
     state: updateStatus.state
   });
 
-  if (!autoUpdaterConfigured) return updateStatus;
+  if (!configuredAutoUpdater) return updateStatus;
 
   try {
-    await autoUpdater.downloadUpdate();
+    await configuredAutoUpdater.downloadUpdate();
   } catch (error) {
     writeDesktopLog('updates', 'Electron updater download failed', {
       error: error instanceof Error ? error.message : String(error)
@@ -1804,7 +1834,7 @@ const registerDesktopIpcHandlers = () => {
 
       updateSettings = settings;
       saveUpdateSettings();
-      configureAutoUpdater();
+      void configureAutoUpdater();
 
       return updateSettings;
     }
@@ -1826,6 +1856,10 @@ const registerDesktopIpcHandlers = () => {
 
     if (updateStatus.state !== 'downloaded') {
       throw new Error('No downloaded update is ready to install.');
+    }
+
+    if (!autoUpdater) {
+      throw new Error('The updater is not available in this build.');
     }
 
     autoUpdater.quitAndInstall();
@@ -2057,7 +2091,7 @@ if (!hasSingleInstanceLock) {
     configureDownloads();
     createTray();
     void createMainWindow();
-    configureAutoUpdater();
+    void configureAutoUpdater();
     handleDeepLinksFromArguments(process.argv);
 
     app.on('activate', () => {

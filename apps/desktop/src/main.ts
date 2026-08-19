@@ -1704,17 +1704,15 @@ const configureMediaPermissions = () => {
           return;
         }
 
-        const useApplicationAudio =
-          request.audioRequested &&
-          activeApplicationAudioCapture?.sourceId === sourceId;
         const includeLoopbackAudio =
           request.audioRequested &&
           process.platform === 'win32' &&
-          !useApplicationAudio;
+          source.id.startsWith('screen:');
         writeDesktopCaptureDiagnostic('display-media-granted', {
           sourceType: source.id.startsWith('screen:') ? 'screen' : 'window',
           loopbackAudio: includeLoopbackAudio,
-          applicationAudio: useApplicationAudio
+          applicationAudio:
+            activeApplicationAudioCapture?.sourceId === sourceId
         });
         callback(
           includeLoopbackAudio
@@ -1830,7 +1828,7 @@ const registerDesktopIpcHandlers = () => {
       fetchWindowIcons: false
     });
 
-    return sources.slice(0, 64).map<TDesktopCaptureSource>((source) => ({
+    return sources.map<TDesktopCaptureSource>((source) => ({
       id: source.id,
       name: source.name || 'Untitled source',
       type: source.id.startsWith('screen:') ? 'screen' : 'window',

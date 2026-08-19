@@ -944,28 +944,25 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       };
       const isDesktopScreenShare = isDesktopClient();
       let processAudioTrack: TProcessAudioTrack | undefined;
+      const systemAudioConstraints = devices.shareSystemAudio
+        ? {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            channelCount: 2,
+            sampleRate: 48000,
+            suppressLocalAudioPlayback: canSuppressLocalAudioPlayback
+              ? (devices.suppressLocalAudioPlayback ?? false)
+              : undefined,
+            restrictOwnAudio: canRestrictOwnAudio
+              ? (devices.restrictOwnAudio ?? false)
+              : undefined
+          }
+        : false;
 
       const displayMediaConstraints: MediaStreamConstraints = {
         video: screenCaptureConstraints,
-        audio: devices.shareSystemAudio
-          ? {
-              // System loopback is already mixed desktop audio. Do not apply
-              // microphone AEC/NS/AGC defaults to it before Chromium opens the
-              // Windows endpoint.
-              echoCancellation: false,
-              noiseSuppression: false,
-              autoGainControl: false,
-              channelCount: 2,
-              sampleRate: 48000,
-              // @ts-expect-error - experimental, not in types yet
-              suppressLocalAudioPlayback: canSuppressLocalAudioPlayback
-                ? (devices.suppressLocalAudioPlayback ?? false)
-                : undefined,
-              restrictOwnAudio: canRestrictOwnAudio
-                ? (devices.restrictOwnAudio ?? false)
-                : undefined
-            }
-          : false
+        audio: isDesktopScreenShare ? false : systemAudioConstraints
       };
 
       logVoice(
@@ -1034,18 +1031,23 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
               });
             } catch (error) {
               await desktopApi.stopApplicationAudioCapture();
-              logVoice(
-                'Could not create application audio track, using system audio',
-                {
-                  error
-                }
+              throw new Error(
+                error instanceof Error
+                  ? error.message
+                  : 'Could not start application audio capture.'
               );
             }
           } else {
-            reportDesktopCaptureDiagnostic('application-audio-fallback', {
+            reportDesktopCaptureDiagnostic('application-audio-unavailable', {
               reason: applicationAudio.reason
             });
+            throw new Error(
+              applicationAudio.reason ??
+                'Could not start application audio capture.'
+            );
           }
+        } else if (desktopCaptureSource.type === 'screen') {
+          displayMediaConstraints.audio = systemAudioConstraints;
         }
         // Electron grants the selected desktop source and Windows loopback
         // audio as one request. A second display request can fail because

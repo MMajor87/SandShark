@@ -1,6 +1,6 @@
 {
   "name": "@sandshark/desktop",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "description": "SandShark desktop client",
   "author": "SandShark contributors",
   "private": true,

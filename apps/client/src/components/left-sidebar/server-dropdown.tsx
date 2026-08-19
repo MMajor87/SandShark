@@ -30,6 +30,7 @@ import { ServerScreen } from '../server-screens/screens';
 
 type TServerSwitcherProps = {
   serverName: string | undefined;
+  serverIcon?: string;
   'data-testid'?: string;
 };
 
@@ -62,7 +63,7 @@ const ServerProfileIcon = memo(
 );
 
 const ServerSwitcher = memo(
-  ({ serverName, 'data-testid': testId }: TServerSwitcherProps) => {
+  ({ serverName, serverIcon, 'data-testid': testId }: TServerSwitcherProps) => {
     const [open, setOpen] = useState(false);
     const [profiles, setProfiles] = useState<TServerProfile[]>(() =>
       getServerProfiles()
@@ -112,7 +113,7 @@ const ServerSwitcher = memo(
             data-testid={testId}
           >
             <ServerProfileIcon
-              icon={activeProfile?.icon}
+              icon={serverIcon ?? activeProfile?.icon}
               className="h-5 w-5 shrink-0 rounded object-cover text-muted-foreground"
             />
             <span className="truncate">{serverName ?? 'SandShark'}</span>

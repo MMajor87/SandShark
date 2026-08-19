@@ -4,7 +4,7 @@ import { useOwnPublicUser } from '@/features/server/users/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { useForm } from '@/hooks/use-form';
 import { getTRPCClient } from '@/lib/trpc';
-import { DEFAULT_PROFILE_COLOR } from '@sharkord/shared';
+import { DEFAULT_PROFILE_COLOR, getTrpcError } from '@sharkord/shared';
 import {
   Button,
   Card,
@@ -18,7 +18,7 @@ import {
   Input,
   Textarea
 } from '@sharkord/ui';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { AvatarManager } from './avatar-manager';
@@ -27,6 +27,7 @@ import { BannerManager } from './banner-manager';
 const Profile = memo(() => {
   const { t } = useTranslation('settings');
   const ownPublicUser = useOwnPublicUser();
+  const [saving, setSaving] = useState(false);
   const { setTrpcErrors, r, values, onChange } = useForm({
     name: ownPublicUser?.name ?? '',
     profileColor: ownPublicUser?.profileColor ?? DEFAULT_PROFILE_COLOR,
@@ -41,6 +42,9 @@ const Profile = memo(() => {
   );
 
   const onUpdateUser = useCallback(async () => {
+    if (saving) return;
+
+    setSaving(true);
     const trpc = getTRPCClient();
 
     try {
@@ -49,8 +53,19 @@ const Profile = memo(() => {
       toast.success(t('profileUpdated'));
     } catch (error) {
       setTrpcErrors(error);
+      toast.error(getTrpcError(error, 'Could not update your profile.'));
+    } finally {
+      setSaving(false);
     }
-  }, [values, setTrpcErrors, t]);
+  }, [saving, values, setTrpcErrors, t]);
+
+  const handleSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      void onUpdateUser();
+    },
+    [onUpdateUser]
+  );
 
   if (!ownPublicUser) return null;
 
@@ -63,43 +78,51 @@ const Profile = memo(() => {
         <CardTitle>{t('profileTitle')}</CardTitle>
         <CardDescription>{t('profileDesc')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-start gap-4">
-          <AvatarManager user={ownPublicUser} />
+      <CardContent>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="flex items-start gap-4">
+            <AvatarManager user={ownPublicUser} />
 
-          <BannerManager user={ownPublicUser} />
+            <BannerManager user={ownPublicUser} />
 
-          <Group label={t('profileColorLabel')}>
-            <ColorPicker
-              value={values.profileColor}
-              onChange={handleColorChange}
-              defaultValue={DEFAULT_PROFILE_COLOR}
-            />
-            <ImageSwatchPicker
-              src={userAvatarUrl}
-              onChange={handleColorChange}
-            />
-            <ImageSwatchPicker
-              src={userBannerUrl}
-              onChange={handleColorChange}
-            />
+            <Group label={t('profileColorLabel')}>
+              <ColorPicker
+                value={values.profileColor}
+                onChange={handleColorChange}
+                defaultValue={DEFAULT_PROFILE_COLOR}
+              />
+              <ImageSwatchPicker
+                src={userAvatarUrl}
+                onChange={handleColorChange}
+              />
+              <ImageSwatchPicker
+                src={userBannerUrl}
+                onChange={handleColorChange}
+              />
+            </Group>
+          </div>
+
+          <Group label={t('usernameLabel')}>
+            <Input placeholder={t('usernamePlaceholder')} {...r('name')} />
           </Group>
-        </div>
 
-        <Group label={t('usernameLabel')}>
-          <Input placeholder={t('usernamePlaceholder')} {...r('name')} />
-        </Group>
+          <Group label={t('bioLabel')}>
+            <Textarea placeholder={t('bioPlaceholder')} {...r('bio')} />
+          </Group>
 
-        <Group label={t('bioLabel')}>
-          <Textarea placeholder={t('bioPlaceholder')} {...r('bio')} />
-        </Group>
-
-        <div className="flex justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={closeServerScreens}>
-            {t('cancel')}
-          </Button>
-          <Button onClick={onUpdateUser}>{t('saveChanges')}</Button>
-        </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeServerScreens}
+            >
+              {t('cancel')}
+            </Button>
+            <Button type="submit" disabled={saving} aria-busy={saving}>
+              {t('saveChanges')}
+            </Button>
+          </div>
+        </form>
       </CardContent>
     </Card>
   );

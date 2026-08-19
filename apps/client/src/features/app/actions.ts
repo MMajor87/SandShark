@@ -1,6 +1,7 @@
 import { assertNotificationsPermission } from '@/helpers/assert-notifications-permission';
 import { getFileUrl, getUrlFromServer } from '@/helpers/get-file-url';
 import {
+  getActiveServerProfile,
   getServerConnection,
   markActiveServerProfileConnected,
   saveServerConnection
@@ -133,13 +134,26 @@ export const loadApp = async () => {
 
   const connection = getServerConnection();
 
-  if (connection?.serverId && connection.serverId !== info.serverId) {
-    clearCurrentServerSession();
-    saveServerConnection({
-      ...connection,
-      serverId: info.serverId,
-      displayName: info.name
-    });
+  if (isDesktopClient() && connection) {
+    const activeProfile = getActiveServerProfile();
+
+    if (connection.serverId && connection.serverId !== info.serverId) {
+      clearCurrentServerSession();
+    }
+
+    saveServerConnection(
+      {
+        ...connection,
+        serverId: info.serverId,
+        displayName: info.name
+      },
+      {
+        existingProfileId: activeProfile?.id,
+        icon: info.logo
+          ? getFileUrl(info.logo)
+          : `${connection.httpUrl}/favicon.ico`
+      }
+    );
   }
 
   setInfo(info);

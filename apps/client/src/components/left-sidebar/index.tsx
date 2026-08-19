@@ -2,9 +2,11 @@ import { ResizableSidebar } from '@/components/resizable-sidebar';
 import { setSelectedChannelId } from '@/features/server/channels/actions';
 import {
   useDmsOpen,
+  useInfo,
   usePublicServerSettings,
   useServerName
 } from '@/features/server/hooks';
+import { getFileUrl } from '@/helpers/get-file-url';
 import { LocalStorageKey } from '@/helpers/storage';
 import { cn } from '@/lib/utils';
 import { isDesktopClient } from '@/platform/environment';
@@ -32,8 +34,10 @@ type TLeftSidebarProps = {
 
 const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
   const serverName = useServerName();
+  const info = useInfo();
   const dmsOpen = useDmsOpen();
   const publicSettings = usePublicServerSettings();
+  const serverIcon = info?.logo ? getFileUrl(info.logo) : undefined;
 
   useRestoreLastSelectedChannel();
   useVoiceMoveSubscription();
@@ -52,6 +56,7 @@ const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
         {isDesktopClient() ? (
           <ServerSwitcher
             serverName={serverName}
+            serverIcon={serverIcon}
             data-testid={TestId.LEFT_SIDEBAR_SERVER_NAME}
           />
         ) : (

@@ -173,3 +173,16 @@ Results are recorded below as each phase is validated. Unchecked live checks rem
 - Candidate: `.integration/sharkord-v0.0.25/apps/desktop/release/win-unpacked/SandShark.exe`. Server release binaries are under the integration worktree's `apps/server/build/out`.
 - Evidence logs are at the main checkout root: `integration-magic.log`, `integration-tests.log`, `integration-e2e-final.log`, `integration-upgrade.log`, `integration-server-build.log`, `integration-native-build.log`, `integration-package.log`, and `integration-startup.log`. These logs and build artifacts are not committed.
 - Remaining release checks: real OIDC provider, deployed plugin inventory, installed desktop update/persistence workflows, old-executable rollback startup, and second-participant audio/exclusion testing. No push, publication or deployment was performed.
+
+### Release: SandShark 1.0.30
+
+- User authorized pushing and publishing a new release. Incorporated remote commits `113f2923` (Docker line endings) and `b8d2d48a` (client error reporting), resolving the rate-limiter configuration conflict without dropping upstream protections.
+- Release source: `a8bc40f2`, tag `sandshark-v1.0.30`. Client and desktop versions are both 1.0.30; lockfile metadata matches. Main and the new tag were pushed atomically.
+- Final local checks: magic passed; 1,458 server tests passed with no failures, along with the client/shared/desktop suites. Migration consistency, frozen-lockfile install and desktop security checks pass.
+- GitHub full repository checks and builds passed. Independent Windows CI passed installer packaging and packaged startup.
+- Release workflow: https://github.com/MMajor87/SandShark/actions/runs/35049445759 . Completed successfully; the stable release is published and verified.
+- Release notes explicitly retain the unsigned-installer notice, plugin/database upgrade instructions, unverified live audio/OIDC checks and flaky media-scroll test result.
+
+- Published release: https://github.com/MMajor87/SandShark/releases/tag/sandshark-v1.0.30 . GitHub identifies it as the latest stable release.
+- Verified all four uploaded assets: Windows x64 installer, `latest.yml`, installer blockmap and `SHA256SUMS.txt`. The checksum manifest matches GitHub asset SHA256 digests; downloaded metadata/checksum files match their digests; updater metadata names version 1.0.30 and its installer.
+- Release notes include the known live audio/OIDC validation limits and upgrade instructions. The user's pre-existing TODO deletion remains uncommitted.

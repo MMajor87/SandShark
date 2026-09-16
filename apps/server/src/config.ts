@@ -89,7 +89,8 @@ const zConfig = z.object({
     pluginExecute: zRateLimiter,
     pluginInstall: zRateLimiter,
     pluginRoute: zRateLimiter,
-    oidc: zRateLimiter
+    oidc: zRateLimiter,
+    reportClientError: zRateLimiter
   })
 });
 
@@ -216,6 +217,10 @@ const defaultConfig: TConfig = {
     },
     oidc: {
       maxRequests: 30,
+      windowMs: 60_000
+    },
+    reportClientError: {
+      maxRequests: 20,
       windowMs: 60_000
     }
   }

@@ -22,7 +22,7 @@ RUN mkdir -p /home/bun/.config/sharkord && \
     chown -R bun:bun /home/bun/.config
 
 COPY docker-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 WORKDIR /home/bun
 

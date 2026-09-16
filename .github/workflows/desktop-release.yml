@@ -82,7 +82,7 @@ jobs:
         working-directory: apps/desktop
         shell: pwsh
         run: |
-          "This SandShark Windows installer is unsigned. Verify its SHA256 checksum before installation." | Set-Content release\RELEASE_NOTES.md
+          Copy-Item -LiteralPath RELEASE_NOTES.md -Destination release\RELEASE_NOTES.md
 
       - name: Publish GitHub release and update metadata
         uses: softprops/action-gh-release@v2

@@ -54,9 +54,11 @@ git tag sandshark-v<version>
 git push origin sandshark-v<version>
 ```
 
-The tag release workflow validates the package versions, runs the full repository checks, builds the Windows installer, smoke-launches the unpacked app, verifies the installer signature when signing secrets are configured, and then creates a draft GitHub release.
-
-Unsigned Windows releases are temporarily allowed while SandShark's signing certificate is pending. Until `WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD` are configured, the workflow marks draft releases as unsigned prereleases and skips signature verification.
+The tag release workflow validates the package versions, runs the full repository
+checks and desktop security checks, builds the Windows installer, generates
+checksums, and publishes a stable GitHub release with `latest.yml` for the updater.
+The current workflow publishes unsigned installers and does not run the packaged
+startup or signature-verification scripts.
 
 For local packaging without publishing:
 

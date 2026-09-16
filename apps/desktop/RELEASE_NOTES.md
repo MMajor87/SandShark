@@ -1,4 +1,17 @@
-# SandShark 1.0.30
+# SandShark 1.0.31
+
+- Shows minimized fullscreen applications in the stream source picker and restores the selected window for capture.
+- Updates client labels, translations, default icons, and support links to SandShark while preserving custom server branding.
+- Enables automatic update downloads by default. Existing saved preferences are preserved; downloaded updates install when the app exits.
+- Points the bundled server updater at the SandShark repository. Server updates still require matching server release assets.
+
+## Validation
+
+Formatting, lint, type checks, and the full test suite passed. The capture and branding changes also passed native capture checks, connection E2E tests, and packaged startup checks before this version bump.
+
+This Windows installer is unsigned.
+
+## Previous release: 1.0.30
 
 - Integrates Sharkord v0.0.25, including the redesigned settings, plugin framework, authentication/session protections, voice statistics and screen-share cursor controls.
 - Preserves SandShark's calendars, saved servers, desktop settings, downloads and profile fixes.

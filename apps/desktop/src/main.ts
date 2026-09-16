@@ -375,7 +375,7 @@ const getHardwareAccelerationSettings = (): THardwareAccelerationSettings => ({
 
 const DEFAULT_UPDATE_SETTINGS: TDesktopUpdateSettings = {
   automaticallyCheck: true,
-  automaticallyDownload: false
+  automaticallyDownload: true
 };
 let updateSettings: TDesktopUpdateSettings = {
   ...DEFAULT_UPDATE_SETTINGS,

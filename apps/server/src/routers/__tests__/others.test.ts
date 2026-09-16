@@ -9,6 +9,36 @@ import {
 import { TEST_SECRET_TOKEN } from '../../__tests__/seed';
 
 describe('others router', () => {
+  test('should accept a bounded client error report', async () => {
+    const { caller } = await initTest(1);
+
+    await expect(
+      caller.others.reportClientError({
+        message: 'Test renderer failure',
+        stack: 'Error: Test renderer failure',
+        componentStack: 'at TestComponent',
+        source: 'react',
+        clientVersion: '0.0.23',
+        path: '/channels/1',
+        userAgent: 'test-agent'
+      })
+    ).resolves.toEqual({ ok: true });
+  });
+
+  test('should reject an oversized client error report', async () => {
+    const { caller } = await initTest(1);
+
+    await expect(
+      caller.others.reportClientError({
+        message: 'x'.repeat(2_001),
+        source: 'window',
+        clientVersion: '0.0.23',
+        path: '/',
+        userAgent: 'test-agent'
+      })
+    ).rejects.toThrow();
+  });
+
   test('should throw when user tries to join with no handshake', async () => {
     const { caller } = await getCaller(1);
 

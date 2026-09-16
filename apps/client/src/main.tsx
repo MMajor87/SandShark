@@ -21,6 +21,7 @@ import { ThemeProvider } from './components/theme-provider/index.tsx';
 import { exposePluginStore } from './features/server/plugins/plugin-store.ts';
 import { store } from './features/store.ts';
 import { logDesktopDiagnostic } from './helpers/browser-logger.ts';
+import { installGlobalErrorReporting } from './helpers/report-client-error.ts';
 import { exposeLibs, exposeReact } from './helpers/exposes.ts';
 import { LocalStorageKey } from './helpers/storage.ts';
 import './index.css';
@@ -28,6 +29,7 @@ import './index.css';
 exposeReact();
 exposeLibs();
 exposePluginStore();
+installGlobalErrorReporting();
 
 logDesktopDiagnostic('startup', 'SandShark client renderer starting', {
   clientVersion: VITE_APP_VERSION

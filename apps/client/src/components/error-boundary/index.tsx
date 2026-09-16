@@ -1,4 +1,5 @@
 import { logDebug } from '@/helpers/browser-logger';
+import { reportClientError } from '@/helpers/report-client-error';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 type TErrorBoundaryProps = {
@@ -27,6 +28,7 @@ class ErrorBoundary extends Component<TErrorBoundaryProps, TState> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     logDebug('ErrorBoundary caught an error:', { error, errorInfo });
+    reportClientError(error, 'react', errorInfo);
     this.props.onError?.(error, errorInfo);
   }
 

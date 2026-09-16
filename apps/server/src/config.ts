@@ -73,6 +73,10 @@ const zConfig = z.object({
     handshake: z.object({
       maxRequests: z.coerce.number().int().positive(),
       windowMs: z.coerce.number().int().positive()
+    }),
+    reportClientError: z.object({
+      maxRequests: z.coerce.number().int().positive(),
+      windowMs: z.coerce.number().int().positive()
     })
   })
 });
@@ -137,6 +141,10 @@ const defaultConfig: TConfig = {
     },
     handshake: {
       maxRequests: 10,
+      windowMs: 60_000
+    },
+    reportClientError: {
+      maxRequests: 20,
       windowMs: 60_000
     }
   }

@@ -8,7 +8,13 @@ const getUsersRoute = protectedProcedure.query(async ({ ctx }) => {
 
   const users = await getUsers();
 
-  return clearFields(users, ['identity', 'password']);
+  return clearFields(users, [
+    'identity',
+    'password',
+    'tokenVersion',
+    'oidcSub',
+    'oidcIssuer'
+  ]);
 });
 
 export { getUsersRoute };

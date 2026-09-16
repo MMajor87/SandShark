@@ -1,3 +1,4 @@
+import { ReconnectingOverlay } from '@/components/reconnecting-overlay';
 import {
   useIsAppLoading,
   useIsAutoConnecting,
@@ -7,6 +8,7 @@ import {
 import {
   useDisconnectInfo,
   useIsConnected,
+  useIsReconnecting,
   useServerName,
   useTotalUnreadMentions,
   useTotalUnreadMessages
@@ -21,6 +23,8 @@ import { ServerView } from '@/screens/server-view';
 import { DisconnectCode } from '@sharkord/shared';
 import { memo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDocumentTitle } from './hooks/use-document-title';
+import { useOidcAutoRedirect } from './hooks/use-oidc-auto-redirect';
 
 const Routing = memo(() => {
   const { t } = useTranslation('connect');
@@ -35,14 +39,9 @@ const Routing = memo(() => {
   const isAutoConnecting = useIsAutoConnecting();
   const serverConnectionRequired = useServerConnectionRequired();
 
-  useEffect(() => {
-    if (isConnected && serverName) {
-      document.title = `${serverName} - SandShark`;
-      return;
-    }
-
-    document.title = 'SandShark';
-  }, [isConnected, serverName]);
+  const isReconnecting = useIsReconnecting();
+  useDocumentTitle();
+  useOidcAutoRedirect();
 
   useEffect(() => {
     if (!isDesktopClient() || !window.sandSharkDesktop) return;
@@ -76,7 +75,7 @@ const Routing = memo(() => {
     return <ServerConnection />;
   }
 
-  if (!isConnected) {
+  if (!isConnected && !isReconnecting) {
     if (isAutoConnecting) {
       return <LoadingApp text={t('loggingInAutomatically')} />;
     }
@@ -85,7 +84,8 @@ const Routing = memo(() => {
       disconnectInfo &&
       (!disconnectInfo.wasClean ||
         disconnectInfo.code === DisconnectCode.KICKED ||
-        disconnectInfo.code === DisconnectCode.BANNED)
+        disconnectInfo.code === DisconnectCode.BANNED ||
+        disconnectInfo.code === DisconnectCode.SERVER_SHUTDOWN)
     ) {
       return <Disconnected info={disconnectInfo} />;
     }
@@ -93,7 +93,15 @@ const Routing = memo(() => {
     return <Connect />;
   }
 
-  return <ServerView />;
+  return (
+    <>
+      {isReconnecting && <ReconnectingOverlay />}
+
+      <div className="contents" inert={isReconnecting}>
+        <ServerView />
+      </div>
+    </>
+  );
 });
 
 export { Routing };

@@ -2,9 +2,14 @@ import {
   ActivityLogType,
   ChannelPermission,
   FileSaveType,
+  getErrorMessage,
   getPlainTextFromHtml,
   isEmptyMessage,
+  MESSAGE_MAX_LENGTH,
+  MessageSaveType,
   Permission,
+  PluginCapabilityType,
+  STORAGE_MAX_FILES_PER_MESSAGE,
   toDomCommand
 } from '@sharkord/shared';
 import { eq } from 'drizzle-orm';
@@ -12,17 +17,20 @@ import { z } from 'zod';
 import { config } from '../../config';
 import { db } from '../../db';
 import { publishMessage, publishReplyCount } from '../../db/publishers';
-import { assertDmChannel, isDirectMessageChannel } from '../../db/queries/dms';
+import { assertDmChannel } from '../../db/queries/dms';
 import { getSettings } from '../../db/queries/server';
 import { messageFiles, messages } from '../../db/schema';
+import { fileManager } from '../../helpers/file-manager';
 import { getInvokerCtxFromTrpcCtx } from '../../helpers/get-invoker-ctx-from-trpc-ctx';
 import { parseCommandArgs } from '../../helpers/parse-command-args';
+import { canUseCapability } from '../../helpers/plugin-capability-access';
+import { runBeforeMessageSaveHooks } from '../../helpers/run-before-message-save-hooks';
 import { sanitizeMessageHtml } from '../../helpers/sanitize-html';
+import { logger } from '../../logger';
 import { pluginManager } from '../../plugins';
 import { eventBus } from '../../plugins/event-bus';
 import { enqueueActivityLog } from '../../queues/activity-log';
 import { enqueueProcessMetadata } from '../../queues/message-metadata';
-import { fileManager } from '../../utils/file-manager';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
 
@@ -33,9 +41,9 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
 })
   .input(
     z.object({
-      content: z.string(),
+      content: z.string().max(MESSAGE_MAX_LENGTH),
       channelId: z.number(),
-      files: z.array(z.string()).default([]),
+      files: z.array(z.string()).max(STORAGE_MAX_FILES_PER_MESSAGE).default([]),
       parentMessageId: z.number().optional(),
       replyToMessageId: z.number().optional()
     })
@@ -100,20 +108,23 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
       });
     }
 
+    // assertDmChannel already had to resolve whether this is a DM, so it hands
+    // the answer back rather than the route asking for the same row again
     const [settings, isDmChannel] = await Promise.all([
       getSettings(),
-      isDirectMessageChannel(input.channelId),
       assertDmChannel(input.channelId, ctx.userId)
     ]);
 
     const { storageMaxFilesPerMessage, enablePlugins } = settings;
 
-    const limitedFiles = input.files.slice(
-      0,
-      Math.max(0, storageMaxFilesPerMessage)
-    );
+    invariant(input.files.length <= Math.max(0, storageMaxFilesPerMessage), {
+      code: 'BAD_REQUEST',
+      message: `You can attach at most ${storageMaxFilesPerMessage} file(s) per message.`
+    });
 
-    if (limitedFiles.length > 0) {
+    if (input.files.length > 0) {
+      await ctx.needsPermission(Permission.UPLOAD_FILES);
+
       invariant(settings.storageUploadEnabled, {
         code: 'FORBIDDEN',
         message: 'File uploads are disabled on this server'
@@ -127,23 +138,35 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
       }
     }
 
-    invariant(!isEmptyMessage(input.content) || limitedFiles.length != 0, {
+    invariant(!isEmptyMessage(input.content) || input.files.length != 0, {
       code: 'BAD_REQUEST',
       message: 'Message cannot be empty.'
     });
 
     let targetContent = sanitizeMessageHtml(input.content);
 
-    invariant(!isEmptyMessage(targetContent) || limitedFiles.length != 0, {
+    invariant(!isEmptyMessage(targetContent) || input.files.length != 0, {
       code: 'BAD_REQUEST',
       message:
         'Your message only contained unsupported or removed content, so there was nothing to send.'
     });
 
+    if (enablePlugins) {
+      targetContent = await runBeforeMessageSaveHooks({
+        content: targetContent,
+        channelId: input.channelId,
+        userId: ctx.userId,
+        type: MessageSaveType.CREATE
+      });
+    }
+
     let editable = true;
     let commandExecutor: ((messageId: number) => void) | undefined = undefined;
 
-    const plainText = getPlainTextFromHtml(input.content);
+    // derived from the sanitized html, not the raw input: otherwise the command
+    // that runs, and the text plugins receive, can differ from what is stored
+    // and shown to everyone else
+    const plainText = getPlainTextFromHtml(targetContent);
 
     if (enablePlugins) {
       // when plugins are enabled, need to check if the message is a command
@@ -152,55 +175,53 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
       const foundCommand = pluginManager.getCommandByName(commandName);
 
       if (foundCommand) {
-        if (await ctx.hasPermission(Permission.USE_PLUGINS)) {
+        const canRunCommand =
+          !!foundCommand &&
+          (await ctx.hasPermission(Permission.USE_PLUGINS)) &&
+          (await canUseCapability(
+            ctx.userId,
+            foundCommand.pluginId,
+            PluginCapabilityType.COMMAND,
+            foundCommand.name
+          ));
+
+        if (canRunCommand) {
           const argsObject: Record<string, unknown> = {};
 
-          if (foundCommand.args) {
-            foundCommand.args.forEach((argDef, index) => {
-              if (index < args.length) {
-                const value = args[index];
+          foundCommand.args?.forEach((argDef, index) => {
+            if (index < args.length) argsObject[argDef.name] = args[index];
+          });
 
-                if (argDef.type === 'number') {
-                  argsObject[argDef.name] = Number(value);
-                } else if (argDef.type === 'boolean') {
-                  argsObject[argDef.name] = value === 'true';
-                } else {
-                  argsObject[argDef.name] = value;
-                }
-              }
-            });
-          }
-
-          const plugin = await pluginManager.getPluginInfo(
-            foundCommand?.pluginId || ''
-          );
+          const pluginLogo = pluginManager.getPluginLogo(foundCommand.pluginId);
 
           editable = false;
           targetContent = toDomCommand(
-            { ...foundCommand, imageUrl: plugin?.logo, status: 'pending' },
+            { ...foundCommand, imageUrl: pluginLogo, status: 'pending' },
             args
           );
 
           // do not await, let it run in background
           commandExecutor = (messageId: number) => {
-            const updateCommandStatus = (
+            const updateCommandStatus = async (
               status: 'completed' | 'failed',
               response?: unknown
             ) => {
               const updatedContent = toDomCommand(
                 {
                   ...foundCommand,
-                  imageUrl: plugin?.logo,
+                  imageUrl: pluginLogo,
                   response,
                   status
                 },
                 args
               );
 
-              db.update(messages)
+              // awaited before publishing, otherwise clients are told to
+              // refetch a message whose new content has not been written yet
+              await db
+                .update(messages)
                 .set({ content: updatedContent })
-                .where(eq(messages.id, messageId))
-                .execute();
+                .where(eq(messages.id, messageId));
 
               publishMessage(messageId, input.channelId, 'update');
             };
@@ -209,18 +230,28 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
               .executeCommand(
                 foundCommand.pluginId,
                 foundCommand.name,
-                getInvokerCtxFromTrpcCtx(ctx),
+                getInvokerCtxFromTrpcCtx(ctx, {
+                  source: 'chat',
+                  channelId: input.channelId,
+                  parentMessageId: input.parentMessageId,
+                  messageId
+                }),
                 argsObject
               )
-              .then((response) => {
-                updateCommandStatus('completed', response);
-              })
-              .catch((error) => {
-                updateCommandStatus(
-                  'failed',
-                  error?.message || 'Unknown error'
-                );
-              })
+              .then((response) => updateCommandStatus('completed', response))
+              .catch((error) =>
+                updateCommandStatus('failed', error?.message || 'Unknown error')
+              )
+              // the handler above is what writes the status, so a failure in it is the end
+              // of the line: there is nothing further to fall back to and no request left
+              // to answer
+              .catch((error) =>
+                logger.error(
+                  'Failed to record the status of command %s: %s',
+                  foundCommand.name,
+                  getErrorMessage(error)
+                )
+              )
               .finally(() => {
                 enqueueActivityLog({
                   type: ActivityLogType.EXECUTED_PLUGIN_COMMAND,
@@ -237,37 +268,49 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
       }
     }
 
-    const message = await db
-      .insert(messages)
-      .values({
-        channelId: input.channelId,
-        userId: ctx.userId,
-        content: targetContent,
-        editable,
-        parentMessageId: input.parentMessageId ?? null,
-        replyToMessageId: input.replyToMessageId ?? null,
-        createdAt: Date.now()
-      })
-      .returning()
-      .get();
+    const savedFileIds: number[] = [];
+
+    for (const tempFileId of input.files) {
+      const newFile = await fileManager.saveFile(
+        tempFileId,
+        ctx.userId,
+        FileSaveType.MESSAGE
+      );
+
+      savedFileIds.push(newFile.id);
+    }
+
+    const message = db.transaction((tx) => {
+      const createdMessage = tx
+        .insert(messages)
+        .values({
+          channelId: input.channelId,
+          userId: ctx.userId,
+          content: targetContent,
+          editable,
+          parentMessageId: input.parentMessageId ?? null,
+          replyToMessageId: input.replyToMessageId ?? null,
+          createdAt: Date.now()
+        })
+        .returning()
+        .get();
+
+      if (savedFileIds.length > 0) {
+        tx.insert(messageFiles)
+          .values(
+            savedFileIds.map((fileId) => ({
+              messageId: createdMessage.id,
+              fileId,
+              createdAt: Date.now()
+            }))
+          )
+          .run();
+      }
+
+      return createdMessage;
+    });
 
     commandExecutor?.(message.id);
-
-    if (limitedFiles.length > 0) {
-      for (const tempFileId of limitedFiles) {
-        const newFile = await fileManager.saveFile(
-          tempFileId,
-          ctx.userId,
-          FileSaveType.MESSAGE
-        );
-
-        await db.insert(messageFiles).values({
-          messageId: message.id,
-          fileId: newFile.id,
-          createdAt: Date.now()
-        });
-      }
-    }
 
     publishMessage(message.id, input.channelId, 'create');
 

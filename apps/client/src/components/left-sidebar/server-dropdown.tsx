@@ -11,7 +11,7 @@ import {
   selectServerProfile,
   type TServerProfile
 } from '@/helpers/server-connection';
-import { Permission } from '@sharkord/shared';
+import { Permission, TestId } from '@sharkord/shared';
 import {
   Button,
   DropdownMenu,
@@ -182,7 +182,11 @@ const ServerDropdownMenu = memo(() => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button
+          data-testid={TestId.SERVER_MENU_TRIGGER}
+          variant="ghost"
+          size="icon"
+        >
           <Menu className="h-4 w-4 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
@@ -197,12 +201,16 @@ const ServerDropdownMenu = memo(() => {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <Protect permission={Permission.MANAGE_CATEGORIES}>
-          <DropdownMenuItem onClick={() => openDialog(Dialog.CREATE_CATEGORY)}>
+          <DropdownMenuItem
+            data-testid={TestId.SERVER_MENU_ADD_CATEGORY}
+            onClick={() => openDialog(Dialog.CREATE_CATEGORY)}
+          >
             {t('addCategory')}
           </DropdownMenuItem>
         </Protect>
         <Protect permission={serverSettingsPermissions}>
           <DropdownMenuItem
+            data-testid={TestId.SERVER_MENU_SERVER_SETTINGS}
             onClick={() => openServerScreen(ServerScreen.SERVER_SETTINGS)}
           >
             {t('serverSettings')}
@@ -214,6 +222,7 @@ const ServerDropdownMenu = memo(() => {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
+          data-testid={TestId.SERVER_MENU_DISCONNECT}
           onClick={handleDisconnectClick}
           className="text-destructive focus:text-destructive"
         >

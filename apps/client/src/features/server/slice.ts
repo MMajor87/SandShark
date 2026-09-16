@@ -5,7 +5,6 @@ import type {
   TCategory,
   TChannel,
   TChannelUserPermissionsMap,
-  TCommandInfo,
   TCommandsMapByPlugin,
   TExternalStream,
   TExternalStreamsMap,
@@ -13,34 +12,43 @@ import type {
   TJoinedMessage,
   TJoinedPublicUser,
   TJoinedRole,
+  TPluginCapabilityAccessRule,
   TPluginComponentsMap,
-  TPluginComponentsMapBySlotId,
   TPluginMetadata,
+  TPluginTab,
+  TPluginTabsMap,
   TPublicServerSettings,
   TReadStateMap,
   TServerInfo,
   TVoiceMap,
   TVoiceUserState
 } from '@sharkord/shared';
+import { DEFAULT_MESSAGES_LIMIT } from '@sharkord/shared';
 import { mergeMessagesChronologically } from './helpers';
 import type {
   TDisconnectInfo,
   TMessagesMap,
+  TReconnectState,
   TThreadMessagesMap
 } from './types';
 
 export interface IServerState {
   connected: boolean;
   connecting: boolean;
+  reconnect: TReconnectState | null;
   disconnectInfo?: TDisconnectInfo;
   serverId?: string;
   categories: TCategory[];
   channels: TChannel[];
   emojis: TJoinedEmoji[];
   ownUserId: number | undefined;
+  ownUserPasswordSet: boolean;
   selectedChannelId: number | undefined;
   currentVoiceChannelId: number | undefined;
+  // it lives here rather than in the subscription because joining the new room needs the voice provider context
+  voiceMoveTargetChannelId: number | undefined;
   messagesMap: TMessagesMap;
+  detachedChannels: Record<number, boolean>;
   threadMessagesMap: TThreadMessagesMap;
   users: TJoinedPublicUser[];
   roles: TJoinedRole[];
@@ -68,6 +76,8 @@ export interface IServerState {
   hideOwnScreenShare: boolean;
   alwaysShowVoiceControls: boolean;
   pluginComponents: TPluginComponentsMap;
+  pluginTabs: TPluginTabsMap;
+  pluginCapabilityAccess: TPluginCapabilityAccessRule[];
   activeFullscreenPluginId: string | undefined;
   dmsOpen: boolean;
 }
@@ -75,15 +85,19 @@ export interface IServerState {
 const initialState: IServerState = {
   connected: false,
   connecting: false,
+  reconnect: null,
   disconnectInfo: undefined,
   serverId: undefined,
   ownUserId: undefined,
+  ownUserPasswordSet: true,
   categories: [],
   channels: [],
   emojis: [],
   selectedChannelId: undefined,
   currentVoiceChannelId: undefined,
+  voiceMoveTargetChannelId: undefined,
   messagesMap: {},
+  detachedChannels: {},
   threadMessagesMap: {},
   users: [],
   roles: [],
@@ -118,6 +132,8 @@ const initialState: IServerState = {
     true
   ),
   pluginComponents: {},
+  pluginTabs: {},
+  pluginCapabilityAccess: [],
   activeFullscreenPluginId: undefined,
   dmsOpen: false,
   hideOwnScreenShare: getLocalStorageItemBool(
@@ -140,11 +156,8 @@ export const serverSlice = createSlice({
       state.connected = action.payload;
       state.connecting = false;
     },
-    setConnecting: (state, action: PayloadAction<boolean>) => {
-      state.connecting = action.payload;
-    },
-    setServerId: (state, action: PayloadAction<string | undefined>) => {
-      state.serverId = action.payload;
+    setReconnect: (state, action: PayloadAction<TReconnectState | null>) => {
+      state.reconnect = action.payload;
     },
     setInfo: (state, action: PayloadAction<TServerInfo | undefined>) => {
       state.info = action.payload;
@@ -166,6 +179,7 @@ export const serverSlice = createSlice({
         channels: TChannel[];
         users: TJoinedPublicUser[];
         ownUserId: number;
+        ownUserPasswordSet: boolean;
         roles: TJoinedRole[];
         emojis: TJoinedEmoji[];
         publicSettings: TPublicServerSettings | undefined;
@@ -177,12 +191,14 @@ export const serverSlice = createSlice({
       }>
     ) => {
       state.connected = true;
+      state.reconnect = null;
       state.categories = action.payload.categories;
       state.channels = action.payload.channels;
       state.emojis = action.payload.emojis;
       state.users = action.payload.users;
       state.roles = action.payload.roles;
       state.ownUserId = action.payload.ownUserId;
+      state.ownUserPasswordSet = action.payload.ownUserPasswordSet;
       state.publicSettings = action.payload.publicSettings;
       state.voiceMap = action.payload.voiceMap;
       state.externalStreamsMap = action.payload.externalStreamsMap;
@@ -196,15 +212,33 @@ export const serverSlice = createSlice({
       action: PayloadAction<{
         channelId: number;
         messages: TJoinedMessage[];
-        opts?: { prepend?: boolean };
+        isLive?: boolean;
       }>
     ) => {
-      const { channelId, messages } = action.payload;
+      const { channelId, messages, isLive } = action.payload;
+
+      // a detached channel shows a window that stops short of the present, so appending a live
+      // message would put the very gap this window exists to avoid back into the list. it
+      // arrives with the rest when the user returns to the present
+      if (isLive && state.detachedChannels[channelId]) return;
+
       const existing = state.messagesMap[channelId] ?? [];
 
-      // dedupe: only add new IDs
-      const existingIds = new Set(existing.map((m) => m.id));
-      const filtered = messages.filter((m) => !existingIds.has(m.id));
+      // dedupe against the incoming batch rather than the loaded history: the
+      // set is the size of what just arrived, usually one message, instead of
+      // every message the channel has scrolled into memory
+      const incomingIds = new Set(messages.map((m) => m.id));
+
+      for (const message of existing) {
+        incomingIds.delete(message.id);
+
+        if (incomingIds.size === 0) break;
+      }
+
+      const filtered =
+        incomingIds.size === messages.length
+          ? messages
+          : messages.filter((m) => incomingIds.has(m.id));
 
       state.messagesMap[channelId] = mergeMessagesChronologically(
         existing,
@@ -253,9 +287,18 @@ export const serverSlice = createSlice({
 
       if (!messages) return;
 
-      state.messagesMap[action.payload.channelId] = messages.filter(
+      const remaining = messages.filter(
         (m) => m.id !== action.payload.messageId
       );
+
+      remaining.forEach((message) => {
+        if (message.replyToMessageId === action.payload.messageId) {
+          message.replyToMessageId = null;
+          message.replyTo = null;
+        }
+      });
+
+      state.messagesMap[action.payload.channelId] = remaining;
     },
 
     // THREAD MESSAGES ------------------------------------------------------------
@@ -265,7 +308,6 @@ export const serverSlice = createSlice({
       action: PayloadAction<{
         parentMessageId: number;
         messages: TJoinedMessage[];
-        opts?: { prepend?: boolean };
       }>
     ) => {
       const { parentMessageId, messages } = action.payload;
@@ -313,6 +355,48 @@ export const serverSlice = createSlice({
         (m) => m.id !== action.payload.messageId
       );
     },
+    // used by the jump-to-message path when the window it fetched does not reach the newest
+    // message. merging a bounded window into what the channel already holds would leave a gap
+    // in the middle of the rendered list with nothing telling the user
+    setChannelMessages: (
+      state,
+      action: PayloadAction<{
+        channelId: number;
+        messages: TJoinedMessage[];
+        detached: boolean;
+      }>
+    ) => {
+      const { channelId, messages, detached } = action.payload;
+
+      state.messagesMap[channelId] = messages;
+
+      if (detached) {
+        state.detachedChannels[channelId] = true;
+      } else {
+        delete state.detachedChannels[channelId];
+      }
+    },
+
+    trimChannelMessages: (state, action: PayloadAction<number>) => {
+      // a detached window is dropped outright rather than trimmed: keeping its newest page
+      // would leave the channel holding a slice of old history that the next mount's page-1
+      // fetch would merge into, reopening the gap
+      if (state.detachedChannels[action.payload]) {
+        delete state.messagesMap[action.payload];
+        delete state.detachedChannels[action.payload];
+
+        return;
+      }
+
+      const messages = state.messagesMap[action.payload];
+
+      if (!messages || messages.length <= DEFAULT_MESSAGES_LIMIT) return;
+
+      state.messagesMap[action.payload] = messages.slice(
+        -DEFAULT_MESSAGES_LIMIT
+      );
+    },
+
     clearThreadMessages: (state, action: PayloadAction<number>) => {
       delete state.threadMessagesMap[action.payload];
     },
@@ -367,9 +451,6 @@ export const serverSlice = createSlice({
 
     // USERS ------------------------------------------------------------
 
-    setUsers: (state, action: PayloadAction<TJoinedPublicUser[]>) => {
-      state.users = action.payload;
-    },
     updateUser: (
       state,
       action: PayloadAction<{
@@ -508,9 +589,6 @@ export const serverSlice = createSlice({
 
     // ROLES ------------------------------------------------------------
 
-    setRoles: (state, action: PayloadAction<TJoinedRole[]>) => {
-      state.roles = action.payload;
-    },
     updateRole: (
       state,
       action: PayloadAction<{
@@ -542,9 +620,6 @@ export const serverSlice = createSlice({
 
     // CHANNELS ------------------------------------------------------------
 
-    setChannels: (state, action: PayloadAction<TChannel[]>) => {
-      state.channels = action.payload;
-    },
     updateChannel: (
       state,
       action: PayloadAction<{ channelId: number; channel: Partial<TChannel> }>
@@ -588,6 +663,12 @@ export const serverSlice = createSlice({
     ) => {
       state.currentVoiceChannelId = action.payload;
     },
+    setVoiceMoveTargetChannelId: (
+      state,
+      action: PayloadAction<number | undefined>
+    ) => {
+      state.voiceMoveTargetChannelId = action.payload;
+    },
     setChannelPermissions: (
       state,
       action: PayloadAction<TChannelUserPermissionsMap>
@@ -605,9 +686,6 @@ export const serverSlice = createSlice({
 
     // EMOJIS ------------------------------------------------------------
 
-    setEmojis: (state, action: PayloadAction<TJoinedEmoji[]>) => {
-      state.emojis = action.payload;
-    },
     updateEmoji: (
       state,
       action: PayloadAction<{ emojiId: number; emoji: Partial<TJoinedEmoji> }>
@@ -635,9 +713,6 @@ export const serverSlice = createSlice({
 
     // CATEGORIES ------------------------------------------------------------
 
-    setCategories: (state, action: PayloadAction<TCategory[]>) => {
-      state.categories = action.payload;
-    },
     addCategory: (state, action: PayloadAction<TCategory>) => {
       const exists = state.categories.find((c) => c.id === action.payload.id);
 
@@ -789,50 +864,20 @@ export const serverSlice = createSlice({
     setPluginCommands: (state, action: PayloadAction<TCommandsMapByPlugin>) => {
       state.pluginCommands = action.payload;
     },
-    addPluginCommand: (state, action: PayloadAction<TCommandInfo>) => {
-      const { pluginId } = action.payload;
-
-      if (!state.pluginCommands[pluginId]) {
-        state.pluginCommands[pluginId] = [];
-      }
-
-      const exists = state.pluginCommands[pluginId].find(
-        (c) => c.name === action.payload.name
-      );
-
-      if (exists) return;
-
-      state.pluginCommands[pluginId].push(action.payload);
-    },
-    removePluginCommand: (
+    setPluginCapabilityAccess: (
       state,
-      action: PayloadAction<{ commandName: string }>
+      action: { payload: TPluginCapabilityAccessRule[] }
     ) => {
-      const { commandName } = action.payload;
-
-      for (const pluginId in state.pluginCommands) {
-        state.pluginCommands[pluginId] = state.pluginCommands[pluginId].filter(
-          (c) => c.name !== commandName
-        );
-      }
+      state.pluginCapabilityAccess = action.payload;
     },
-    addPluginComponents: (
+    setPluginTabs: (state, action: { payload: TPluginTabsMap }) => {
+      state.pluginTabs = action.payload;
+    },
+    setPluginTabsForPlugin: (
       state,
-      action: PayloadAction<{
-        pluginId: string;
-        slots: TPluginComponentsMapBySlotId;
-      }>
+      action: { payload: { pluginId: string; tabs: TPluginTab[] } }
     ) => {
-      const { pluginId, slots } = action.payload;
-
-      if (!state.pluginComponents[pluginId]) {
-        state.pluginComponents[pluginId] = {};
-      }
-
-      state.pluginComponents[pluginId] = {
-        ...state.pluginComponents[pluginId],
-        ...slots
-      };
+      state.pluginTabs[action.payload.pluginId] = action.payload.tabs;
     },
     setPluginComponents: (
       state,

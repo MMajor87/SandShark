@@ -1,6 +1,12 @@
-import { ActivityLogType, ServerEvents, UserStatus } from '@sharkord/shared';
+import {
+  ActivityLogType,
+  ServerEvents,
+  UserStatus,
+  zLocale
+} from '@sharkord/shared';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { config } from '../../config';
 import { db } from '../../db';
 import {
   getAllChannelUserPermissions,
@@ -13,6 +19,8 @@ import { getRoles } from '../../db/queries/roles';
 import { getPublicSettings, getSettings } from '../../db/queries/server';
 import { getPublicUsers } from '../../db/queries/users';
 import { categories, users } from '../../db/schema';
+import { getCapabilityAccessRules } from '../../helpers/plugin-capability-access';
+import { safeCompare } from '../../helpers/safe-compare';
 import { shouldAskServerPassword } from '../../helpers/should-ask-server-password';
 import { logger } from '../../logger';
 import { pluginManager } from '../../plugins';
@@ -21,20 +29,26 @@ import { enqueueActivityLog } from '../../queues/activity-log';
 import { enqueueLogin } from '../../queues/logins';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { invariant } from '../../utils/invariant';
-import { rateLimitedProcedure, t } from '../../utils/trpc';
+import { publicProcedure, rateLimitedProcedure } from '../../utils/trpc';
 
-const joinServerRoute = rateLimitedProcedure(t.procedure, {
-  maxRequests: 5,
-  windowMs: 60_000,
+const joinServerRoute = rateLimitedProcedure(publicProcedure, {
+  maxRequests: config.rateLimiters.joinServer.maxRequests,
+  windowMs: config.rateLimiters.joinServer.windowMs,
   logLabel: 'joinServer'
 })
   .input(
     z.object({
       handshakeHash: z.string(),
-      password: z.string().optional()
+      password: z.string().optional(),
+      locale: zLocale.optional()
     })
   )
   .query(async ({ input, ctx }) => {
+    invariant(ctx.user, {
+      code: 'UNAUTHORIZED',
+      message: 'User not authenticated'
+    });
+
     const connectionInfo = ctx.getConnectionInfo();
     const settings = await getSettings();
 
@@ -53,21 +67,22 @@ const joinServerRoute = rateLimitedProcedure(t.procedure, {
       }
     );
 
-    invariant(
-      shouldAskForPassword ? input.password === settings.password : true,
-      {
-        code: 'FORBIDDEN',
-        message: 'Invalid password'
-      }
-    );
+    // constant time, so the response cannot be used to learn the password a character at a
+    // time. the column is still plaintext, which is the open half of 4.8
+    const passwordMatches =
+      !!settings.password &&
+      !!input.password &&
+      safeCompare(input.password, settings.password);
 
-    invariant(ctx.user, {
-      code: 'UNAUTHORIZED',
-      message: 'User not authenticated'
+    invariant(shouldAskForPassword ? passwordMatches : true, {
+      code: 'FORBIDDEN',
+      message: 'Invalid password'
     });
 
     ctx.authenticated = true;
     ctx.setWsUserId(ctx.user.id);
+
+    if (input.locale) ctx.locale = input.locale;
 
     const [
       allCategories,
@@ -79,7 +94,8 @@ const joinServerRoute = rateLimitedProcedure(t.procedure, {
       readStates,
       publicSettings,
       pluginsMetadata,
-      hasJoinedBefore
+      hasJoinedBefore,
+      pluginCapabilityAccess
     ] = await Promise.all([
       db.select().from(categories),
       getChannelsForUser(ctx.user.id), // filter channels based on permissions and DM participation
@@ -90,7 +106,8 @@ const joinServerRoute = rateLimitedProcedure(t.procedure, {
       getChannelsReadStatesForUser(ctx.user.id),
       getPublicSettings(),
       pluginManager.getActivePluginMetadata(),
-      hasUserJoinedBefore(ctx.user.id)
+      hasUserJoinedBefore(ctx.user.id),
+      getCapabilityAccessRules()
     ]);
 
     const showWelcomeDialog = settings.showWelcomeDialog && !hasJoinedBefore;
@@ -148,6 +165,7 @@ const joinServerRoute = rateLimitedProcedure(t.procedure, {
       serverId: settings.serverId,
       serverName: settings.name,
       ownUserId: ctx.user.id,
+      ownUserPasswordSet: ctx.user.passwordSet,
       voiceMap,
       roles,
       emojis,
@@ -156,6 +174,7 @@ const joinServerRoute = rateLimitedProcedure(t.procedure, {
       readStates,
       commands: pluginManager.getCommands(),
       pluginIdsWithComponents: pluginManager.getPluginIdsWithComponents(),
+      pluginCapabilityAccess,
       pluginsMetadata,
       externalStreamsMap,
       showWelcomeDialog

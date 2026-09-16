@@ -28,6 +28,7 @@ const invoke = <T,>(channel: string, payload?: unknown): Promise<T> =>
   });
 
 const desktopApi: TSandSharkDesktopAPI = {
+  startOidcLogin: (serverUrl) => invoke<string | null>('sandshark:start-oidc-login', serverUrl),
   getVersion: () => invoke<string>('sandshark:get-version'),
   minimize: () => invoke<void>('sandshark:minimize'),
   maximize: () => invoke<void>('sandshark:maximize'),

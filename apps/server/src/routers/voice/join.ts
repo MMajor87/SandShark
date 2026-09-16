@@ -2,15 +2,21 @@ import {
   ChannelPermission,
   ChannelType,
   Permission,
-  ServerEvents
+  ServerEvents,
+  type TBeforeVoiceJoinPayload
 } from '@sharkord/shared';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';
 import { db } from '../../db';
 import { channels } from '../../db/schema';
-import { consumeVoiceMoveGrant } from '../../helpers/voice-move-grants';
+import {
+  consumeVoiceMoveGrant,
+  hasVoiceMoveGrant
+} from '../../helpers/voice-move-grants';
 import { logger } from '../../logger';
+import { pluginManager } from '../../plugins';
+import { runHook } from '../../plugins/run-hook';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
@@ -32,17 +38,19 @@ const joinVoiceRoute = rateLimitedProcedure(protectedProcedure, {
   .mutation(async ({ input, ctx }) => {
     await ctx.needsPermission(Permission.JOIN_VOICE_CHANNELS);
 
-    const movedByModerator = consumeVoiceMoveGrant(
-      ctx.user.id,
-      input.channelId
-    );
+    const movedByModerator = hasVoiceMoveGrant(ctx.user.id, input.channelId);
 
     if (!movedByModerator) {
       await ctx.needsChannelPermission(input.channelId, ChannelPermission.JOIN);
     }
 
     const channel = await db
-      .select()
+      .select({
+        id: channels.id,
+        name: channels.name,
+        type: channels.type,
+        isDm: channels.isDm
+      })
       .from(channels)
       .where(eq(channels.id, input.channelId))
       .get();
@@ -57,6 +65,11 @@ const joinVoiceRoute = rateLimitedProcedure(protectedProcedure, {
       message: 'Channel is not a voice channel'
     });
 
+    invariant(!channel.isDm, {
+      code: 'BAD_REQUEST',
+      message: 'Cannot join a direct message channel as a voice channel'
+    });
+
     const userAlreadyInVoiceChannel = VoiceRuntime.findRuntimeByUserId(
       ctx.user.id
     );
@@ -64,6 +77,15 @@ const joinVoiceRoute = rateLimitedProcedure(protectedProcedure, {
     invariant(!userAlreadyInVoiceChannel, {
       code: 'BAD_REQUEST',
       message: 'User already in a voice channel'
+    });
+
+    await runHook<TBeforeVoiceJoinPayload, never>({
+      entries: pluginManager.getHooks('beforeVoiceJoin'),
+      payload: {
+        channelId: input.channelId,
+        userId: ctx.user.id,
+        movedByModerator
+      }
     });
 
     const runtime = VoiceRuntime.findById(input.channelId);
@@ -74,6 +96,8 @@ const joinVoiceRoute = rateLimitedProcedure(protectedProcedure, {
     });
 
     runtime.addUser(ctx.user.id, input.state);
+
+    if (movedByModerator) consumeVoiceMoveGrant(ctx.user.id);
 
     const state = runtime.getUserState(ctx.user.id);
 

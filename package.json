@@ -1,6 +1,6 @@
 {
   "name": "sharkord",
-  "version": "0.0.23",
+  "version": "0.0.25",
   "private": true,
   "workspaces": [
     "apps/*",
@@ -12,6 +12,7 @@
   "scripts": {
     "desktop:dev": "bun run --cwd apps/desktop dev",
     "test": "bun run --filter '*' test",
+    "test:e2e": "bun run --filter '@sharkord/e2e' test:e2e",
     "format": "bun run --filter '*' format",
     "format:check": "bun run --filter '*' format:check",
     "check-types": "bun run --filter '*' check-types",

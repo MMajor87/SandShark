@@ -8,10 +8,6 @@ import { getUrlFromServer } from '@/helpers/get-file-url';
 import { getServerConnection } from '@/helpers/server-connection';
 import { memo, useCallback, useEffect } from 'react';
 
-export type TPluginsController = {
-  loading: boolean;
-};
-
 const PluginsController = memo(() => {
   const serverConnectionRequired = useServerConnectionRequired();
 

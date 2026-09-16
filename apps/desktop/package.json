@@ -19,7 +19,8 @@
     "verify:signature": "powershell.exe -ExecutionPolicy Bypass -File scripts/verify-code-signature.ps1",
     "test:packaged-startup": "powershell.exe -ExecutionPolicy Bypass -File scripts/test-packaged-startup.ps1",
     "check:security": "bun scripts/verify-security-boundary.mjs",
-    "check-types": "tsc --noEmit --project tsconfig.json"
+    "check-types": "tsc --noEmit --project tsconfig.json",
+    "test": "bun test src"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",

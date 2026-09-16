@@ -1,11 +1,9 @@
 import { ActivityLogType, Permission } from '@sharkord/shared';
-import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { db } from '../../db';
-import { fallbackUsersToDefaultRole } from '../../db/mutations/users';
+import { deleteRoleAndFallbackUsers } from '../../db/mutations/roles';
 import { publishRole } from '../../db/publishers';
-import { getRole } from '../../db/queries/roles';
-import { roles } from '../../db/schema';
+import { getDefaultRole, getRole } from '../../db/queries/roles';
+import { eventBus } from '../../plugins/event-bus';
 import { enqueueActivityLog } from '../../queues/activity-log';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
@@ -34,10 +32,19 @@ const deleteRoleRoute = protectedProcedure
       message: 'Cannot delete the default role'
     });
 
-    await fallbackUsersToDefaultRole(role.id);
-    await db.delete(roles).where(eq(roles.id, role.id));
+    const defaultRole = await getDefaultRole();
+
+    invariant(defaultRole, {
+      code: 'NOT_FOUND',
+      message: 'Default role not found'
+    });
+
+    deleteRoleAndFallbackUsers(role.id, defaultRole.id);
 
     publishRole(role.id, 'delete');
+
+    eventBus.emit('role:deleted', { roleId: role.id, name: role.name });
+
     enqueueActivityLog({
       type: ActivityLogType.DELETED_ROLE,
       userId: ctx.user.id,

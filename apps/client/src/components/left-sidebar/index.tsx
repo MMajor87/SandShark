@@ -15,10 +15,7 @@ import { memo } from 'react';
 import { Categories } from './categories';
 import { DirectMessages } from './direct-messages';
 import { DmButton } from './direct-messages/dm-button';
-import {
-  useRestoreLastSelectedChannel,
-  useVoiceMoveSubscription
-} from './hooks';
+import { useFollowVoiceMove, useRestoreLastSelectedChannel } from './hooks';
 import { PluginButtons } from './plugin-buttons';
 import { ServerDropdownMenu, ServerSwitcher } from './server-dropdown';
 import { UserControl } from './user-control';
@@ -40,7 +37,7 @@ const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
   const serverIcon = info?.logo ? getFileUrl(info.logo) : undefined;
 
   useRestoreLastSelectedChannel();
-  useVoiceMoveSubscription();
+  useFollowVoiceMove();
 
   return (
     <ResizableSidebar

@@ -4,11 +4,18 @@ import { connect } from '@/features/server/actions';
 import { useInfo } from '@/features/server/hooks';
 import { getFileUrl, getUrlFromServer } from '@/helpers/get-file-url';
 import {
+  clearCurrentServerAutoLogin,
   getCurrentServerAutoLoginToken,
   getCurrentServerIdentity,
   saveServerLogin
 } from '@/helpers/server-session';
+import {
+  getLocalStorageItemBool,
+  LocalStorageKey,
+  setLocalStorageItemBool
+} from '@/helpers/storage';
 import { useForm } from '@/hooks/use-form';
+import { isBrowserClient } from '@/platform/environment';
 import { PluginSlot, TestId } from '@sharkord/shared';
 import {
   Alert,
@@ -22,24 +29,32 @@ import {
   Group,
   Input,
   Label,
+  Spinner,
   Switch
 } from '@sharkord/ui';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { useOidcLogin } from './hooks/use-oidc-login';
 
 const Connect = memo(() => {
   const { t } = useTranslation('connect');
   const { values, r, setErrors, onChange } = useForm<{
     identity: string;
     password: string;
-    rememberCredentials: boolean;
     autoLogin: boolean;
   }>({
     identity: getCurrentServerIdentity() || '',
     password: '',
-    rememberCredentials: false,
-    autoLogin: false
+    autoLogin:
+      isBrowserClient() && getLocalStorageItemBool(LocalStorageKey.AUTO_LOGIN)
   });
 
   const [loading, setLoading] = useState(false);
@@ -56,6 +71,18 @@ const Connect = memo(() => {
       if (token) onChange('autoLogin', true);
     });
   }, [onChange]);
+  const startSession = useCallback(
+    async (token: string) => {
+      await saveServerLogin({
+        identity: values.identity,
+        token,
+        autoLogin: values.autoLogin
+      });
+      await connect();
+    },
+    [values.identity, values.autoLogin]
+  );
+  const oidc = useOidcLogin({ onToken: startSession });
 
   const onConnectClick = useCallback(async () => {
     setLoading(true);
@@ -70,8 +97,7 @@ const Connect = memo(() => {
         body: JSON.stringify({
           identity: values.identity,
           password: values.password,
-          invite: inviteCode,
-          autoLogin: values.autoLogin || undefined
+          invite: inviteCode
         })
       });
 
@@ -84,12 +110,7 @@ const Connect = memo(() => {
 
       const data = (await response.json()) as { token: string };
 
-      await saveServerLogin({
-        identity: values.identity,
-        token: data.token,
-        autoLogin: values.autoLogin
-      });
-      await connect();
+      await startSession(data.token);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -101,11 +122,31 @@ const Connect = memo(() => {
   }, [
     values.identity,
     values.password,
-    values.autoLogin,
     setErrors,
     inviteCode,
+    startSession,
     t
   ]);
+
+  const onFormSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      onConnectClick();
+    },
+    [onConnectClick]
+  );
+
+  const onAutoLoginToggle = useCallback(() => {
+    const nextAutoLogin = !values.autoLogin;
+
+    onChange('autoLogin', nextAutoLogin);
+    if (isBrowserClient())
+      setLocalStorageItemBool(LocalStorageKey.AUTO_LOGIN, nextAutoLogin);
+
+    if (!nextAutoLogin) {
+      clearCurrentServerAutoLogin();
+    }
+  }, [onChange, values.autoLogin]);
 
   const logoSrc = useMemo(() => {
     if (info?.logo) {
@@ -114,6 +155,15 @@ const Connect = memo(() => {
 
     return `${import.meta.env.BASE_URL}logo.webp`;
   }, [info]);
+
+  if (oidc.isCompleting) {
+    return (
+      <div className="flex flex-col justify-center items-center h-full gap-2">
+        <Spinner size="lg" />
+        <span className="text-xl">{t('oidcCompleting')}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-2 justify-center items-center h-full relative">
@@ -143,37 +193,35 @@ const Connect = memo(() => {
             </span>
           )}
 
-          <form
-            className="flex flex-col gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              onConnectClick();
-            }}
-          >
-            <Group label={t('identityLabel')} help={t('identityHelp')}>
-              <Input
-                {...r('identity')}
-                autoComplete="username"
-                data-testid={TestId.CONNECT_IDENTITY_INPUT}
-              />
-            </Group>
-            <Group label={t('passwordLabel')}>
-              <Input
-                {...r('password')}
-                type="password"
-                autoComplete="current-password"
-                onEnter={onConnectClick}
-                data-testid={TestId.CONNECT_PASSWORD_INPUT}
-              />
-            </Group>
-          </form>
+          {oidc.isLocalLoginAllowed && (
+            <form
+              className="flex flex-col gap-2"
+              onSubmit={onFormSubmit}
+              data-testid={TestId.CONNECT_FORM}
+            >
+              <Group label={t('identityLabel')} help={t('identityHelp')}>
+                <Input
+                  {...r('identity')}
+                  autoComplete="username"
+                  data-testid={TestId.CONNECT_IDENTITY_INPUT}
+                />
+              </Group>
+              <Group label={t('passwordLabel')}>
+                <Input
+                  {...r('password')}
+                  type="password"
+                  autoComplete="current-password"
+                  onEnter={onConnectClick}
+                  data-testid={TestId.CONNECT_PASSWORD_INPUT}
+                />
+              </Group>
+            </form>
+          )}
 
           <div
             className="flex items-center gap-2 w-fit cursor-pointer"
             data-testid={TestId.CONNECT_AUTO_LOGIN_SWITCH}
-            onClick={() => {
-              onChange('autoLogin', !values.autoLogin);
-            }}
+            onClick={onAutoLoginToggle}
           >
             <Switch checked={values.autoLogin} />
             <Label className="text-sm cursor-pointer">
@@ -189,25 +237,37 @@ const Connect = memo(() => {
               </Alert>
             )}
 
-            <Button
-              className="w-full"
-              variant="outline"
-              onClick={onConnectClick}
-              disabled={loading || !values.identity || !values.password}
-              data-testid={TestId.CONNECT_BUTTON}
-            >
-              {t('connectBtn')}
-            </Button>
-
-            {!info?.allowNewUsers && (
-              <>
-                {!inviteCode && (
-                  <span className="text-xs text-muted-foreground text-center">
-                    {t('registrationDisabled')}
-                  </span>
-                )}
-              </>
+            {oidc.isLocalLoginAllowed && (
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={onConnectClick}
+                disabled={loading || !values.identity || !values.password}
+                data-testid={TestId.CONNECT_BUTTON}
+              >
+                {t('connectBtn')}
+              </Button>
             )}
+
+            {oidc.isEnabled && (
+              <Button
+                className="w-full"
+                variant="secondary"
+                onClick={oidc.startLogin}
+                disabled={loading}
+                data-testid={TestId.CONNECT_OIDC_BUTTON}
+              >
+                {t('oidcBtn')}
+              </Button>
+            )}
+
+            {oidc.isLocalLoginAllowed &&
+              !info?.allowNewUsers &&
+              !inviteCode && (
+                <span className="text-xs text-muted-foreground text-center">
+                  {t('registrationDisabled')}
+                </span>
+              )}
 
             {inviteCode && (
               <Alert variant="info">

@@ -2,6 +2,8 @@ export enum TestId {
   CONNECT_IDENTITY_INPUT = 'connect-identity-input',
   CONNECT_PASSWORD_INPUT = 'connect-password-input',
   CONNECT_BUTTON = 'connect-button',
+  CONNECT_FORM = 'connect-form',
+  CONNECT_OIDC_BUTTON = 'connect-oidc-button',
   CONNECT_AUTO_LOGIN_SWITCH = 'connect-auto-login-switch',
   CONNECT_AUTO_LOGIN_LABEL = 'connect-auto-login-label',
   SERVER_VIEW = 'server-view',
@@ -9,7 +11,31 @@ export enum TestId {
   MESSAGE_ITEM = 'message-item',
   MESSAGE_COMPOSE_EDITOR = 'message-compose-editor',
   CATEGORY_ITEM = 'category-item',
+  SEARCH_INPUT = 'search-input',
+  SEARCH_RESULT_JUMP = 'search-result-jump',
+  SEARCH_TRUNCATED_NOTICE = 'search-truncated-notice',
+  RETURN_TO_PRESENT = 'return-to-present',
 
   LEFT_SIDEBAR = 'left-sidebar',
-  LEFT_SIDEBAR_SERVER_NAME = 'left-sidebar-server-name'
+  LEFT_SIDEBAR_SERVER_NAME = 'left-sidebar-server-name',
+
+  MEMBER_ITEM = 'member-item',
+  UNREAD_COUNT = 'unread-count',
+  DM_TOGGLE = 'dm-toggle',
+  DM_ITEM = 'dm-item',
+  USER_POPOVER_DM = 'user-popover-dm',
+  USER_POPOVER_MODERATE = 'user-popover-moderate',
+  MOD_VIEW_KICK = 'mod-view-kick',
+  MOD_VIEW_BAN = 'mod-view-ban',
+  USER_STATUS = 'user-status',
+
+  SERVER_MENU_TRIGGER = 'server-menu-trigger',
+  SERVER_MENU_ADD_CATEGORY = 'server-menu-add-category',
+  SERVER_MENU_DISCONNECT = 'server-menu-disconnect',
+  SERVER_MENU_SERVER_SETTINGS = 'server-menu-server-settings',
+  USER_SETTINGS_TRIGGER = 'user-settings-trigger',
+  SETTINGS_SIDEBAR_ENTRY = 'settings-sidebar-entry',
+  INSTALLED_PLUGIN_ITEM = 'installed-plugin-item',
+  CATEGORY_ADD_CHANNEL = 'category-add-channel',
+  CATEGORY_MENU_DELETE = 'category-menu-delete'
 }

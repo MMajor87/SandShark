@@ -16,7 +16,12 @@ import { HeadphoneOff, MicOff, Monitor, Video } from 'lucide-react';
 import { memo, useCallback, useMemo, useRef } from 'react';
 import { CardTheme } from './card-theme';
 import { FullscreenButton } from './fullscreen-button';
-import { cardControlClass, cardDensity } from './helpers';
+import {
+  cardBadgeClass,
+  cardControlClass,
+  cardControlsClass,
+  cardDensity
+} from './helpers';
 import { useFullscreen } from './hooks/use-fullscreen';
 import { useVideoStats } from './hooks/use-video-stats';
 import { useVoiceRefs } from './hooks/use-voice-refs';
@@ -170,7 +175,7 @@ const VoiceUserCard = memo(
           className={cn(
             'absolute top-0 right-0 z-10 min-h-4 items-center',
             density.inset,
-            density.controls,
+            cardControlsClass(isCompact),
             'hidden group-hover/voice-user-card:inline-flex',
             'has-[[data-state=open]]:inline-flex'
           )}
@@ -179,7 +184,7 @@ const VoiceUserCard = memo(
             <VolumeButton
               volumeKey={volumeKey}
               size={density.icon}
-              className={cardControlClass(isCompact)}
+              className={cardControlClass()}
             />
           )}
           {showQualityControl && (
@@ -188,14 +193,14 @@ const VoiceUserCard = memo(
               kind={visualStreamKind}
               disabled={!isSimulcastConsumer(userId, visualStreamKind)}
               size={density.icon}
-              className={cardControlClass(isCompact)}
+              className={cardControlClass()}
             />
           )}
           {hasVisualStream && (
             <PictureInPictureButton
               videoRef={visualRef}
               size={density.icon}
-              className={cardControlClass(isCompact)}
+              className={cardControlClass()}
             />
           )}
           {isShowingScreenShare && (
@@ -203,7 +208,7 @@ const VoiceUserCard = memo(
               isFullscreen={isFullscreen}
               handleToggleFullscreen={handleToggleFullscreen}
               size={density.icon}
-              className={cardControlClass(isCompact, isFullscreen)}
+              className={cardControlClass(isFullscreen)}
             />
           )}
           {showPinControls && (
@@ -211,7 +216,7 @@ const VoiceUserCard = memo(
               isPinned={isPinned}
               handlePinToggle={handlePinToggle}
               size={density.icon}
-              className={cardControlClass(isCompact, isPinned)}
+              className={cardControlClass(isPinned)}
             />
           )}
         </div>
@@ -222,7 +227,7 @@ const VoiceUserCard = memo(
           <div
             className={cn(
               'inline-flex min-w-0 min-h-4 py-2 items-center bg-black/70 rounded overflow-hidden truncate',
-              density.badge,
+              cardBadgeClass(isCompact),
               !voiceUser.state.micMuted &&
                 !voiceUser.state.soundMuted &&
                 !voiceUser.state.webcamEnabled &&

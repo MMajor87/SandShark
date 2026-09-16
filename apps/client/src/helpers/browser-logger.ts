@@ -1,4 +1,6 @@
+import { getErrorMessage } from '@sharkord/shared';
 import { isDebug } from './is-debug';
+import { pushVoiceDebugEvent } from './voice-debug';
 
 type TDesktopLogDetails = Record<string, boolean | number | string | undefined>;
 
@@ -76,17 +78,42 @@ const logDesktopDiagnostic = (
   );
 };
 
-const logVoice = (...args: unknown[]) => {
-  console.log(
-    '%c[VOICE-PROVIDER]',
-    'color: salmon; font-weight: bold;',
-    ...args
-  );
+const logVoice = (message: string, data?: object) => {
+  pushVoiceDebugEvent('voice', message, data);
+  logDesktopDiagnostic('mediasoup', message, data);
 
-  const [message, details] = args;
-  if (typeof message === 'string') {
-    logDesktopDiagnostic('mediasoup', message, details);
-  }
+  console.log('%c[VOICE]', 'color: salmon; font-weight: bold;', message, data);
+};
+
+const logVoiceWarn = (message: string, data?: object) => {
+  pushVoiceDebugEvent('warn', message, data);
+  logDesktopDiagnostic('mediasoup', message, data);
+
+  console.warn('%c[VOICE]', 'color: orange; font-weight: bold;', message, data);
+};
+
+const getErrorCode = (error: unknown): string | undefined => {
+  const code = (error as { data?: { code?: unknown } } | undefined)?.data?.code;
+
+  return typeof code === 'string' ? code : undefined;
+};
+
+const logVoiceError = (message: string, error: unknown, data?: object) => {
+  const payload = {
+    ...data,
+    error: getErrorMessage(error),
+    code: getErrorCode(error)
+  };
+
+  pushVoiceDebugEvent('error', message, payload);
+  logDesktopDiagnostic('mediasoup', message, payload);
+
+  console.error(
+    '%c[VOICE]',
+    'color: red; font-weight: bold;',
+    message,
+    payload
+  );
 };
 
 const logDebug = (...args: unknown[]) => {
@@ -95,4 +122,10 @@ const logDebug = (...args: unknown[]) => {
   }
 };
 
-export { logDebug, logDesktopDiagnostic, logVoice };
+export {
+  logDebug,
+  logDesktopDiagnostic,
+  logVoice,
+  logVoiceError,
+  logVoiceWarn
+};

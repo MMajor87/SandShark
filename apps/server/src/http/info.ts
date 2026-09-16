@@ -1,7 +1,7 @@
 import type { TServerInfo } from '@sharkord/shared';
 import http from 'http';
 import { getSettings } from '../db/queries/server';
-import { SERVER_VERSION } from '../utils/env';
+import { getOidcServerInfo } from '../helpers/oidc/settings';
 
 const infoRouteHandler = async (
   req: http.IncomingMessage,
@@ -11,11 +11,11 @@ const infoRouteHandler = async (
 
   const info: TServerInfo = {
     serverId: settings.serverId,
-    version: SERVER_VERSION,
     name: settings.name,
     description: settings.description,
     logo: settings.logo,
-    allowNewUsers: settings.allowNewUsers
+    allowNewUsers: settings.allowNewUsers,
+    ...getOidcServerInfo()
   };
 
   res.writeHead(200, { 'Content-Type': 'application/json' });

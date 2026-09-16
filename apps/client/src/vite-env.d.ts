@@ -5,8 +5,10 @@
 declare global {
   interface Window {
     useToken: (token: string) => Promise<void>;
-    openSoundsModal?: () => void;
-    printVoiceStats?: () => void;
+    sharkordDebug?: {
+      openSoundsModal?: () => void;
+      printVoiceStats?: () => void;
+    };
     DEBUG?: boolean;
     sandSharkDesktop?: {
       getVersion: () => Promise<string>;
@@ -32,6 +34,7 @@ declare global {
           isDm: boolean;
         }) => void
       ) => () => void;
+      startOidcLogin: (serverUrl: string) => Promise<string | null>;
       openExternal: (url: string) => Promise<void>;
       getDesktopCaptureSources: () => Promise<
         Array<{

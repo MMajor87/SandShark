@@ -2,6 +2,7 @@ import {
   ChannelPermission,
   UserStatus,
   type Permission,
+  type TLocale,
   type TUser
 } from '@sharkord/shared';
 import { initTRPC, TRPCError } from '@trpc/server';
@@ -25,6 +26,7 @@ export type Context = {
   userId: number;
   token: string;
   currentVoiceChannelId: number | undefined;
+  locale: TLocale;
   hasPermission: (
     targetPermission: Permission | Permission[]
   ) => Promise<boolean>;
@@ -42,7 +44,7 @@ export type Context = {
   getOwnWs: () => WebSocket | undefined;
   getStatusById: (userId: number) => UserStatus;
   setWsUserId: (userId: number) => void;
-  getUserWs: (userId: number) => WebSocket | undefined;
+  getUserWs: (userId: number) => WebSocket[];
   getConnectionInfo: () => TConnectionInfo | undefined;
   throwValidationError: (field: string, message: string) => never;
   saveUserIp: (userId: number, ip: string) => Promise<void>;
@@ -106,7 +108,9 @@ const rateLimitedProcedure = (
       return next();
     }
 
-    const key = getClientRateLimitKey(connectionInfo.ip);
+    const key = getClientRateLimitKey(
+      ctx.userId ? `user:${ctx.userId}` : connectionInfo.ip
+    );
     const rateLimit = limiter.consume(key);
 
     if (!rateLimit.allowed) {

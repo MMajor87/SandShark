@@ -1,3 +1,4 @@
+import { useVoiceStats } from '@/components/voice-provider/stats-context';
 import { useVolumeControl } from '@/components/voice-provider/volume-control-context';
 import { useWebRtcSimulcastEnabled } from '@/features/server/hooks';
 import { useOwnUserId, useUserById } from '@/features/server/users/hooks';
@@ -10,8 +11,17 @@ import { Monitor, ZoomIn, ZoomOut } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { CardTheme } from './card-theme';
 import { FullscreenButton } from './fullscreen-button';
-import { cardControlClass, cardDensity } from './helpers';
+import {
+  cardBadgeClass,
+  cardControlClass,
+  cardControlsClass,
+  cardDensity
+} from './helpers';
 import { useFullscreen } from './hooks/use-fullscreen';
+import {
+  PinnedCardType,
+  type TPinnedCard
+} from './hooks/use-pin-card-controller';
 import { useScreenShareZoom } from './hooks/use-screen-share-zoom';
 import { useVideoStats } from './hooks/use-video-stats';
 import { useVoiceRefs } from './hooks/use-voice-refs';
@@ -23,7 +33,8 @@ import { VolumeButton } from './volume-button';
 type TScreenShareCardProps = {
   userId: number;
   isPinned?: boolean;
-  onPin: () => void;
+  cardId: string;
+  onPin: (card: TPinnedCard) => void;
   onUnpin: () => void;
   className?: string;
   showPinControls: boolean;
@@ -34,6 +45,7 @@ const ScreenShareCard = memo(
   ({
     userId,
     isPinned = false,
+    cardId,
     onPin,
     onUnpin,
     className,
@@ -57,7 +69,8 @@ const ScreenShareCard = memo(
       hasScreenShareAudioStream
     } = useVoiceRefs(userId);
 
-    const { transportStats, getConsumerCodec } = useVoice();
+    const { getConsumerCodec } = useVoice();
+    const transportStats = useVoiceStats();
 
     const videoStats = useVideoStats(screenShareRef, hasScreenShareStream);
 
@@ -119,9 +132,13 @@ const ScreenShareCard = memo(
         onUnpin?.();
         resetZoom();
       } else {
-        onPin?.();
+        onPin({
+          id: cardId,
+          type: PinnedCardType.SCREEN_SHARE,
+          userId: userId
+        });
       }
-    }, [isPinned, onPin, onUnpin, resetZoom]);
+    }, [isPinned, onPin, onUnpin, cardId, userId, resetZoom]);
 
     if (!user || !hasScreenShareStream) return null;
 
@@ -170,73 +187,69 @@ const ScreenShareCard = memo(
 
         <div
           className={cn(
-            'absolute top-0 right-0 z-10 min-h-4 items-center',
+            'absolute top-0 right-0 z-10 justify-end',
             density.inset,
-            density.controls,
-            'hidden group-hover/screen-share-card:inline-flex',
-            'has-[[data-state=open]]:inline-flex'
+            'hidden group-hover/screen-share-card:flex',
+            'has-[[data-state=open]]:flex'
           )}
         >
-          <PictureInPictureButton
-            videoRef={screenShareRef}
-            size={density.icon}
-            className={cardControlClass(isCompact)}
-          />
-          {!isOwnUser && hasScreenShareAudioStream && (
-            <VolumeButton
-              volumeKey={volumeKey}
+          <div className={cardControlsClass(isCompact)}>
+            <PictureInPictureButton
+              videoRef={screenShareRef}
               size={density.icon}
-              className={cardControlClass(isCompact)}
+              className={cardControlClass()}
             />
-          )}
-          {!isOwnUser && webRtcSimulcastEnabled && (
-            <QualityButton
-              streamId={userId}
-              kind={StreamKind.SCREEN}
-              disabled={!isSimulcastScreenConsumer}
+            {!isOwnUser && hasScreenShareAudioStream && (
+              <VolumeButton
+                volumeKey={volumeKey}
+                size={density.icon}
+                className={cardControlClass()}
+              />
+            )}
+            {!isOwnUser && webRtcSimulcastEnabled && (
+              <QualityButton
+                streamId={userId}
+                kind={StreamKind.SCREEN}
+                disabled={!isSimulcastScreenConsumer}
+                size={density.icon}
+                className={cardControlClass()}
+              />
+            )}
+            <FullscreenButton
+              isFullscreen={isFullscreen}
+              handleToggleFullscreen={handleToggleFullscreen}
               size={density.icon}
-              className={cardControlClass(isCompact)}
+              className={cardControlClass(isFullscreen)}
             />
-          )}
-          <FullscreenButton
-            isFullscreen={isFullscreen}
-            handleToggleFullscreen={handleToggleFullscreen}
-            size={density.icon}
-            className={cardControlClass(isCompact, isFullscreen)}
-          />
-          {showPinControls && isPinned && (
-            <IconButton
-              variant={isZoomEnabled ? 'default' : 'ghost'}
-              icon={isZoomEnabled ? ZoomOut : ZoomIn}
-              onClick={handleToggleZoom}
-              title={isZoomEnabled ? 'Disable Zoom' : 'Enable Zoom'}
-              size={density.icon}
-              className={cardControlClass(isCompact, isZoomEnabled)}
-            />
-          )}
-          {showPinControls && (
-            <PinButton
-              isPinned={isPinned}
-              handlePinToggle={handlePinToggle}
-              size={density.icon}
-              className={cardControlClass(isCompact, isPinned)}
-            />
-          )}
+            {showPinControls && isPinned && (
+              <IconButton
+                variant={isZoomEnabled ? 'default' : 'ghost'}
+                icon={isZoomEnabled ? ZoomOut : ZoomIn}
+                onClick={handleToggleZoom}
+                title={isZoomEnabled ? 'Disable Zoom' : 'Enable Zoom'}
+                size={density.icon}
+                className={cardControlClass(isZoomEnabled)}
+              />
+            )}
+            {showPinControls && (
+              <PinButton
+                isPinned={isPinned}
+                handlePinToggle={handlePinToggle}
+                size={density.icon}
+                className={cardControlClass(isPinned)}
+              />
+            )}
+          </div>
         </div>
 
         <div
           className={cn(
-            'absolute bottom-0 left-0 right-0 flex',
+            'absolute bottom-0 left-0 right-0',
             density.inset,
             'hidden group-hover/screen-share-card:flex'
           )}
         >
-          <div
-            className={cn(
-              'inline-flex min-w-0 min-h-4 py-2 items-center bg-black/70 rounded overflow-hidden truncate',
-              density.badge
-            )}
-          >
+          <div className={cardBadgeClass(isCompact)}>
             <Monitor className="text-white shrink-0 size-3" />
             <p className={cn('leading-none truncate', density.label)}>
               {user.name}'s screen

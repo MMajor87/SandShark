@@ -9,32 +9,38 @@ import {
   categoryHasUnreadMentionsSelector,
   categoryUnreadMessagesCountSelector,
   connectedSelector,
-  connectingSelector,
   disconnectInfoSelector,
   dmsOpenSelector,
   hasSharingScreenUsersSelector,
   hasUnreadMentionsSelector,
   hasVisibleChannelsInCategorySelector,
+  hiddenPluginComponentsSelector,
   infoSelector,
   isOwnUserOwnerSelector,
   ownUserRolesSelector,
   ownVoiceUserSelector,
   pluginsEnabledSelector,
   publicServerSettingsSelector,
+  reconnectingSelector,
+  reconnectSelector,
   referenceableChannelsSelector,
   serverNameSelector,
+  totalUnreadCountSelector,
   totalUnreadMentionsSelector,
   totalUnreadMessagesSelector,
   typingUsersByChannelIdSelector,
   typingUsersByThreadIdSelector,
   userRolesSelector,
+  userSettingsPluginsSelector,
   voiceUsersByChannelIdSelector,
   webRtcSimulcastEnabledSelector
 } from './selectors';
 
 export const useIsConnected = () => useSelector(connectedSelector);
 
-export const useIsConnecting = () => useSelector(connectingSelector);
+export const useIsReconnecting = () => useSelector(reconnectingSelector);
+
+export const useReconnectState = () => useSelector(reconnectSelector);
 
 export const useDisconnectInfo = () => useSelector(disconnectInfoSelector);
 
@@ -45,6 +51,7 @@ export const useTotalUnreadMessages = () =>
 
 export const useTotalUnreadMentions = () =>
   useSelector(totalUnreadMentionsSelector);
+export const useTotalUnreadCount = () => useSelector(totalUnreadCountSelector);
 
 export const usePublicServerSettings = () =>
   useSelector(publicServerSettingsSelector);
@@ -53,6 +60,9 @@ export const useWebRtcSimulcastEnabled = () =>
   useSelector(webRtcSimulcastEnabledSelector);
 
 export const useOwnUserRoles = () => useSelector(ownUserRolesSelector);
+
+export const useHiddenPluginComponents = () =>
+  useSelector(hiddenPluginComponentsSelector);
 
 export const useInfo = () => useSelector(infoSelector);
 
@@ -178,3 +188,6 @@ export const useActiveFullscreenPluginId = () =>
   useSelector(activeFullscreenPluginIdSelector);
 
 export const useDmsOpen = () => useSelector(dmsOpenSelector);
+
+export const useUserSettingsPlugins = () =>
+  useSelector(userSettingsPluginsSelector);

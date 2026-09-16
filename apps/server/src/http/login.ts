@@ -2,39 +2,31 @@ import {
   ActivityLogType,
   DELETED_USER_IDENTITY_AND_NAME,
   sha256,
-  type TJoinedUser
+  type TBeforeLoginPayload
 } from '@sharkord/shared';
 import chalk from 'chalk';
-import { eq, isNull, max, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import http from 'http';
 import jwt from 'jsonwebtoken';
 import z from 'zod';
 import { config } from '../config';
 import { db } from '../db';
+import { createUser } from '../db/mutations/users';
 import { publishUser } from '../db/publishers';
 import { isInviteValid } from '../db/queries/invites';
-import { getDefaultRole } from '../db/queries/roles';
 import { getServerToken, getSettings } from '../db/queries/server';
 import { getUserByIdentity } from '../db/queries/users';
-import {
-  channelReadStates,
-  invites,
-  messages,
-  userRoles,
-  users
-} from '../db/schema';
+import { users } from '../db/schema';
 import { getWsInfo } from '../helpers/get-ws-info';
+import { isLocalLoginDisabled } from '../helpers/oidc/settings';
 import { safeCompare } from '../helpers/safe-compare';
 import { logger } from '../logger';
+import { pluginManager } from '../plugins';
+import { runHook } from '../plugins/run-hook';
 import { enqueueActivityLog } from '../queues/activity-log';
-import { invariant } from '../utils/invariant';
-import {
-  createRateLimiter,
-  getClientRateLimitKey,
-  getRateLimitRetrySeconds
-} from '../utils/rate-limiters/rate-limiter';
-import { getJsonBody } from './helpers';
-import { HttpValidationError } from './utils';
+import { createRateLimiter } from '../utils/rate-limiters/rate-limiter';
+import { HttpValidationError } from './errors';
+import { enforceHttpRateLimit, getJsonBody } from './helpers';
 
 const zBody = z.object({
   identity: z
@@ -50,8 +42,8 @@ const zBody = z.object({
 });
 
 const loginRateLimiter = createRateLimiter({
-  maxRequests: config.rateLimiters.joinServer.maxRequests,
-  windowMs: config.rateLimiters.joinServer.windowMs
+  maxRequests: config.rateLimiters.login.maxRequests,
+  windowMs: config.rateLimiters.login.windowMs
 });
 
 const GENERIC_LOGIN_ERROR = 'Invalid credentials';
@@ -69,70 +61,6 @@ const getDummyArgon2Hash = (): Promise<string> => {
   return dummyArgon2HashPromise;
 };
 
-const registerUser = async (
-  identity: string,
-  password: string,
-  inviteCode?: string,
-  inviteRoleId?: number | null,
-  ip?: string
-): Promise<TJoinedUser> => {
-  const hashedPassword = (await Bun.password.hash(password)).toString();
-
-  const defaultRole = await getDefaultRole();
-
-  invariant(defaultRole, {
-    code: 'NOT_FOUND',
-    message: 'Default role not found'
-  });
-
-  const randomNum = Math.floor(Math.random() * 99999) + 10000; // between 10000 and 99999 to ensure it's always 5 digits, for better readability
-
-  const user = await db
-    .insert(users)
-    .values({
-      name: `SharkordUser${randomNum}`,
-      identity,
-      createdAt: Date.now(),
-      password: hashedPassword
-    })
-    .returning()
-    .get();
-
-  await db.insert(userRoles).values({
-    roleId: defaultRole.id,
-    userId: user.id,
-    createdAt: Date.now()
-  });
-
-  // If the invite has a specific role and it's different from the default, assign it too
-  if (inviteRoleId && inviteRoleId !== defaultRole.id) {
-    await db.insert(userRoles).values({
-      roleId: inviteRoleId,
-      userId: user.id,
-      createdAt: Date.now()
-    });
-  }
-
-  publishUser(user.id, 'create');
-
-  const registeredUser = await getUserByIdentity(identity);
-
-  if (!registeredUser) {
-    throw new Error('User registration failed');
-  }
-
-  if (inviteCode) {
-    enqueueActivityLog({
-      type: ActivityLogType.USED_INVITE,
-      userId: registeredUser.id,
-      details: { code: inviteCode },
-      ip
-    });
-  }
-
-  return registeredUser;
-};
-
 const loginRouteHandler = async (
   req: http.IncomingMessage,
   res: http.ServerResponse
@@ -143,35 +71,40 @@ const loginRouteHandler = async (
     throw new HttpValidationError('identity', 'This identity is reserved');
   }
 
+  if (isLocalLoginDisabled()) {
+    throw new HttpValidationError(
+      'identity',
+      'This server only accepts sign in through its identity provider'
+    );
+  }
+
   const settings = await getSettings();
   let existingUser = await getUserByIdentity(data.identity);
   const connectionInfo = getWsInfo(undefined, req);
 
-  if (connectionInfo?.ip) {
-    const key = getClientRateLimitKey(connectionInfo.ip);
-    const rateLimit = loginRateLimiter.consume(key);
-
-    if (!rateLimit.allowed) {
-      logger.debug(`[Rate Limiter HTTP] /login rate limited for key "${key}"`);
-
-      res.setHeader(
-        'Retry-After',
-        getRateLimitRetrySeconds(rateLimit.retryAfterMs)
-      );
-      res.writeHead(429, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          error: 'Too many login attempts. Please try again shortly.'
-        })
-      );
-
-      return;
+  await runHook<TBeforeLoginPayload, never>({
+    entries: pluginManager.getHooks('beforeLogin'),
+    payload: {
+      identity: data.identity,
+      ip: connectionInfo?.ip,
+      isExistingUser: !!existingUser
+    },
+    reject: (message) => {
+      throw new HttpValidationError('identity', message);
     }
-  } else {
-    logger.warn(
-      '[Rate Limiter HTTP] Missing IP address in request info, skipping rate limiting for /login route.'
-    );
-  }
+  });
+
+  const allowed = enforceHttpRateLimit(
+    res,
+    loginRateLimiter,
+    connectionInfo?.ip,
+    {
+      route: '/login',
+      message: 'Too many login attempts. Please try again shortly.'
+    }
+  );
+
+  if (!allowed) return;
 
   if (!existingUser) {
     let inviteRoleId: number | null = null;
@@ -188,49 +121,35 @@ const loginRouteHandler = async (
       throw new HttpValidationError('identity', GENERIC_LOGIN_ERROR);
     }
 
-    if (result.invite) {
-      inviteRoleId = result.invite?.roleId ?? null;
+    // only consume the invite when one was actually accepted
+    const usedInviteCode = result.invite ? data.invite : undefined;
 
-      await db
-        .update(invites)
-        .set({
-          uses: sql`${invites.uses} + 1`
-        })
-        .where(eq(invites.code, data.invite!))
-        .execute();
-    }
+    inviteRoleId = result.invite?.roleId ?? null;
 
     // user doesn't exist, but registration is open OR invite was valid - create the user automatically
-    existingUser = await registerUser(
-      data.identity,
-      data.password,
-      data.invite,
-      inviteRoleId,
-      connectionInfo?.ip
-    );
+    const registeredUserId = await createUser({
+      identity: data.identity,
+      hashedPassword: (await Bun.password.hash(data.password)).toString(),
+      inviteCode: usedInviteCode,
+      inviteRoleId
+    });
 
-    // mark all existing messages as read so the new user doesn't see
-    // a flood of unread messages on first join
-    const latestMessagePerChannel = await db
-      .select({
-        channelId: messages.channelId,
-        latestMessageId: max(messages.id)
-      })
-      .from(messages)
-      .where(isNull(messages.parentMessageId))
-      .groupBy(messages.channelId);
+    existingUser = await getUserByIdentity(data.identity);
 
-    const readStateValues = latestMessagePerChannel
-      .filter((row) => row.latestMessageId !== null)
-      .map((row) => ({
-        channelId: row.channelId,
-        userId: existingUser!.id,
-        lastReadMessageId: row.latestMessageId!,
-        lastReadAt: Date.now()
-      }));
+    if (!existingUser) {
+      throw new Error('User registration failed');
+    }
 
-    if (readStateValues.length > 0) {
-      await db.insert(channelReadStates).values(readStateValues);
+    // published only once the registration transaction has committed
+    publishUser(registeredUserId, 'create');
+
+    if (usedInviteCode) {
+      enqueueActivityLog({
+        type: ActivityLogType.USED_INVITE,
+        userId: registeredUserId,
+        details: { code: usedInviteCode },
+        ip: connectionInfo?.ip
+      });
     }
   }
 
@@ -280,9 +199,13 @@ const loginRouteHandler = async (
     );
   }
 
-  const token = jwt.sign({ userId: existingUser.id }, await getServerToken(), {
-    expiresIn: '604800s' // 7 days
-  });
+  const token = jwt.sign(
+    { userId: existingUser.id, tokenVersion: existingUser.tokenVersion },
+    await getServerToken(),
+    {
+      expiresIn: '604800s' // 7 days
+    }
+  );
 
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ success: true, token }));

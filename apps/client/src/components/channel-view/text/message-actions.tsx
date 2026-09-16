@@ -1,5 +1,6 @@
 import { EmojiPicker } from '@/components/emoji-picker';
 import { useRecentEmojis } from '@/components/emoji-picker/use-recent-emojis';
+import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { Protect } from '@/components/protect';
 import {
   shouldUseFallbackImage,
@@ -9,7 +10,7 @@ import { openThreadSidebar } from '@/features/app/actions';
 import { useIsShiftHeld } from '@/features/app/hooks';
 import { requestConfirmation } from '@/features/dialogs/actions';
 import { getTRPCClient } from '@/lib/trpc';
-import { Permission } from '@sharkord/shared';
+import { Permission, PluginSlot } from '@sharkord/shared';
 import { IconButton } from '@sharkord/ui';
 import {
   MessageSquareText,
@@ -39,6 +40,38 @@ type TMessageActionsProps = {
   disablePin?: boolean;
 };
 
+type TQuickReactionButtonProps = {
+  emoji: TEmojiItem;
+  onSelect: (emoji: TEmojiItem) => void;
+};
+
+const QuickReactionButton = memo(
+  ({ emoji, onSelect }: TQuickReactionButtonProps) => {
+    const handleClick = useCallback(() => onSelect(emoji), [onSelect, emoji]);
+
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        className="w-6 h-6 flex items-center justify-center hover:bg-accent rounded-md transition-colors text-md"
+        title={`:${emoji.shortcodes[0]}:`}
+      >
+        {emoji.emoji && !shouldUseFallbackImage(emoji) ? (
+          <span>{emoji.emoji}</span>
+        ) : emoji.fallbackImage ? (
+          <img
+            src={emoji.fallbackImage}
+            alt={emoji.name}
+            className="w-5 h-5 object-contain"
+          />
+        ) : (
+          <span>{emoji.name}</span>
+        )}
+      </button>
+    );
+  }
+);
+
 const MessageActions = memo(
   ({
     onEdit,
@@ -59,6 +92,11 @@ const MessageActions = memo(
     );
 
     const isShiftHeld = useIsShiftHeld();
+
+    const pluginProps = useMemo(
+      () => ({ messageId, channelId }),
+      [messageId, channelId]
+    );
 
     const onDeleteClick = useCallback(async () => {
       if (!isShiftHeld) {
@@ -170,26 +208,19 @@ const MessageActions = memo(
           </Protect>
         )}
 
+        <PluginSlotRenderer
+          slotId={PluginSlot.MESSAGE_ACTIONS}
+          props={pluginProps}
+        />
+
         <Protect permission={Permission.REACT_TO_MESSAGES}>
           <div className="flex items-center space-x-0.5 border-l pl-1 gap-1">
             {recentEmojisToShow.map((emoji) => (
-              <button
+              <QuickReactionButton
                 key={emoji.name}
-                type="button"
-                onClick={() => onEmojiSelect(emoji)}
-                className="w-6 h-6 flex items-center justify-center hover:bg-accent rounded-md transition-colors text-md"
-                title={`:${emoji.shortcodes[0]}:`}
-              >
-                {emoji.emoji && !shouldUseFallbackImage(emoji) ? (
-                  <span>{emoji.emoji}</span>
-                ) : emoji.fallbackImage ? (
-                  <img
-                    src={emoji.fallbackImage}
-                    alt={emoji.name}
-                    className="w-5 h-5 object-contain"
-                  />
-                ) : null}
-              </button>
+                emoji={emoji}
+                onSelect={onEmojiSelect}
+              />
             ))}
 
             <EmojiPicker onEmojiSelect={onEmojiSelect}>

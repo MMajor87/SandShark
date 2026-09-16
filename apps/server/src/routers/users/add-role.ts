@@ -1,9 +1,8 @@
 import { Permission } from '@sharkord/shared';
-import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { db } from '../../db';
-import { publishUser } from '../../db/publishers';
-import { userRoles } from '../../db/schema';
+import { getRole } from '../../db/queries/roles';
+import { assertCanActOnUser } from '../../helpers/assert-can-act-on-user';
+import { assignRole } from '../../helpers/user-roles';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
 import { assertCanModifyOwnerRole } from './assert-can-modify-owner-role';
@@ -17,31 +16,24 @@ const addRoleRoute = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     await ctx.needsPermission(Permission.MANAGE_USERS);
-    const existing = await db
-      .select()
-      .from(userRoles)
-      .where(
-        and(
-          eq(userRoles.userId, input.userId),
-          eq(userRoles.roleId, input.roleId)
-        )
-      )
-      .limit(1);
 
-    invariant(existing.length === 0, {
-      code: 'CONFLICT',
-      message: 'User already has this role'
+    const role = await getRole(input.roleId);
+
+    invariant(role, {
+      code: 'NOT_FOUND',
+      message: 'Role not found'
     });
 
     await assertCanModifyOwnerRole(ctx.userId, input.roleId, 'assign');
 
-    await db.insert(userRoles).values({
-      userId: input.userId,
-      roleId: input.roleId,
-      createdAt: Date.now()
+    invariant(await ctx.hasPermission(role.permissions), {
+      code: 'FORBIDDEN',
+      message: 'You cannot assign a role with permissions that you do not have.'
     });
 
-    publishUser(input.userId, 'update');
+    await assertCanActOnUser(ctx.userId, input.userId);
+
+    await assignRole(input.userId, role);
   });
 
 export { addRoleRoute };

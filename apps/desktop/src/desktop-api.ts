@@ -131,6 +131,7 @@ export type TDesktopDownloadProgress = {
 };
 
 export type TSandSharkDesktopAPI = {
+  startOidcLogin: (serverUrl: string) => Promise<string | null>;
   getVersion: () => Promise<string>;
   minimize: () => Promise<void>;
   maximize: () => Promise<void>;

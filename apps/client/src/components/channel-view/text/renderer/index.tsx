@@ -1,4 +1,5 @@
 import { ErrorBoundary } from '@/components/error-boundary';
+import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { RelativeTime } from '@/components/relative-time';
 import { requestConfirmation } from '@/features/dialogs/actions';
 import { useOwnUserId, useUserById } from '@/features/server/users/hooks';
@@ -7,7 +8,7 @@ import { getFileUrl } from '@/helpers/get-file-url';
 import { getRenderedUsername } from '@/helpers/get-rendered-username';
 import { getTRPCClient } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
-import { type TJoinedMessage } from '@sharkord/shared';
+import { PluginSlot, type TJoinedMessage } from '@sharkord/shared';
 import { Tooltip } from '@sharkord/ui';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +39,11 @@ const MessageRenderer = memo(
     );
 
     const emojiOnly = useMemo(() => getIsEmojiOnly(message), [message]);
+
+    const pluginProps = useMemo(
+      () => ({ messageId: message.id, channelId: message.channelId }),
+      [message.id, message.channelId]
+    );
 
     const messageHtml = useMemo(() => getParsedMessageHtml(message), [message]);
 
@@ -123,6 +129,11 @@ const MessageRenderer = memo(
             messageId={message.id}
           />
         )}
+
+        <PluginSlotRenderer
+          slotId={PluginSlot.MESSAGE_FOOTER}
+          props={pluginProps}
+        />
 
         {message.files.length > 0 && !disableFiles && (
           <div className="flex gap-1 flex-wrap">

@@ -1,7 +1,14 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { OWNER_ROLE_ID } from '@sharkord/shared';
+import {
+  OWNER_ROLE_ID,
+  PluginCapabilityType,
+  PluginSlot,
+  type TJoinedRole,
+  type TPluginStoreState
+} from '@sharkord/shared';
 import { createCachedSelector } from 're-reselect';
 import type { IRootState } from '../store';
+import { categoriesSelector } from './categories/selectors';
 import {
   channelByIdSelector,
   channelPermissionsSelector,
@@ -9,8 +16,10 @@ import {
   channelsByCategoryIdSelector,
   channelsReadStatesSelector,
   channelsSelector,
-  currentVoiceChannelIdSelector
+  currentVoiceChannelIdSelector,
+  selectedChannelIdSelector
 } from './channels/selectors';
+import { emojisSelector } from './emojis/selectors';
 import { canViewChannel, hasUnreadMentionInMessages } from './helpers';
 import {
   messagesByChannelIdSelector,
@@ -18,12 +27,17 @@ import {
   threadTypingMapSelector,
   typingMapSelector
 } from './messages/selectors';
+import {
+  pluginComponentsSelector,
+  pluginsMetadataSelector
+} from './plugins/selectors';
 import { rolesSelector } from './roles/selectors';
 import type { TVoiceUser } from './types';
 import {
   ownUserIdSelector,
   ownUserSelector,
   userByIdSelector,
+  usersMapSelector,
   usersSelector
 } from './users/selectors';
 import { voiceChannelStateSelector } from './voice/selectors';
@@ -33,8 +47,10 @@ export const connectedSelector = (state: IRootState) => state.server.connected;
 export const disconnectInfoSelector = (state: IRootState) =>
   state.server.disconnectInfo;
 
-export const connectingSelector = (state: IRootState) =>
-  state.server.connecting;
+export const reconnectSelector = (state: IRootState) => state.server.reconnect;
+
+export const reconnectingSelector = (state: IRootState) =>
+  !!state.server.reconnect;
 
 export const serverNameSelector = (state: IRootState) =>
   state.server.publicSettings?.name;
@@ -99,29 +115,6 @@ export const isOwnUserOwnerSelector = createSelector(
   (ownUserRoles) => ownUserRoles.some((role) => role.id === OWNER_ROLE_ID)
 );
 
-export const hasVisibleChannelsInCategorySelector = createCachedSelector(
-  [
-    (state: IRootState, categoryId: number) =>
-      channelsByCategoryIdSelector(state, categoryId),
-    channelPermissionsSelector,
-    isOwnUserOwnerSelector,
-    currentVoiceChannelIdSelector
-  ],
-  (channelsInCategory, channelPermissions, isOwner, currentVoiceChannelId) => {
-    if (isOwner) return true;
-    if (channelsInCategory.length === 0) return false;
-
-    return channelsInCategory.some((channel) =>
-      canViewChannel(
-        channel,
-        channelPermissions,
-        isOwner,
-        currentVoiceChannelId
-      )
-    );
-  }
-)((_, categoryId: number) => categoryId);
-
 export const visibleChannelsInCategorySelector = createCachedSelector(
   [
     (state: IRootState, categoryId: number) =>
@@ -140,6 +133,11 @@ export const visibleChannelsInCategorySelector = createCachedSelector(
       )
     )
 )((_, categoryId: number) => categoryId);
+
+export const hasVisibleChannelsInCategorySelector = (
+  state: IRootState,
+  categoryId: number
+) => visibleChannelsInCategorySelector(state, categoryId).length > 0;
 
 export const referenceableChannelsSelector = createSelector(
   [
@@ -163,38 +161,47 @@ export const referenceableChannelsSelector = createSelector(
       .sort((a, b) => a.position - b.position || a.id - b.id)
 );
 
-export const userRolesSelector = createSelector(
-  [rolesSelector, userByIdSelector],
+const DEFAULT_ARRAY: unknown[] = [];
+
+export const userRolesSelector = createCachedSelector(
+  [rolesSelector, userByIdSelector, (_: IRootState, userId: number) => userId],
   (roles, user) => {
-    if (!user?.roleIds) return [];
+    if (!user?.roleIds) return DEFAULT_ARRAY as TJoinedRole[];
+
     return roles.filter((role) => user.roleIds.includes(role.id));
   }
+)((_, userId: number) => userId);
+
+const createTypingUsersSelector = (
+  typingMap: (state: IRootState) => Record<number, number[]>,
+  keyPrefix: string
+) =>
+  createCachedSelector(
+    [
+      typingMap,
+      (_: IRootState, key: number) => key,
+      ownUserIdSelector,
+      usersMapSelector
+    ],
+    (map, key, ownUserId, usersMap) =>
+      (map[key] ?? (DEFAULT_ARRAY as number[]))
+        .filter((id) => id !== ownUserId)
+        .map((id) => usersMap[id])
+        .filter((user) => !!user)
+  )((_, key: number) => `${keyPrefix}-${key}`);
+
+export const typingUsersByChannelIdSelector = createTypingUsersSelector(
+  typingMapSelector,
+  'channel'
 );
 
-export const userRolesIdsSelector = createSelector(
-  [userByIdSelector],
-  (user) => user?.roleIds || []
+export const typingUsersByThreadIdSelector = createTypingUsersSelector(
+  threadTypingMapSelector,
+  'thread'
 );
-
-export const typingUsersByChannelIdSelector = createCachedSelector(
-  [
-    typingMapSelector,
-    (_: IRootState, channelId: number) => channelId,
-    ownUserIdSelector,
-    usersSelector
-  ],
-  (typingMap, channelId, ownUserId, users) => {
-    const userIds = typingMap[channelId] || [];
-
-    return userIds
-      .filter((id) => id !== ownUserId)
-      .map((id) => users.find((u) => u.id === id))
-      .filter((u) => !!u);
-  }
-)((_, channelId: number) => channelId);
 
 export const hasSharingScreenUsersSelector = createCachedSelector(
-  [voiceChannelStateSelector, (_: IRootState, channelId: number) => channelId],
+  [voiceChannelStateSelector],
   (voiceState) => {
     if (!voiceState) return false;
 
@@ -202,33 +209,19 @@ export const hasSharingScreenUsersSelector = createCachedSelector(
   }
 )((_, channelId: number) => channelId);
 
-export const typingUsersByThreadIdSelector = createCachedSelector(
+export const voiceUsersByChannelIdSelector = createCachedSelector(
   [
-    threadTypingMapSelector,
-    (_: IRootState, parentMessageId: number) => parentMessageId,
-    ownUserIdSelector,
-    usersSelector
+    usersMapSelector,
+    voiceChannelStateSelector,
+    (_: IRootState, channelId: number) => channelId
   ],
-  (threadTypingMap, parentMessageId, ownUserId, users) => {
-    const userIds = threadTypingMap[parentMessageId] || [];
+  (usersMap, voiceState) => {
+    if (!voiceState) return DEFAULT_ARRAY as TVoiceUser[];
 
-    return userIds
-      .filter((id) => id !== ownUserId)
-      .map((id) => users.find((u) => u.id === id)!)
-      .filter((u) => !!u);
-  }
-)((_, parentMessageId: number) => `thread-${parentMessageId}`);
-
-export const voiceUsersByChannelIdSelector = createSelector(
-  [usersSelector, voiceChannelStateSelector],
-  (users, voiceState) => {
     const voiceUsers: TVoiceUser[] = [];
 
-    if (!voiceState) return voiceUsers;
-
     Object.entries(voiceState.users).forEach(([userIdStr, state]) => {
-      const userId = Number(userIdStr);
-      const user = users.find((u) => u.id === userId);
+      const user = usersMap[Number(userIdStr)];
 
       if (user) {
         voiceUsers.push({
@@ -240,7 +233,7 @@ export const voiceUsersByChannelIdSelector = createSelector(
 
     return voiceUsers;
   }
-);
+)((_, channelId: number) => channelId);
 
 export const ownVoiceUserSelector = createSelector(
   [
@@ -298,3 +291,168 @@ export const categoryHasUnreadMentionsSelector = createCachedSelector(
     });
   }
 )((_, categoryId: number) => categoryId);
+
+export const totalUnreadCountSelector = createSelector(
+  [
+    channelsSelector,
+    channelsReadStatesSelector,
+    channelPermissionsSelector,
+    isOwnUserOwnerSelector,
+    currentVoiceChannelIdSelector
+  ],
+  (channels, readStates, channelPermissions, isOwner, currentVoiceChannelId) =>
+    channels.reduce((total, channel) => {
+      const isVisible =
+        channel.isDm ||
+        canViewChannel(
+          channel,
+          channelPermissions,
+          isOwner,
+          currentVoiceChannelId
+        );
+
+      return isVisible ? total + (readStates[channel.id] ?? 0) : total;
+    }, 0)
+);
+
+// memoized because plugins are told to read this through the store's getState,
+// and the standard way to consume an external store in react requires the
+// snapshot to keep its identity while nothing has changed. rebuilding the object
+// on every call makes useSyncExternalStore re-render forever
+export const mapStateToPluginState = createSelector(
+  [
+    usersSelector,
+    channelsSelector,
+    categoriesSelector,
+    rolesSelector,
+    emojisSelector,
+    pluginsMetadataSelector,
+    ownUserIdSelector,
+    selectedChannelIdSelector,
+    currentVoiceChannelIdSelector,
+    publicServerSettingsSelector
+  ],
+  (
+    users,
+    channels,
+    categories,
+    roles,
+    emojis,
+    plugins,
+    ownUserId,
+    selectedChannelId,
+    currentVoiceChannelId,
+    publicSettings
+  ): TPluginStoreState => ({
+    users,
+    channels,
+    categories,
+    roles,
+    emojis,
+    plugins,
+    ownUserId,
+    selectedChannelId,
+    currentVoiceChannelId,
+    publicSettings
+  })
+);
+
+export const pluginCapabilityAccessSelector = (state: IRootState) =>
+  state.server.pluginCapabilityAccess;
+
+const DEFAULT_HIDDEN_COMPONENTS: string[] = [];
+
+export const hiddenPluginComponentsSelector = createSelector(
+  [
+    pluginCapabilityAccessSelector,
+    ownUserRolesSelector,
+    isOwnUserOwnerSelector
+  ],
+  (rules, ownUserRoles, isOwner) => {
+    if (isOwner || rules.length === 0) return DEFAULT_HIDDEN_COMPONENTS;
+
+    const ownRoleIds = ownUserRoles.map((role) => role.id);
+
+    const hidden = rules
+      .filter(
+        (rule) =>
+          rule.type === PluginCapabilityType.COMPONENT &&
+          !rule.roleIds.some((id) => ownRoleIds.includes(id))
+      )
+      .map((rule) => `${rule.pluginId}:${rule.name}`);
+
+    return hidden.length > 0 ? hidden : DEFAULT_HIDDEN_COMPONENTS;
+  }
+);
+
+export const canUsePluginCapabilitySelector = createCachedSelector(
+  [
+    pluginCapabilityAccessSelector,
+    ownUserRolesSelector,
+    isOwnUserOwnerSelector,
+    (_: IRootState, pluginId: string) => pluginId,
+    (_: IRootState, _pluginId: string, type: PluginCapabilityType) => type,
+    (
+      _: IRootState,
+      _pluginId: string,
+      _type: PluginCapabilityType,
+      name: string
+    ) => name
+  ],
+  (rules, ownUserRoles, isOwner, pluginId, type, name) => {
+    if (isOwner) return true;
+
+    const rule = rules.find(
+      (candidate) =>
+        candidate.pluginId === pluginId &&
+        candidate.type === type &&
+        candidate.name === name
+    );
+
+    if (!rule) return true;
+
+    return rule.roleIds.some((roleId) =>
+      ownUserRoles.some((role) => role.id === roleId)
+    );
+  }
+)(
+  (_: IRootState, pluginId: string, type: PluginCapabilityType, name: string) =>
+    `${pluginId}:${type}:${name}`
+);
+
+type TUserSettingsPlugin = {
+  pluginId: string;
+  name: string;
+  logo?: string;
+};
+
+const DEFAULT_USER_SETTINGS_PLUGINS: TUserSettingsPlugin[] = [];
+
+export const userSettingsPluginsSelector = createSelector(
+  [
+    pluginComponentsSelector,
+    pluginsMetadataSelector,
+    hiddenPluginComponentsSelector
+  ],
+  (pluginComponents, pluginsMetadata, hiddenComponents) => {
+    const plugins = Object.entries(pluginComponents)
+      .filter(
+        ([pluginId, slots]) =>
+          !!slots[PluginSlot.USER_SETTINGS]?.length &&
+          !hiddenComponents.includes(`${pluginId}:${PluginSlot.USER_SETTINGS}`)
+      )
+      .map(([pluginId]) => {
+        const metadata = pluginsMetadata.find(
+          (entry) => entry.pluginId === pluginId
+        );
+
+        return {
+          pluginId,
+          name: metadata?.name ?? pluginId,
+          logo: metadata?.avatarUrl
+        };
+      });
+
+    return plugins.length > 0 ? plugins : DEFAULT_USER_SETTINGS_PLUGINS;
+  }
+);

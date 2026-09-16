@@ -1,9 +1,20 @@
+import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
+import { useCan, useUserSettingsPlugins } from '@/features/server/hooks';
 import { isDesktopClient } from '@/platform/environment';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@sharkord/ui';
-import { memo } from 'react';
+import { Permission, PluginSlot } from '@sharkord/shared';
+import {
+  Bell,
+  Headphones,
+  KeyRound,
+  Package,
+  SlidersHorizontal,
+  User
+} from 'lucide-react';
+import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TServerScreenBaseProps } from '../screens';
-import { ServerScreenLayout } from '../server-screen-layout';
+import { SettingsShell } from '../settings-shell';
+import type { TSettingsEntry } from '../settings-shell/types';
 import { Desktop } from './desktop';
 import { Devices } from './devices';
 import { Notifications } from './notifications';
@@ -15,48 +26,81 @@ type TUserSettingsProps = TServerScreenBaseProps;
 
 const UserSettings = memo(({ close }: TUserSettingsProps) => {
   const { t } = useTranslation('settings');
-  const hasDesktopSettings = isDesktopClient() && !!window.sandSharkDesktop;
+  const can = useCan();
+  const userSettingsPlugins = useUserSettingsPlugins();
+
+  const entries = useMemo<TSettingsEntry[]>(
+    () => [
+      {
+        id: 'profile',
+        label: t('profileTab'),
+        icon: User,
+        content: <Profile />
+      },
+      {
+        id: 'devices',
+        label: t('devicesTab'),
+        icon: Headphones,
+        content: <Devices />
+      },
+      {
+        id: 'password',
+        label: t('passwordTab'),
+        icon: KeyRound,
+        content: <Password />
+      },
+      {
+        id: 'notifications',
+        label: t('notificationsTab'),
+        icon: Bell,
+        content: <Notifications />
+      },
+      {
+        id: 'others',
+        label: t('othersTab'),
+        icon: SlidersHorizontal,
+        content: <Others />
+      },
+      ...(isDesktopClient() && window.sandSharkDesktop
+        ? [
+            {
+              id: 'desktop',
+              label: t('desktopTab'),
+              icon: SlidersHorizontal,
+              content: <Desktop />
+            }
+          ]
+        : [])
+    ],
+    [t]
+  );
+
+  // the plugin owns everything inside its entry, so this renders its slot and
+  // nothing else
+  const pluginEntries = useMemo<TSettingsEntry[]>(() => {
+    if (!can(Permission.USE_PLUGINS)) return [];
+
+    return userSettingsPlugins.map((plugin) => ({
+      id: `plugin-${plugin.pluginId}`,
+      label: plugin.name,
+      icon: Package,
+      logo: plugin.logo,
+      content: (
+        <PluginSlotRenderer
+          slotId={PluginSlot.USER_SETTINGS}
+          onlyPluginId={plugin.pluginId}
+        />
+      )
+    }));
+  }, [can, userSettingsPlugins]);
 
   return (
-    <ServerScreenLayout close={close} title={t('userSettingsTitle')}>
-      <div className="mx-auto max-w-4xl">
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="profile">{t('profileTab')}</TabsTrigger>
-            <TabsTrigger value="devices">{t('devicesTab')}</TabsTrigger>
-            <TabsTrigger value="password">{t('passwordTab')}</TabsTrigger>
-            <TabsTrigger value="notifications">
-              {t('notificationsTab')}
-            </TabsTrigger>
-            <TabsTrigger value="others">{t('othersTab')}</TabsTrigger>
-            {hasDesktopSettings && (
-              <TabsTrigger value="desktop">Desktop</TabsTrigger>
-            )}
-          </TabsList>
-
-          <TabsContent value="profile" className="space-y-6">
-            <Profile />
-          </TabsContent>
-          <TabsContent value="devices" className="space-y-6">
-            <Devices />
-          </TabsContent>
-          <TabsContent value="password" className="space-y-6">
-            <Password />
-          </TabsContent>
-          <TabsContent value="notifications" className="space-y-6">
-            <Notifications />
-          </TabsContent>
-          <TabsContent value="others" className="space-y-6">
-            <Others />
-          </TabsContent>
-          {hasDesktopSettings && (
-            <TabsContent value="desktop" className="space-y-6">
-              <Desktop />
-            </TabsContent>
-          )}
-        </Tabs>
-      </div>
-    </ServerScreenLayout>
+    <SettingsShell
+      title={t('userSettingsTitle')}
+      close={close}
+      entries={entries}
+      pluginEntries={pluginEntries}
+    />
   );
 });
 

@@ -1,15 +1,19 @@
 import {
   DEFAULT_PROFILE_COLOR,
+  PluginCapabilityMode,
+  PluginCapabilityType,
   type TActivityLogDetailsMap,
   type TMessageMetadata
 } from '@sharkord/shared';
+import { sql } from 'drizzle-orm';
 import {
   index,
   integer,
   primaryKey,
   sqliteTable,
   text,
-  uniqueIndex
+  uniqueIndex,
+  type AnySQLiteColumn
 } from 'drizzle-orm/sqlite-core';
 
 const files = sqliteTable(
@@ -19,7 +23,8 @@ const files = sqliteTable(
     name: text('name').notNull().unique(),
     originalName: text('original_name').notNull(),
     md5: text('md5').notNull(),
-    userId: integer('user_id').notNull(),
+    userId: integer('user_id'),
+    pluginId: text('plugin_id'),
     size: integer('size').notNull(),
     mimeType: text('mime_type').notNull(),
     extension: text('extension').notNull(),
@@ -107,32 +112,26 @@ const settings = sqliteTable(
   },
   (t) => [
     index('settings_server_idx').on(t.serverId),
-    uniqueIndex('settings_server_unique_idx').on(t.serverId)
+    uniqueIndex('settings_server_unique_idx').on(t.serverId),
+    uniqueIndex('settings_single_row_idx').on(sql`(1)`)
   ]
 );
 
-const roles = sqliteTable(
-  'roles',
-  {
-    id: integer('id').primaryKey({ autoIncrement: true }),
-    name: text('name').notNull(),
-    color: text('color').notNull().default('#ffffff'),
-    isPersistent: integer('is_persistent', { mode: 'boolean' }).notNull(),
-    isDefault: integer('is_default', { mode: 'boolean' }).notNull(),
-    storageQuotaOverrideEnabled: integer('storage_quota_override_enabled', {
-      mode: 'boolean'
-    })
-      .notNull()
-      .default(false),
-    storageSpaceQuota: integer('storage_space_quota').notNull().default(0),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at')
-  },
-  (t) => [
-    index('roles_is_default_idx').on(t.isDefault),
-    index('roles_is_persistent_idx').on(t.isPersistent)
-  ]
-);
+const roles = sqliteTable('roles', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  color: text('color').notNull().default('#ffffff'),
+  isPersistent: integer('is_persistent', { mode: 'boolean' }).notNull(),
+  isDefault: integer('is_default', { mode: 'boolean' }).notNull(),
+  storageQuotaOverrideEnabled: integer('storage_quota_override_enabled', {
+    mode: 'boolean'
+  })
+    .notNull()
+    .default(false),
+  storageSpaceQuota: integer('storage_space_quota').notNull().default(0),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at')
+});
 
 const categories = sqliteTable(
   'categories',
@@ -165,7 +164,6 @@ const channels = sqliteTable(
     updatedAt: integer('updated_at')
   },
   (t) => [
-    index('channels_category_idx').on(t.categoryId),
     index('channels_position_idx').on(t.position),
     index('channels_type_idx').on(t.type),
     index('channels_category_position_idx').on(t.categoryId, t.position)
@@ -189,7 +187,12 @@ const users = sqliteTable(
     banned: integer('banned', { mode: 'boolean' }).notNull().default(false),
     banReason: text('ban_reason'),
     bannedAt: integer('banned_at'),
-    // a banner image, when set, always renders on top of this
+    tokenVersion: integer('token_version').notNull().default(0),
+    oidcSub: text('oidc_sub').unique(),
+    oidcIssuer: text('oidc_issuer'),
+    passwordSet: integer('password_set', { mode: 'boolean' })
+      .notNull()
+      .default(true),
     profileColor: text('profile_color')
       .notNull()
       .default(DEFAULT_PROFILE_COLOR),
@@ -202,7 +205,6 @@ const users = sqliteTable(
   (t) => [
     uniqueIndex('users_identity_idx').on(t.identity),
     index('users_name_idx').on(t.name),
-    index('users_banned_idx').on(t.banned),
     index('users_last_login_idx').on(t.lastLoginAt)
   ]
 );
@@ -220,7 +222,6 @@ const userRoles = sqliteTable(
   },
   (t) => [
     primaryKey({ columns: [t.userId, t.roleId] }),
-    index('user_roles_user_idx').on(t.userId),
     index('user_roles_role_idx').on(t.roleId)
   ]
 );
@@ -248,7 +249,6 @@ const logins = sqliteTable(
     updatedAt: integer('updated_at')
   },
   (t) => [
-    index('logins_user_idx').on(t.userId),
     index('logins_ip_idx').on(t.ip),
     index('logins_created_idx').on(t.createdAt),
     index('logins_user_created_idx').on(t.userId, t.createdAt)
@@ -260,6 +260,9 @@ const messages = sqliteTable(
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     content: text('content'),
+    // nullable because plugin-authored messages have no user, see plugins/actions. the
+    // cascade is delete-user's `wipe: true` branch; `wipe: false` reassigns to the deleted
+    // user placeholder first, so nothing is left to cascade
     userId: integer('user_id').references(() => users.id, {
       onDelete: 'cascade'
     }),
@@ -267,8 +270,14 @@ const messages = sqliteTable(
     channelId: integer('channel_id')
       .notNull()
       .references(() => channels.id, { onDelete: 'cascade' }),
-    parentMessageId: integer('parent_message_id'),
-    replyToMessageId: integer('reply_to_message_id'),
+    parentMessageId: integer('parent_message_id').references(
+      (): AnySQLiteColumn => messages.id,
+      { onDelete: 'cascade' }
+    ),
+    replyToMessageId: integer('reply_to_message_id').references(
+      (): AnySQLiteColumn => messages.id,
+      { onDelete: 'set null' }
+    ),
     editable: integer('editable', { mode: 'boolean' }).default(true),
     metadata: text('metadata', { mode: 'json' }).$type<TMessageMetadata[]>(),
     createdAt: integer('created_at').notNull(),
@@ -280,16 +289,25 @@ const messages = sqliteTable(
     }),
     editedAt: integer('edited_at'),
     editedBy: integer('edited_by').references(() => users.id, {
-      onDelete: 'cascade'
+      onDelete: 'set null'
     })
   },
   (t) => [
     index('messages_user_idx').on(t.userId),
-    index('messages_channel_idx').on(t.channelId),
     index('messages_created_idx').on(t.createdAt),
     index('messages_channel_created_idx').on(t.channelId, t.createdAt),
+    index('messages_channel_parent_created_idx').on(
+      t.channelId,
+      t.parentMessageId,
+      t.createdAt
+    ),
     index('messages_parent_idx').on(t.parentMessageId),
-    index('messages_reply_to_idx').on(t.replyToMessageId)
+    index('messages_reply_to_idx').on(t.replyToMessageId),
+    index('messages_parent_channel_id_idx').on(
+      t.parentMessageId,
+      t.channelId,
+      t.id
+    )
   ]
 );
 
@@ -324,7 +342,6 @@ const rolePermissions = sqliteTable(
   },
   (t) => [
     primaryKey({ columns: [t.roleId, t.permission] }),
-    index('role_permissions_role_idx').on(t.roleId),
     index('role_permissions_permission_idx').on(t.permission)
   ]
 );
@@ -356,9 +373,10 @@ const messageReactions = sqliteTable(
     messageId: integer('message_id')
       .notNull()
       .references(() => messages.id, { onDelete: 'cascade' }),
-    userId: integer('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+    userId: integer('user_id').references(() => users.id, {
+      onDelete: 'cascade'
+    }),
+    pluginId: text('plugin_id'),
     emoji: text('emoji').notNull(),
     fileId: integer('file_id').references(() => files.id, {
       onDelete: 'set null'
@@ -367,7 +385,11 @@ const messageReactions = sqliteTable(
   },
   (t) => [
     primaryKey({ columns: [t.messageId, t.userId, t.emoji] }),
-    index('reaction_msg_idx').on(t.messageId),
+    uniqueIndex('reaction_msg_emoji_plugin_unique_idx').on(
+      t.messageId,
+      t.emoji,
+      t.pluginId
+    ),
     index('reaction_emoji_idx').on(t.emoji),
     index('reaction_user_idx').on(t.userId),
     index('reaction_msg_emoji_idx').on(t.messageId, t.emoji)
@@ -393,8 +415,7 @@ const invites = sqliteTable(
   (t) => [
     uniqueIndex('invites_code_idx').on(t.code),
     index('invites_creator_idx').on(t.creatorId),
-    index('invites_expires_idx').on(t.expiresAt),
-    index('invites_uses_idx').on(t.uses)
+    index('invites_expires_idx').on(t.expiresAt)
   ]
 );
 
@@ -402,9 +423,9 @@ const activityLog = sqliteTable(
   'activity_log',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    userId: integer('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+    userId: integer('user_id').references(() => users.id, {
+      onDelete: 'cascade'
+    }),
     type: text('type').notNull(),
     details: text('details', { mode: 'json' }).$type<
       TActivityLogDetailsMap[keyof TActivityLogDetailsMap]
@@ -413,8 +434,6 @@ const activityLog = sqliteTable(
     createdAt: integer('created_at').notNull()
   },
   (t) => [
-    index('activity_log_user_idx').on(t.userId),
-    index('activity_log_type_idx').on(t.type),
     index('activity_log_created_idx').on(t.createdAt),
     index('activity_log_user_created_idx').on(t.userId, t.createdAt),
     index('activity_log_type_created_idx').on(t.type, t.createdAt)
@@ -437,14 +456,12 @@ const channelRolePermissions = sqliteTable(
   },
   (t) => [
     primaryKey({ columns: [t.channelId, t.roleId, t.permission] }),
-    index('channel_role_permissions_channel_idx').on(t.channelId),
     index('channel_role_permissions_role_idx').on(t.roleId),
     index('channel_role_permissions_channel_perm_idx').on(
       t.channelId,
       t.permission
     ),
-    index('channel_role_permissions_role_perm_idx').on(t.roleId, t.permission),
-    index('channel_role_permissions_allow_idx').on(t.allow)
+    index('channel_role_permissions_role_perm_idx').on(t.roleId, t.permission)
   ]
 );
 
@@ -464,14 +481,12 @@ const channelUserPermissions = sqliteTable(
   },
   (t) => [
     primaryKey({ columns: [t.channelId, t.userId, t.permission] }),
-    index('channel_user_permissions_channel_idx').on(t.channelId),
     index('channel_user_permissions_user_idx').on(t.userId),
     index('channel_user_permissions_channel_perm_idx').on(
       t.channelId,
       t.permission
     ),
-    index('channel_user_permissions_user_perm_idx').on(t.userId, t.permission),
-    index('channel_user_permissions_allow_idx').on(t.allow)
+    index('channel_user_permissions_user_perm_idx').on(t.userId, t.permission)
   ]
 );
 
@@ -484,17 +499,12 @@ const channelReadStates = sqliteTable(
     channelId: integer('channel_id')
       .notNull()
       .references(() => channels.id, { onDelete: 'cascade' }),
-    lastReadMessageId: integer('last_read_message_id').references(
-      () => messages.id,
-      { onDelete: 'set null' }
-    ),
+    lastReadMessageId: integer('last_read_message_id'),
     lastReadAt: integer('last_read_at').notNull()
   },
   (t) => [
     primaryKey({ columns: [t.userId, t.channelId] }),
-    index('channel_read_states_user_idx').on(t.userId),
-    index('channel_read_states_channel_idx').on(t.channelId),
-    index('channel_read_states_last_read_idx').on(t.lastReadMessageId)
+    index('channel_read_states_channel_idx').on(t.channelId)
   ]
 );
 
@@ -569,14 +579,89 @@ const calendarEventInvitees = sqliteTable(
   ]
 );
 
+const oidcTransactions = sqliteTable(
+  'oidc_transactions',
+  {
+    state: text('state').primaryKey(),
+    nonce: text('nonce').notNull(),
+    codeVerifier: text('code_verifier').notNull(),
+    redirectUri: text('redirect_uri').notNull(),
+    expiresAt: integer('expires_at').notNull()
+  },
+  (t) => [index('oidc_transactions_expires_idx').on(t.expiresAt)]
+);
+
+const oidcHandoffs = sqliteTable(
+  'oidc_handoffs',
+  {
+    code: text('code').primaryKey(),
+    token: text('token').notNull(),
+    state: text('state').notNull(),
+    expiresAt: integer('expires_at').notNull()
+  },
+  (t) => [index('oidc_handoffs_expires_idx').on(t.expiresAt)]
+);
+
 const pluginData = sqliteTable('plugin_data', {
   pluginId: text('plugin_id').notNull().primaryKey(),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
   settings: text('settings', { mode: 'json' })
     .$type<Record<string, unknown>>()
     .notNull()
-    .default({})
+    .default({}),
+  version: text('version')
 });
+
+const pluginUserData = sqliteTable(
+  'plugin_user_data',
+  {
+    pluginId: text('plugin_id').notNull(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    data: text('data', { mode: 'json' })
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (t) => [
+    primaryKey({ columns: [t.pluginId, t.userId] }),
+    index('plugin_user_data_user_idx').on(t.userId)
+  ]
+);
+
+const pluginCapabilities = sqliteTable(
+  'plugin_capabilities',
+  {
+    pluginId: text('plugin_id').notNull(),
+    type: text('type').$type<PluginCapabilityType>().notNull(),
+    name: text('name').notNull(),
+    mode: text('mode')
+      .$type<PluginCapabilityMode>()
+      .notNull()
+      .default(PluginCapabilityMode.PUBLIC),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (t) => [primaryKey({ columns: [t.pluginId, t.type, t.name] })]
+);
+
+const pluginCapabilityRoles = sqliteTable(
+  'plugin_capability_roles',
+  {
+    pluginId: text('plugin_id').notNull(),
+    type: text('type').notNull(),
+    name: text('name').notNull(),
+    roleId: integer('role_id')
+      .notNull()
+      .references(() => roles.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at').notNull()
+  },
+  (t) => [
+    primaryKey({ columns: [t.pluginId, t.type, t.name, t.roleId] }),
+    index('plugin_capability_roles_role_idx').on(t.roleId)
+  ]
+);
 
 export {
   activityLog,
@@ -595,7 +680,12 @@ export {
   messageFiles,
   messageReactions,
   messages,
+  oidcHandoffs,
+  oidcTransactions,
+  pluginCapabilities,
+  pluginCapabilityRoles,
   pluginData,
+  pluginUserData,
   rolePermissions,
   roles,
   settings,

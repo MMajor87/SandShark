@@ -1,12 +1,6 @@
-import { FileSaveType } from '@sharkord/shared';
-import { eq } from 'drizzle-orm';
 import z from 'zod';
-import { db } from '../../db';
-import { removeFile } from '../../db/mutations/files';
-import { publishUser } from '../../db/publishers';
-import { getPublicUserById, getUserById } from '../../db/queries/users';
-import { users } from '../../db/schema';
-import { fileManager } from '../../utils/file-manager';
+import { getPublicUserById } from '../../db/queries/users';
+import { changeUserImage } from '../../helpers/change-user-image';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
 
@@ -17,58 +11,12 @@ const changeBannerRoute = protectedProcedure
     })
   )
   .mutation(async ({ ctx, input }) => {
-    const user = await getUserById(ctx.userId);
-
-    if (
-      input.fileId &&
-      !fileManager.temporaryFileHasMimeType(input.fileId, 'image/')
-    ) {
-      throw new Error('Invalid file type. Please try again.');
-    }
-
-    invariant(user, {
-      code: 'NOT_FOUND',
-      message: 'User not found'
-    });
-
-    if (user.bannerId) {
-      await removeFile(user.bannerId);
-
-      await db
-        .update(users)
-        .set({ bannerId: null })
-        .where(eq(users.id, ctx.userId));
-    }
-
-    if (input.fileId) {
-      const tempFile = await fileManager.getTemporaryFile(input.fileId);
-
-      invariant(tempFile, {
-        code: 'NOT_FOUND',
-        message: 'Temporary file not found'
-      });
-
-      const newFile = await fileManager.saveFile(
-        input.fileId,
-        ctx.userId,
-        FileSaveType.BANNER
-      );
-
-      await db
-        .update(users)
-        .set({ bannerId: newFile.id })
-        .where(eq(users.id, ctx.userId));
-    }
-
+    await changeUserImage(ctx.userId, 'banner', input.fileId);
     const updatedUser = await getPublicUserById(ctx.userId);
-
     invariant(updatedUser, {
       code: 'NOT_FOUND',
       message: 'Updated user not found'
     });
-
-    await publishUser(ctx.userId, 'update');
-
     return updatedUser;
   });
 

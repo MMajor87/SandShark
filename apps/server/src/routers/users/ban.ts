@@ -1,10 +1,7 @@
-import { ActivityLogType, DisconnectCode, Permission } from '@sharkord/shared';
-import { eq } from 'drizzle-orm';
+import { Permission } from '@sharkord/shared';
 import z from 'zod';
-import { db } from '../../db';
-import { publishUser } from '../../db/publishers';
-import { users } from '../../db/schema';
-import { enqueueActivityLog } from '../../queues/activity-log';
+import { assertCanActOnUser } from '../../helpers/assert-can-act-on-user';
+import { banUser, ctxUserSessions } from '../../helpers/moderation';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
 
@@ -23,31 +20,14 @@ const banRoute = protectedProcedure
       message: 'You cannot ban yourself.'
     });
 
-    const userWs = ctx.getUserWs(input.userId);
+    await assertCanActOnUser(ctx.userId, input.userId);
 
-    if (userWs) {
-      userWs.close(DisconnectCode.BANNED, input.reason);
-    }
-
-    await db
-      .update(users)
-      .set({
-        banned: true,
-        banReason: input.reason ?? null,
-        bannedAt: Date.now()
-      })
-      .where(eq(users.id, input.userId));
-
-    publishUser(input.userId, 'update');
-
-    enqueueActivityLog({
-      type: ActivityLogType.USER_BANNED,
-      userId: input.userId,
-      details: {
-        reason: input.reason,
-        bannedBy: ctx.userId
-      }
-    });
+    await banUser(
+      input.userId,
+      input.reason,
+      ctx.userId,
+      ctxUserSessions(ctx, input.userId)
+    );
   });
 
 export { banRoute };

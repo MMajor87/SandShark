@@ -84,6 +84,7 @@ const joinMessagesWithRelations = async (
       .select({
         messageId: messageReactions.messageId,
         userId: messageReactions.userId,
+        pluginId: messageReactions.pluginId,
         emoji: messageReactions.emoji,
         createdAt: messageReactions.createdAt,
         fileId: messageReactions.fileId,
@@ -120,6 +121,7 @@ const joinMessagesWithRelations = async (
     const reaction: TJoinedMessageReaction = {
       messageId: r.messageId,
       userId: r.userId,
+      pluginId: r.pluginId,
       emoji: r.emoji,
       createdAt: r.createdAt,
       fileId: r.fileId,
@@ -182,7 +184,8 @@ const getMessage = async (
 };
 
 const getNonDirectMessagesFromUserId = async (
-  userId: number
+  userId: number,
+  limit: number
 ): Promise<TMessage[]> =>
   db
     .select()
@@ -198,7 +201,8 @@ const getNonDirectMessagesFromUserId = async (
         )
       )
     )
-    .orderBy(desc(messages.createdAt));
+    .orderBy(desc(messages.createdAt))
+    .limit(limit);
 
 const getReaction = async (
   messageId: number,

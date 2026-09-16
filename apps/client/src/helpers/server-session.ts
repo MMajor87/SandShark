@@ -10,6 +10,7 @@ import {
   removeSessionStorageItem,
   SessionStorageKey,
   setLocalStorageItemAsJSON,
+  setLocalStorageItemBool,
   setSessionStorageItem
 } from './storage';
 
@@ -114,6 +115,8 @@ const saveServerLogin = async ({
   });
 
   if (isBrowserClient()) {
+    setLocalStorageItemBool(LocalStorageKey.AUTO_LOGIN, autoLogin);
+    removeLocalStorageItem(LocalStorageKey.AUTO_LOGIN_TOKEN);
     updateCurrentServerSession((session) => ({
       ...session,
       autoLoginToken: autoLogin ? token : undefined
@@ -199,6 +202,7 @@ const clearCurrentServerAutoLogin = () => {
   }
 
   if (isBrowserClient()) {
+    setLocalStorageItemBool(LocalStorageKey.AUTO_LOGIN, false);
     removeLocalStorageItem(LocalStorageKey.AUTO_LOGIN_TOKEN);
   }
 };
@@ -213,6 +217,7 @@ const clearCurrentServerSession = () => {
   }
 
   if (isBrowserClient()) {
+    setLocalStorageItemBool(LocalStorageKey.AUTO_LOGIN, false);
     removeLocalStorageItem(LocalStorageKey.AUTO_LOGIN_TOKEN);
     removeLocalStorageItem(LocalStorageKey.IDENTITY);
     removeLocalStorageItem(LocalStorageKey.USER_PASSWORD);

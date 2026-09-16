@@ -1,4 +1,6 @@
+import { z } from 'zod';
 import { ChannelPermission, type TFile, type TSettings, type TUser } from '.';
+import type { WithOptional } from './type-utils';
 
 export enum ChannelType {
   TEXT = 'TEXT',
@@ -13,6 +15,15 @@ export enum StreamKind {
   EXTERNAL_VIDEO = 'external_video',
   EXTERNAL_AUDIO = 'external_audio'
 }
+
+export const PRODUCIBLE_STREAM_KINDS = [
+  StreamKind.AUDIO,
+  StreamKind.VIDEO,
+  StreamKind.SCREEN,
+  StreamKind.SCREEN_AUDIO
+] as const;
+
+export type TProducibleStreamKind = (typeof PRODUCIBLE_STREAM_KINDS)[number];
 
 export type TExternalStreamTrackKind = 'audio' | 'video';
 
@@ -62,14 +73,6 @@ export type TPublicServerSettings = Pick<
   webRtcMaxBitrate: number;
 };
 
-export type TGenericObject = {
-  [key: string]: any;
-};
-
-export type TGenericFunction = {
-  (...args: any[]): any;
-};
-
 export type TMessageMediaMetadata = {
   kind: 'media';
   url: string;
@@ -94,9 +97,6 @@ export type TMessageMetadata =
   | TMessageMediaMetadata
   | TMessageOpenGraphMetadata;
 
-export type WithOptional<T, K extends keyof T> = Omit<T, K> &
-  Partial<Pick<T, K>>;
-
 export enum UserStatus {
   ONLINE = 'online',
   IDLE = 'idle',
@@ -116,7 +116,7 @@ export type TTempFile = {
   md5: string;
   path: string;
   extension: string;
-  userId: number;
+  userId: number | null;
 };
 
 export type TServerInfo = Pick<
@@ -124,8 +124,19 @@ export type TServerInfo = Pick<
   'serverId' | 'name' | 'description' | 'allowNewUsers'
 > & {
   logo: TFile | null;
-  version: string;
+  version?: string;
+  oidcEnabled: boolean;
+  oidcDisableLocalLogin: boolean;
 };
+
+export enum OidcError {
+  ACCESS_DENIED = 'access_denied',
+  INVALID_STATE = 'invalid_state',
+  EXPIRED = 'expired',
+  RATE_LIMITED = 'rate_limited',
+  REGISTRATION_CLOSED = 'registration_closed',
+  SERVER_ERROR = 'server_error'
+}
 
 export type TWebAppManifest = {
   name: string;
@@ -184,6 +195,28 @@ export type TDirectMessageConversation = {
   lastMessageAt: number;
 };
 
+// createdAt alone is not unique, two messages sent in the same millisecond
+// would straddle a page boundary and the second would never be returned
+export type TMessagesCursor = {
+  createdAt: number;
+  id: number;
+};
+
+export const zMessagesCursor = z.object({
+  createdAt: z.number(),
+  id: z.number()
+});
+
 export const DEFAULT_PROFILE_COLOR = '#262626';
 
 export const HEX_COLOR_REGEX = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+
+export const INVITE_CODE_REGEX = /^[A-Za-z0-9_-]+$/;
+
+// true for anything containing a pictographic character, which is how a unicode
+// emoji is told apart from a custom emoji name without an exhaustive table
+export const EMOJI_CHARACTER_REGEX = /\p{Extended_Pictographic}/u;
+
+// standard emoji reactions are stored as the github shortcode the picker hands over ('fox'),
+// not as the character, so the character test alone rejects every one of them
+export const EMOJI_SHORTCODE_REGEX = /^[a-z0-9_+-]+$/;

@@ -22,17 +22,38 @@ const onLoad = async (ctx) => {
       description: 'Whether the feature is enabled',
       type: 'boolean',
       defaultValue: true
+    },
+    {
+      key: 'apiKey',
+      name: 'API Key',
+      description: 'Credential for the upstream service',
+      type: 'secret',
+      defaultValue: ''
+    },
+    {
+      key: 'mode',
+      name: 'Mode',
+      description: 'How the plugin behaves',
+      type: 'enum',
+      defaultValue: 'balanced',
+      options: [
+        { value: 'fast', label: 'Fast' },
+        { value: 'balanced', label: 'Balanced' },
+        { value: 'thorough', label: 'Thorough' }
+      ]
     }
   ]);
 
   ctx.commands.register({
     name: 'get-settings',
     description: 'Returns current settings values',
-    execute: async () => {
+    executes: async () => {
       return {
         greeting: pluginSettings.get('greeting'),
         maxRetries: pluginSettings.get('maxRetries'),
-        enabled: pluginSettings.get('enabled')
+        enabled: pluginSettings.get('enabled'),
+        apiKey: pluginSettings.get('apiKey'),
+        mode: pluginSettings.get('mode')
       };
     }
   });
@@ -41,18 +62,28 @@ const onLoad = async (ctx) => {
     name: 'set-greeting',
     description: 'Updates greeting setting',
     args: [{ name: 'value', type: 'string', required: true }],
-    execute: async (_ctx, args) => {
+    executes: async (_ctx, args) => {
       pluginSettings.set('greeting', args.value);
       return { success: true };
     }
   });
 
-  ctx.log('Plugin with settings loaded');
+  ctx.commands.register({
+    name: 'set-mode',
+    description: 'Updates the mode setting',
+    args: [{ name: 'value', type: 'string', required: true }],
+    executes: async (_ctx, args) => {
+      pluginSettings.set('mode', args.value);
+      return { success: true };
+    }
+  });
+
+  ctx.logger.log('Plugin with settings loaded');
 };
 
 const onUnload = (ctx) => {
   pluginSettings = null;
-  ctx.log('Plugin with settings unloaded');
+  ctx.logger.log('Plugin with settings unloaded');
 };
 
 export { onLoad, onUnload };

@@ -1,4 +1,9 @@
-import { Permission } from '@sharkord/shared';
+import {
+  EMOJI_CHARACTER_REGEX,
+  EMOJI_SHORTCODE_REGEX,
+  Permission,
+  REACTION_EMOJI_MAX_LENGTH
+} from '@sharkord/shared';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';
@@ -6,8 +11,9 @@ import { db } from '../../db';
 import { publishMessage } from '../../db/publishers';
 import { getEmojiFileIdByEmojiName } from '../../db/queries/emojis';
 import { getReaction } from '../../db/queries/messages';
-import { messageReactions, messages } from '../../db/schema';
-import { assertChannelAccess } from '../../helpers/assert-channel-access';
+import { messageReactions } from '../../db/schema';
+import { loadMessageForWrite } from '../../helpers/load-message-for-write';
+import { eventBus } from '../../plugins/event-bus';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
 
@@ -19,24 +25,13 @@ const toggleMessageReactionRoute = rateLimitedProcedure(protectedProcedure, {
   .input(
     z.object({
       messageId: z.number(),
-      emoji: z.string()
+      emoji: z.string().min(1).max(REACTION_EMOJI_MAX_LENGTH)
     })
   )
   .mutation(async ({ input, ctx }) => {
     await ctx.needsPermission(Permission.REACT_TO_MESSAGES);
 
-    const message = await db
-      .select()
-      .from(messages)
-      .where(eq(messages.id, input.messageId))
-      .get();
-
-    invariant(message, {
-      code: 'NOT_FOUND',
-      message: 'Message not found'
-    });
-
-    await assertChannelAccess(ctx, message.channelId);
+    const message = await loadMessageForWrite(ctx, input.messageId);
 
     const reaction = await getReaction(
       input.messageId,
@@ -46,6 +41,16 @@ const toggleMessageReactionRoute = rateLimitedProcedure(protectedProcedure, {
 
     if (!reaction) {
       const emojiFileId = await getEmojiFileIdByEmojiName(input.emoji);
+
+      invariant(
+        emojiFileId !== null ||
+          EMOJI_CHARACTER_REGEX.test(input.emoji) ||
+          EMOJI_SHORTCODE_REGEX.test(input.emoji),
+        {
+          code: 'BAD_REQUEST',
+          message: 'Unknown emoji'
+        }
+      );
 
       await db.insert(messageReactions).values({
         messageId: input.messageId,
@@ -67,6 +72,13 @@ const toggleMessageReactionRoute = rateLimitedProcedure(protectedProcedure, {
     }
 
     publishMessage(input.messageId, message.channelId, 'update');
+
+    eventBus.emit(reaction ? 'reaction:removed' : 'reaction:added', {
+      messageId: input.messageId,
+      channelId: message.channelId,
+      userId: ctx.user.id,
+      emoji: input.emoji
+    });
   });
 
 export { toggleMessageReactionRoute };

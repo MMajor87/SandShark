@@ -3,7 +3,7 @@ import {
   type TJoinedUser,
   type TStorageData
 } from '@sharkord/shared';
-import { count, eq, sum } from 'drizzle-orm';
+import { count, eq, sum, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import jwt from 'jsonwebtoken';
 import { db } from '..';
@@ -220,8 +220,8 @@ const getStorageUsageByUserId = async (
   };
 };
 
-const getUserById = async (
-  userId: number
+const getJoinedUser = async (
+  where: SQL | undefined
 ): Promise<TJoinedUser | undefined> => {
   const avatarFiles = alias(files, 'avatarFiles');
   const bannerFiles = alias(files, 'bannerFiles');
@@ -242,72 +242,17 @@ const getUserById = async (
       banned: users.banned,
       banReason: users.banReason,
       bannedAt: users.bannedAt,
+      tokenVersion: users.tokenVersion,
+      oidcSub: users.oidcSub,
+      oidcIssuer: users.oidcIssuer,
+      passwordSet: users.passwordSet,
       avatar: avatarFiles,
       banner: bannerFiles
     })
     .from(users)
     .leftJoin(avatarFiles, eq(users.avatarId, avatarFiles.id))
     .leftJoin(bannerFiles, eq(users.bannerId, bannerFiles.id))
-    .where(eq(users.id, userId))
-    .get();
-
-  if (!user) return undefined;
-
-  const [roles, { storageSignedUrlsEnabled, storageSignedUrlsTtlSeconds }] =
-    await Promise.all([
-      db
-        .select({ roleId: userRoles.roleId })
-        .from(userRoles)
-        .where(eq(userRoles.userId, userId))
-        .all(),
-      getSettings()
-    ]);
-
-  return {
-    ...user,
-    avatar: signFile(
-      user.avatar,
-      storageSignedUrlsEnabled,
-      storageSignedUrlsTtlSeconds
-    ),
-    banner: signFile(
-      user.banner,
-      storageSignedUrlsEnabled,
-      storageSignedUrlsTtlSeconds
-    ),
-    roleIds: roles.map((r) => r.roleId)
-  };
-};
-
-const getUserByIdentity = async (
-  identity: string
-): Promise<TJoinedUser | undefined> => {
-  const avatarFiles = alias(files, 'avatarFiles');
-  const bannerFiles = alias(files, 'bannerFiles');
-
-  const user = await db
-    .select({
-      id: users.id,
-      identity: users.identity,
-      name: users.name,
-      avatarId: users.avatarId,
-      bannerId: users.bannerId,
-      bio: users.bio,
-      profileColor: users.profileColor,
-      createdAt: users.createdAt,
-      updatedAt: users.updatedAt,
-      password: users.password,
-      lastLoginAt: users.lastLoginAt,
-      banned: users.banned,
-      banReason: users.banReason,
-      bannedAt: users.bannedAt,
-      avatar: avatarFiles,
-      banner: bannerFiles
-    })
-    .from(users)
-    .leftJoin(avatarFiles, eq(users.avatarId, avatarFiles.id))
-    .leftJoin(bannerFiles, eq(users.bannerId, bannerFiles.id))
-    .where(eq(users.identity, identity))
+    .where(where)
     .get();
 
   if (!user) return undefined;
@@ -338,6 +283,19 @@ const getUserByIdentity = async (
   };
 };
 
+const getUserById = async (userId: number): Promise<TJoinedUser | undefined> =>
+  getJoinedUser(eq(users.id, userId));
+
+const getUserByIdentity = async (
+  identity: string
+): Promise<TJoinedUser | undefined> =>
+  getJoinedUser(eq(users.identity, identity));
+
+const getUserByOidcSub = async (
+  oidcSub: string
+): Promise<TJoinedUser | undefined> =>
+  getJoinedUser(eq(users.oidcSub, oidcSub));
+
 const getUserByToken = async (token: string | undefined) => {
   try {
     if (!token) return undefined;
@@ -345,6 +303,15 @@ const getUserByToken = async (token: string | undefined) => {
     const decoded = jwt.verify(token, await getServerToken()) as TTokenPayload;
 
     const user = await getUserById(decoded.userId);
+
+    if (user?.banned) return undefined;
+
+    // a deleted user has no row, so deletion already invalidates its tokens. this covers
+    // the case where the row survives but its sessions should not, such as a password
+    // change. tokens predating this mechanism carry no version and count as 0
+    if (user && (decoded.tokenVersion ?? 0) !== user.tokenVersion) {
+      return undefined;
+    }
 
     return user;
   } catch {
@@ -374,6 +341,10 @@ const getUsers = async (): Promise<TJoinedUser[]> => {
           banned: users.banned,
           banReason: users.banReason,
           bannedAt: users.bannedAt,
+          tokenVersion: users.tokenVersion,
+          oidcSub: users.oidcSub,
+          oidcIssuer: users.oidcIssuer,
+          passwordSet: users.passwordSet,
           avatar: avatarFiles,
           banner: bannerFiles
         })
@@ -427,6 +398,10 @@ const getUsers = async (): Promise<TJoinedUser[]> => {
     banned: result.banned,
     banReason: result.banReason,
     bannedAt: result.bannedAt,
+    tokenVersion: result.tokenVersion,
+    oidcSub: result.oidcSub,
+    oidcIssuer: result.oidcIssuer,
+    passwordSet: result.passwordSet,
     roleIds: rolesMap[result.id] || []
   }));
 };
@@ -443,6 +418,7 @@ export {
   getStorageUsageByUserId,
   getUserById,
   getUserByIdentity,
+  getUserByOidcSub,
   getUserByToken,
   getUsers
 };

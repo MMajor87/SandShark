@@ -2,7 +2,7 @@ import type { IRootState } from '@/features/store';
 import { useSelector } from 'react-redux';
 import {
   channelByIdSelector,
-  channelIdsSelector,
+  channelIdsByCategorySelector,
   channelPermissionsByIdSelector,
   channelsByCategoryIdSelector,
   channelsMapSelector,
@@ -11,7 +11,6 @@ import {
   directMessagesUnreadCountSelector,
   isCurrentVoiceChannelSelectedSelector,
   selectedChannelIdSelector,
-  selectedChannelSelector,
   selectedChannelTypeSelector
 } from './selectors';
 
@@ -26,10 +25,11 @@ export const useChannelsByCategoryId = (categoryId: number) =>
     channelsByCategoryIdSelector(state, categoryId)
   );
 
+export const useChannelIdsByCategory = () =>
+  useSelector(channelIdsByCategorySelector);
+
 export const useSelectedChannelId = () =>
   useSelector(selectedChannelIdSelector);
-
-export const useSelectedChannel = () => useSelector(selectedChannelSelector);
 
 export const useCurrentVoiceChannelId = () =>
   useSelector(currentVoiceChannelIdSelector);
@@ -46,8 +46,6 @@ export const useSelectedChannelType = () =>
   useSelector(selectedChannelTypeSelector);
 
 export const useChannelsMap = () => useSelector(channelsMapSelector);
-
-export const useChannelIds = () => useSelector(channelIdsSelector);
 
 export const useDirectMessagesUnreadCount = () =>
   useSelector(directMessagesUnreadCountSelector);

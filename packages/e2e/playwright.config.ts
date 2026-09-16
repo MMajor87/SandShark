@@ -7,8 +7,7 @@ const CLIENT_PORT = 5173;
 export default defineConfig({
   testDir: './tests',
   testMatch: '**/*.pw.ts',
-  globalSetup: './tests/setup/global.setup.ts',
-  globalTeardown: './tests/setup/global.teardown.ts',
+  // seed:e2e clears old data before the next server starts; teardown runs while Windows still holds SQLite open.
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -38,8 +37,7 @@ export default defineConfig({
       stdout: 'ignore',
       stderr: 'ignore',
       env: {
-        SHARKORD_DATA_PATH: e2eDataPath,
-        IS_E2E: 'true'
+        SHARKORD_DATA_PATH: e2eDataPath
       }
     },
     {

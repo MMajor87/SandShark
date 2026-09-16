@@ -1,3 +1,4 @@
+import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { setModViewOpen, setSelectedDmChannelId } from '@/features/app/actions';
 import { setDmsOpen } from '@/features/server/actions';
 import { usePublicServerSettings, useUserRoles } from '@/features/server/hooks';
@@ -9,6 +10,8 @@ import { getTRPCClient } from '@/lib/trpc';
 import {
   DELETED_USER_IDENTITY_AND_NAME,
   Permission,
+  PluginSlot,
+  TestId,
   UserStatus,
   getTrpcError
 } from '@sharkord/shared';
@@ -20,7 +23,7 @@ import {
 } from '@sharkord/ui';
 import { format } from 'date-fns';
 import { MessageSquare, ShieldCheck, Trash, UserCog } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Protect } from '../protect';
@@ -40,6 +43,8 @@ const UserPopover = memo(({ userId, children }: TUserPopoverProps) => {
   const roles = useUserRoles(userId);
   const settings = usePublicServerSettings();
   const isOwnUser = useIsOwnUser(userId);
+
+  const pluginProps = useMemo(() => ({ userId }), [userId]);
 
   const onDirectMessageClick = useCallback(async () => {
     const trpc = getTRPCClient();
@@ -144,8 +149,14 @@ const UserPopover = memo(({ userId, children }: TUserPopoverProps) => {
             </p>
 
             <div className="flex gap-2 items-center">
+              <PluginSlotRenderer
+                slotId={PluginSlot.USER_POPOVER}
+                props={pluginProps}
+              />
+
               {showDmButton && (
                 <IconButton
+                  data-testid={TestId.USER_POPOVER_DM}
                   icon={MessageSquare}
                   variant="ghost"
                   size="sm"
@@ -157,6 +168,7 @@ const UserPopover = memo(({ userId, children }: TUserPopoverProps) => {
               {
                 <Protect permission={Permission.MANAGE_USERS}>
                   <IconButton
+                    data-testid={TestId.USER_POPOVER_MODERATE}
                     icon={UserCog}
                     variant="ghost"
                     size="sm"

@@ -28,6 +28,7 @@ $env:SANDSHARK_SMOKE_USER_DATA_DIR = $userDataDir
 try {
   $process = Start-Process `
     -FilePath $resolvedExecutable `
+    -WindowStyle Hidden `
     -PassThru
 
   Start-Sleep -Seconds $StartupSeconds
@@ -50,5 +51,8 @@ try {
     Stop-ProcessTree -ProcessId $process.Id
   }
 
-  Remove-Item -LiteralPath $userDataDir -Recurse -Force -ErrorAction SilentlyContinue
+  $resolvedSmokeData = [System.IO.Path]::GetFullPath($userDataDir)
+  $expectedTempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
+  if (-not $resolvedSmokeData.StartsWith($expectedTempRoot, [System.StringComparison]::OrdinalIgnoreCase) -or -not ([System.IO.Path]::GetFileName($resolvedSmokeData)).StartsWith('sandshark-smoke-')) { throw 'Unexpected smoke test cleanup path' }
+  Remove-Item -LiteralPath $resolvedSmokeData -Recurse -Force -ErrorAction SilentlyContinue
 }

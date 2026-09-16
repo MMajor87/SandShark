@@ -1,9 +1,8 @@
 import { Permission } from '@sharkord/shared';
-import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { db } from '../../db';
-import { publishUser } from '../../db/publishers';
-import { userRoles } from '../../db/schema';
+import { getRole } from '../../db/queries/roles';
+import { assertCanActOnUser } from '../../helpers/assert-can-act-on-user';
+import { removeRole } from '../../helpers/user-roles';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
 import { assertCanModifyOwnerRole } from './assert-can-modify-owner-role';
@@ -18,34 +17,23 @@ const removeRoleRoute = protectedProcedure
   .mutation(async ({ ctx, input }) => {
     await ctx.needsPermission(Permission.MANAGE_USERS);
 
-    await assertCanModifyOwnerRole(ctx.userId, input.roleId, 'remove');
+    const role = await getRole(input.roleId);
 
-    const existing = await db
-      .select()
-      .from(userRoles)
-      .where(
-        and(
-          eq(userRoles.userId, input.userId),
-          eq(userRoles.roleId, input.roleId)
-        )
-      )
-      .limit(1);
-
-    invariant(existing.length > 0, {
+    invariant(role, {
       code: 'NOT_FOUND',
-      message: 'User does not have this role'
+      message: 'Role not found'
     });
 
-    await db
-      .delete(userRoles)
-      .where(
-        and(
-          eq(userRoles.userId, input.userId),
-          eq(userRoles.roleId, input.roleId)
-        )
-      );
+    await assertCanModifyOwnerRole(ctx.userId, input.roleId, 'remove');
 
-    publishUser(input.userId, 'update');
+    invariant(await ctx.hasPermission(role.permissions), {
+      code: 'FORBIDDEN',
+      message: 'You cannot remove a role with permissions that you do not have.'
+    });
+
+    await assertCanActOnUser(ctx.userId, input.userId);
+
+    await removeRole(input.userId, role);
   });
 
 export { removeRoleRoute };

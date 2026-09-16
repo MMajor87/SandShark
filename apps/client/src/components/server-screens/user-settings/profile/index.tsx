@@ -1,157 +1,141 @@
-import { closeServerScreens } from '@/features/server-screens/actions';
+import { ImagePicker } from '@/components/image-picker';
+import { SettingsSection } from '@/components/server-screens/settings-shell/section';
+import { useSettingsForm } from '@/components/server-screens/settings-shell/use-settings-form';
+import { UserAvatar } from '@/components/user-avatar';
 import { updateUser } from '@/features/server/users/actions';
 import { useOwnPublicUser } from '@/features/server/users/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
-import { useForm } from '@/hooks/use-form';
+import type { TPickedImage } from '@/hooks/use-pick-image';
 import { getTRPCClient } from '@/lib/trpc';
-import { DEFAULT_PROFILE_COLOR, getTrpcError } from '@sharkord/shared';
+import { DEFAULT_PROFILE_COLOR } from '@sharkord/shared';
 import {
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   ColorPicker,
   Group,
   ImageSwatchPicker,
   Input,
   Textarea
 } from '@sharkord/ui';
-import { memo, useCallback, useState, type FormEvent } from 'react';
+import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { AvatarManager } from './avatar-manager';
-import { BannerManager } from './banner-manager';
+
+type TProfileValues = {
+  name: string;
+  profileColor: string;
+  bio: string;
+  // undefined means untouched, null means remove
+  avatar?: TPickedImage | null;
+  banner?: TPickedImage | null;
+};
 
 const Profile = memo(() => {
   const { t } = useTranslation('settings');
   const ownPublicUser = useOwnPublicUser();
-  const [saving, setSaving] = useState(false);
-  const legacyBannerColor = (
-    ownPublicUser as
-      | (typeof ownPublicUser & { bannerColor?: unknown })
-      | undefined
-  )?.bannerColor;
-  const { setTrpcErrors, r, values, onChange } = useForm({
-    name: ownPublicUser?.name ?? '',
-    profileColor: ownPublicUser?.profileColor ?? DEFAULT_PROFILE_COLOR,
-    bio: ownPublicUser?.bio ?? '',
-    // Older Sharkord servers require this legacy field even though SandShark
-    // now uses profileColor. Newer servers ignore it.
-    bannerColor:
-      typeof legacyBannerColor === 'string' ? legacyBannerColor : '#FFFFFF'
+
+  const onSave = useCallback(async (values: TProfileValues) => {
+    const trpc = getTRPCClient();
+
+    const updatedUser = await trpc.users.update.mutate({
+      name: values.name,
+      profileColor: values.profileColor,
+      bio: values.bio
+    });
+
+    if (updatedUser) updateUser(updatedUser.id, updatedUser);
+
+    if (values.avatar !== undefined) {
+      const updated = await trpc.users.changeAvatar.mutate({
+        fileId: values.avatar?.fileId
+      });
+      if (updated) updateUser(updated.id, updated);
+    }
+
+    if (values.banner !== undefined) {
+      const updated = await trpc.users.changeBanner.mutate({
+        fileId: values.banner?.fileId
+      });
+      if (updated) updateUser(updated.id, updated);
+    }
+  }, []);
+
+  const { r, values, onChange } = useSettingsForm<TProfileValues>({
+    initialValues: {
+      name: ownPublicUser?.name ?? '',
+      profileColor: ownPublicUser?.profileColor ?? DEFAULT_PROFILE_COLOR,
+      bio: ownPublicUser?.bio ?? ''
+    },
+    onSave,
+    successMessage: t('profileUpdated'),
+    errorMessage: t('failedUpdateProfile')
   });
 
   const handleColorChange = useCallback(
-    (color: string) => {
-      onChange('profileColor', color);
-    },
+    (color: string) => onChange('profileColor', color),
     [onChange]
   );
 
-  const onUpdateUser = useCallback(async () => {
-    if (saving || !ownPublicUser) return;
+  const handleAvatarChange = useCallback(
+    (picked: TPickedImage | null) => onChange('avatar', picked),
+    [onChange]
+  );
 
-    setSaving(true);
-    const trpc = getTRPCClient();
-
-    try {
-      const updatedUser = (await trpc.users.update.mutate(values)) as unknown;
-      if (
-        updatedUser &&
-        typeof updatedUser === 'object' &&
-        'id' in updatedUser &&
-        typeof updatedUser.id === 'number'
-      ) {
-        updateUser(
-          updatedUser.id,
-          updatedUser as Partial<NonNullable<typeof ownPublicUser>>
-        );
-      } else {
-        // Older Sharkord servers apply the update but return no user payload.
-        // Keep the current profile in sync until its normal event arrives.
-        updateUser(ownPublicUser.id, {
-          name: values.name,
-          profileColor: values.profileColor,
-          bio: values.bio
-        });
-      }
-      toast.success(t('profileUpdated'));
-    } catch (error) {
-      setTrpcErrors(error);
-      toast.error(getTrpcError(error, 'Could not update your profile.'));
-    } finally {
-      setSaving(false);
-    }
-  }, [saving, ownPublicUser, values, setTrpcErrors, t]);
-
-  const handleSubmit = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      void onUpdateUser();
-    },
-    [onUpdateUser]
+  const handleBannerChange = useCallback(
+    (picked: TPickedImage | null) => onChange('banner', picked),
+    [onChange]
   );
 
   if (!ownPublicUser) return null;
 
-  const userAvatarUrl = getFileUrl(ownPublicUser.avatar);
-  const userBannerUrl = getFileUrl(ownPublicUser.banner);
+  const userAvatarUrl =
+    values.avatar?.previewUrl ?? getFileUrl(ownPublicUser.avatar);
+  const userBannerUrl =
+    values.banner?.previewUrl ?? getFileUrl(ownPublicUser.banner);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('profileTitle')}</CardTitle>
-        <CardDescription>{t('profileDesc')}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="flex items-start gap-4">
-            <AvatarManager user={ownPublicUser} />
+    <SettingsSection title={t('profileTitle')} description={t('profileDesc')}>
+      <div className="flex flex-wrap items-start gap-4">
+        <ImagePicker
+          label={t('avatarLabel')}
+          className="h-32 w-32 rounded-full"
+          currentUrl={getFileUrl(ownPublicUser.avatar)}
+          draft={values.avatar}
+          onChange={handleAvatarChange}
+          fallback={
+            <UserAvatar
+              userId={ownPublicUser.id}
+              className="h-32 w-32 rounded-full bg-muted"
+              showStatusBadge={false}
+              showUserPopover={false}
+            />
+          }
+        />
 
-            <BannerManager user={ownPublicUser} />
+        <ImagePicker
+          label={t('bannerLabel')}
+          className="h-32 w-80"
+          currentUrl={getFileUrl(ownPublicUser.banner)}
+          draft={values.banner}
+          onChange={handleBannerChange}
+        />
 
-            <Group label={t('profileColorLabel')}>
-              <ColorPicker
-                value={values.profileColor}
-                onChange={handleColorChange}
-                defaultValue={DEFAULT_PROFILE_COLOR}
-              />
-              <ImageSwatchPicker
-                src={userAvatarUrl}
-                onChange={handleColorChange}
-              />
-              <ImageSwatchPicker
-                src={userBannerUrl}
-                onChange={handleColorChange}
-              />
-            </Group>
-          </div>
+        <Group label={t('profileColorLabel')}>
+          <ColorPicker
+            value={values.profileColor}
+            onChange={handleColorChange}
+            defaultValue={DEFAULT_PROFILE_COLOR}
+          />
+          <ImageSwatchPicker src={userAvatarUrl} onChange={handleColorChange} />
+          <ImageSwatchPicker src={userBannerUrl} onChange={handleColorChange} />
+        </Group>
+      </div>
 
-          <Group label={t('usernameLabel')}>
-            <Input placeholder={t('usernamePlaceholder')} {...r('name')} />
-          </Group>
+      <Group label={t('usernameLabel')}>
+        <Input placeholder={t('usernamePlaceholder')} {...r('name')} />
+      </Group>
 
-          <Group label={t('bioLabel')}>
-            <Textarea placeholder={t('bioPlaceholder')} {...r('bio')} />
-          </Group>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={closeServerScreens}
-            >
-              {t('cancel')}
-            </Button>
-            <Button type="submit" disabled={saving} aria-busy={saving}>
-              {t('saveChanges')}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+      <Group label={t('bioLabel')}>
+        <Textarea placeholder={t('bioPlaceholder')} {...r('bio')} />
+      </Group>
+    </SettingsSection>
   );
 });
 

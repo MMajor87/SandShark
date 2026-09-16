@@ -1,3 +1,4 @@
+import { startOidcLogin } from './oidc-login.js';
 import {
   app,
   BrowserWindow,
@@ -1779,6 +1780,11 @@ const configureYouTubeEmbedIdentity = () => {
 };
 
 const registerDesktopIpcHandlers = () => {
+  ipcMain.handle('sandshark:start-oidc-login', (event, serverUrl: unknown) => {
+    const senderWindow = getSenderWindow(event);
+    if (typeof serverUrl !== 'string' || serverUrl.length > 2048) throw new Error('Invalid authentication server URL.');
+    return startOidcLogin(senderWindow, serverUrl);
+  });
   ipcMain.handle('sandshark:get-version', (event) => {
     getSenderWindow(event);
     return app.getVersion();

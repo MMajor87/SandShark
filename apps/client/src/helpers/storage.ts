@@ -1,17 +1,6 @@
-import {
-  getPlatformLocalStorageItem,
-  getPlatformSessionStorageItem,
-  removePlatformLocalStorageItem,
-  removePlatformSessionStorageItem,
-  setPlatformLocalStorageItem,
-  setPlatformSessionStorageItem
-} from '@/platform/storage';
-
 export enum LocalStorageKey {
   IDENTITY = 'sharkord-identity',
-  REMEMBER_CREDENTIALS = 'sharkord-remember-identity',
   USER_PASSWORD = 'sharkord-user-password',
-  SERVER_PASSWORD = 'sharkord-server-password',
   VITE_UI_THEME = 'vite-ui-theme',
   DEVICES_SETTINGS = 'sharkord-devices-settings',
   FLOATING_CARD_POSITION = 'sharkord-floating-card-position',
@@ -54,18 +43,51 @@ export enum LocalStorageKey {
 
 export enum SessionStorageKey {
   TOKEN = 'sharkord-token',
-  SERVER_SESSION_KEY = 'sandshark-server-session-key'
+  SERVER_SESSION_KEY = 'sandshark-server-session-key',
+  OIDC_NO_AUTO_REDIRECT = 'sharkord-oidc-no-auto-redirect'
 }
 
+// librewolf and firefox private mode throw SecurityError when privacy hardening
+// blocks storage access, so every read/write has to survive the storage being gone
+const readItem = (kind: 'local' | 'session', key: string): string | null => {
+  try {
+    const storage = kind === 'local' ? localStorage : sessionStorage;
+
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const writeItem = (kind: 'local' | 'session', key: string, value: string) => {
+  try {
+    const storage = kind === 'local' ? localStorage : sessionStorage;
+
+    storage.setItem(key, value);
+  } catch {
+    // storage is unavailable, the value just does not persist
+  }
+};
+
+const deleteItem = (kind: 'local' | 'session', key: string) => {
+  try {
+    const storage = kind === 'local' ? localStorage : sessionStorage;
+
+    storage.removeItem(key);
+  } catch {
+    // storage is unavailable, nothing to remove
+  }
+};
+
 const getLocalStorageItem = (key: LocalStorageKey): string | null => {
-  return getPlatformLocalStorageItem(key);
+  return readItem('local', key);
 };
 
 const getLocalStorageItemBool = (
   key: LocalStorageKey,
   defaultValue: boolean = false
 ): boolean => {
-  const item = getPlatformLocalStorageItem(key);
+  const item = readItem('local', key);
 
   if (item === null) {
     return defaultValue ?? false;
@@ -78,14 +100,14 @@ const setLocalStorageItemBool = (
   key: LocalStorageKey,
   value: boolean
 ): void => {
-  setPlatformLocalStorageItem(key, value.toString());
+  writeItem('local', key, value.toString());
 };
 
 const getLocalStorageItemAsNumber = (
   key: LocalStorageKey,
   defaultValue?: number
 ): number | undefined => {
-  const item = getPlatformLocalStorageItem(key);
+  const item = readItem('local', key);
 
   if (item === null) {
     return defaultValue;
@@ -100,37 +122,41 @@ const getLocalStorageItemAsJSON = <T>(
   key: LocalStorageKey,
   defaultValue: T | undefined = undefined
 ): T | undefined => {
-  const item = getPlatformLocalStorageItem(key);
+  const item = readItem('local', key);
 
   if (item) {
-    return JSON.parse(item) as T;
+    try {
+      return JSON.parse(item) as T;
+    } catch {
+      return defaultValue;
+    }
   }
 
   return defaultValue;
 };
 
 const setLocalStorageItemAsJSON = <T>(key: LocalStorageKey, value: T): void => {
-  setPlatformLocalStorageItem(key, JSON.stringify(value));
+  writeItem('local', key, JSON.stringify(value));
 };
 
 const setLocalStorageItem = (key: LocalStorageKey, value: string): void => {
-  setPlatformLocalStorageItem(key, value);
+  writeItem('local', key, value);
 };
 
 const removeLocalStorageItem = (key: LocalStorageKey): void => {
-  removePlatformLocalStorageItem(key);
+  deleteItem('local', key);
 };
 
 const getSessionStorageItem = (key: SessionStorageKey): string | null => {
-  return getPlatformSessionStorageItem(key);
+  return readItem('session', key);
 };
 
 const setSessionStorageItem = (key: SessionStorageKey, value: string): void => {
-  setPlatformSessionStorageItem(key, value);
+  writeItem('session', key, value);
 };
 
 const removeSessionStorageItem = (key: SessionStorageKey): void => {
-  removePlatformSessionStorageItem(key);
+  deleteItem('session', key);
 };
 
 export {

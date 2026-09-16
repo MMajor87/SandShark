@@ -4,36 +4,80 @@ let eventCounts = {
   messageCreated: 0
 };
 
+// the payload of the last event of each name, so a test can assert what a
+// handler actually received rather than only that it ran
+let lastPayloads = {};
+
+const RECORDED = [
+  'reaction:added',
+  'reaction:removed',
+  'message:pinned',
+  'message:unpinned',
+  'user:banned',
+  'user:unbanned',
+  'user:kicked',
+  'user:created',
+  'user:deleted',
+  'role:assigned',
+  'role:removed',
+  'channel:created',
+  'channel:updated',
+  'channel:deleted',
+  'category:created',
+  'category:updated',
+  'category:deleted',
+  'role:created',
+  'role:updated',
+  'role:deleted',
+  'user:updated'
+];
+
 const onLoad = (ctx) => {
-  ctx.log('Plugin with events loaded');
+  ctx.logger.log('Plugin with events loaded');
 
   ctx.events.on('user:joined', ({ username }) => {
     eventCounts.userJoined++;
-    ctx.log(`User joined event: ${username}`);
+    ctx.logger.log(`User joined event: ${username}`);
   });
 
   ctx.events.on('user:left', ({ username }) => {
     eventCounts.userLeft++;
-    ctx.log(`User left event: ${username}`);
+    ctx.logger.log(`User left event: ${username}`);
   });
 
   ctx.events.on('message:created', ({ content }) => {
     eventCounts.messageCreated++;
-    ctx.log(`Message created event: ${content}`);
+    ctx.logger.log(`Message created event: ${content}`);
   });
+
+  for (const name of RECORDED) {
+    ctx.events.on(name, (payload) => {
+      lastPayloads[name] = payload;
+    });
+  }
 
   ctx.commands.register({
     name: 'get-counts',
     description: 'Get event counts',
-    async execute() {
+    async executes() {
       return eventCounts;
+    }
+  });
+
+  ctx.commands.register({
+    name: 'get-last-event',
+    description: 'The payload of the last event of a given name',
+    args: [{ name: 'name', type: 'string', required: true }],
+    async executes(invokerCtx, args) {
+      return { payload: lastPayloads[args.name] ?? null };
     }
   });
 };
 
 const onUnload = (ctx) => {
-  ctx.log('Plugin with events unloaded');
+  ctx.logger.log('Plugin with events unloaded');
   eventCounts = { userJoined: 0, userLeft: 0, messageCreated: 0 };
+  lastPayloads = {};
 };
 
 export { onLoad, onUnload };

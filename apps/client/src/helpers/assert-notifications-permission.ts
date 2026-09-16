@@ -1,3 +1,4 @@
+import { i18n } from '@/i18n';
 import { isDesktopClient } from '@/platform/environment';
 import { requestNotificationPermission } from '@/platform/notifications';
 import { toast } from 'sonner';
@@ -9,7 +10,7 @@ const assertNotificationsPermission = async () => {
     const permission = await requestNotificationPermission();
 
     if (permission !== 'granted') {
-      toast.error('Notification permission was denied.');
+      toast.error(i18n.t('common:notificationPermissionDenied'));
 
       return;
     }

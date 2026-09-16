@@ -1,18 +1,22 @@
 import type {
   TPluginHttpMethod,
-  TPluginHttpRouteHandler
+  TPluginHttpRouteHandler,
+  TPluginHttpRouteOptions
 } from '@sharkord/plugin-sdk';
 import { hasPrefixPathSegment, isSupportedHttpMethod } from '../http/helpers';
 import type { PluginLogger } from './plugin-logger';
 
 type TPluginHttpRoute = {
+  pluginId: string;
   method: TPluginHttpMethod;
   path: string;
   handler: TPluginHttpRouteHandler;
+  options?: TPluginHttpRouteOptions;
 };
 
 // a single '*' is only allowed as the last segment, e.g. '/api/*' or '/*'
 const VALID_WILDCARD_PATH = /^[^*]*\/\*$/;
+const MAX_ROUTES_PER_PLUGIN = 100;
 
 // '/hello/' and '/hello' are the same route, '/' stays '/'
 const normalizeRoutePath = (routePath: string) =>
@@ -34,7 +38,8 @@ class PluginHttpRouteRegistry {
     pluginId: string,
     method: TPluginHttpMethod,
     routePath: string,
-    handler: TPluginHttpRouteHandler
+    handler: TPluginHttpRouteHandler,
+    options?: TPluginHttpRouteOptions
   ) => {
     if (!isSupportedHttpMethod(method)) {
       throw new Error(`HTTP method '${method}' is not supported.`);
@@ -42,6 +47,12 @@ class PluginHttpRouteRegistry {
 
     if (!routePath.startsWith('/')) {
       throw new Error(`HTTP route path '${routePath}' must start with '/'.`);
+    }
+
+    if ((this.routes.get(pluginId)?.size ?? 0) >= MAX_ROUTES_PER_PLUGIN) {
+      throw new Error(
+        `Plugin '${pluginId}' exceeded the maximum of ${MAX_ROUTES_PER_PLUGIN} HTTP routes.`
+      );
     }
 
     if (routePath.includes('*') && !VALID_WILDCARD_PATH.test(routePath)) {
@@ -62,7 +73,7 @@ class PluginHttpRouteRegistry {
       );
     }
 
-    pluginRoutes.set(key, { method, path, handler });
+    pluginRoutes.set(key, { pluginId, method, path, handler, options });
 
     this.routes.set(pluginId, pluginRoutes);
 
@@ -73,11 +84,24 @@ class PluginHttpRouteRegistry {
     );
   };
 
+  public byPlugin = (): ReadonlyMap<
+    string,
+    ReadonlyMap<string, TPluginHttpRoute>
+  > => this.routes;
+
+  public list = (pluginId: string): TPluginHttpRoute[] =>
+    Array.from(this.routes.get(pluginId)?.values() ?? []);
+
+  public getByKey = (
+    pluginId: string,
+    key: string
+  ): TPluginHttpRoute | undefined => this.routes.get(pluginId)?.get(key);
+
   public get = (
     pluginId: string,
     method: TPluginHttpMethod,
     routePath: string
-  ): TPluginHttpRouteHandler | undefined => {
+  ): TPluginHttpRoute | undefined => {
     const pluginRoutes = this.routes.get(pluginId);
 
     if (!pluginRoutes) {
@@ -88,7 +112,7 @@ class PluginHttpRouteRegistry {
     const exactMatch = pluginRoutes.get(getRouteKey(method, path));
 
     if (exactMatch) {
-      return exactMatch.handler;
+      return exactMatch;
     }
 
     // the most specific wildcard wins, so '/api/v1/*' beats '/api/*'
@@ -103,7 +127,7 @@ class PluginHttpRouteRegistry {
       }
     }
 
-    return wildcardMatch?.handler;
+    return wildcardMatch;
   };
 
   public unload = (pluginId: string) => {
@@ -111,4 +135,5 @@ class PluginHttpRouteRegistry {
   };
 }
 
-export { PluginHttpRouteRegistry };
+export { getRouteKey, PluginHttpRouteRegistry };
+export type { TPluginHttpRoute };

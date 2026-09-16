@@ -1,14 +1,23 @@
-import { ActivityLogType, OWNER_ROLE_ID } from '@sharkord/shared';
-import { eq } from 'drizzle-orm';
+import {
+  ActivityLogType,
+  DisconnectCode,
+  OWNER_ROLE_ID
+} from '@sharkord/shared';
+import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import { config } from '../../config';
 import { db } from '../../db';
 import { getUserRoleIds } from '../../db/queries/roles';
 import { users } from '../../db/schema';
 import { enqueueActivityLog } from '../../queues/activity-log';
 import { invariant } from '../../utils/invariant';
-import { protectedProcedure } from '../../utils/trpc';
+import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
 
-const resetPasswordRoute = protectedProcedure
+const resetPasswordRoute = rateLimitedProcedure(protectedProcedure, {
+  maxRequests: config.rateLimiters.updatePassword.maxRequests,
+  windowMs: config.rateLimiters.updatePassword.windowMs,
+  logLabel: 'resetPassword'
+})
   .input(
     z.object({
       userId: z.number().int().positive(),
@@ -37,7 +46,7 @@ const resetPasswordRoute = protectedProcedure
     }
 
     const targetUser = await db
-      .select({ id: users.id })
+      .select({ id: users.id, passwordSet: users.passwordSet })
       .from(users)
       .where(eq(users.id, input.userId))
       .get();
@@ -47,11 +56,27 @@ const resetPasswordRoute = protectedProcedure
       message: 'User not found'
     });
 
+    invariant(targetUser.passwordSet, {
+      code: 'FORBIDDEN',
+      message:
+        'This account signs in through an identity provider, so it has no password to change'
+    });
+
     await db
       .update(users)
-      .set({ password: await Bun.password.hash(input.newPassword) })
+      .set({
+        password: await Bun.password.hash(input.newPassword),
+        tokenVersion: sql`${users.tokenVersion} + 1`
+      })
       .where(eq(users.id, targetUser.id))
       .run();
+
+    const sockets = ctx.getUserWs(targetUser.id);
+    setTimeout(() => {
+      sockets.forEach((socket) =>
+        socket.close(DisconnectCode.KICKED, 'Your password was changed')
+      );
+    }, 0);
 
     enqueueActivityLog({
       type: ActivityLogType.USER_UPDATED_PASSWORD,

@@ -84,6 +84,7 @@ const VoiceChannel = memo(({ channelId }: TChannelProps) => {
         cards.push(
           <ExternalStreamCard
             key={externalStreamCardId}
+            cardId={externalStreamCardId}
             streamId={stream.streamId}
             stream={stream}
             isPinned={isPinned(externalStreamCardId)}

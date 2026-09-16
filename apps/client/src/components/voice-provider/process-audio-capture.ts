@@ -1,4 +1,5 @@
 import processAudioCaptureProcessorUrl from '@/audio-worklets/process-audio-capture-processor.js?url';
+import { logVoice } from '@/helpers/browser-logger';
 
 type TApplicationAudioCapture = {
   captureId: string;
@@ -20,7 +21,13 @@ const createProcessAudioTrack = async (
     throw new Error('Desktop application audio capture is unavailable.');
 
   const audioContext = new AudioContext({ sampleRate: capture.sampleRate });
-  await audioContext.audioWorklet.addModule(processAudioCaptureProcessorUrl);
+  try {
+    await audioContext.audioWorklet.addModule(processAudioCaptureProcessorUrl);
+  } catch (error) {
+    logVoice('Application audio worklet failed to load', { error });
+    await audioContext.close();
+    throw error;
+  }
 
   const worklet = new AudioWorkletNode(
     audioContext,
@@ -33,12 +40,32 @@ const createProcessAudioTrack = async (
   );
   const destination = audioContext.createMediaStreamDestination();
   worklet.connect(destination);
+  worklet.onprocessorerror = () => {
+    logVoice('Application audio worklet stopped processing', {
+      captureId: capture.captureId,
+      contextState: audioContext.state
+    });
+  };
 
   let remainder = new Uint8Array(0);
+  let receivedBytes = 0;
+  let peak = 0;
+  const diagnosticTimer = window.setInterval(() => {
+    logVoice('Application audio input statistics', {
+      captureId: capture.captureId,
+      receivedBytes,
+      peak,
+      contextState: audioContext.state,
+      sampleRate: audioContext.sampleRate
+    });
+    receivedBytes = 0;
+    peak = 0;
+  }, 10_000);
   const bytesPerSample = capture.format === 'f32' ? 4 : 2;
   const bytesPerFrame = bytesPerSample * capture.channels;
   const unsubscribe = desktopApi.onApplicationAudioData((captureId, data) => {
     if (captureId !== capture.captureId) return;
+    receivedBytes += data.length;
 
     const combined = new Uint8Array(remainder.length + data.length);
     combined.set(remainder);
@@ -58,13 +85,25 @@ const createProcessAudioTrack = async (
         capture.format === 'f32'
           ? view.getFloat32(index * 4, true)
           : view.getInt16(index * 2, true) / 32768;
+      if (Number.isFinite(samples[index])) {
+        peak = Math.max(peak, Math.abs(samples[index]));
+      }
     }
     worklet.port.postMessage({ type: 'audio', samples }, [samples.buffer]);
   });
 
-  await audioContext.resume();
+  try {
+    await audioContext.resume();
+  } catch (error) {
+    window.clearInterval(diagnosticTimer);
+    unsubscribe();
+    worklet.disconnect();
+    await audioContext.close();
+    throw error;
+  }
   const track = destination.stream.getAudioTracks()[0];
   if (!track) {
+    window.clearInterval(diagnosticTimer);
     unsubscribe();
     worklet.disconnect();
     await audioContext.close();
@@ -74,6 +113,7 @@ const createProcessAudioTrack = async (
   return {
     track,
     stop: async () => {
+      window.clearInterval(diagnosticTimer);
       unsubscribe();
       track.stop();
       worklet.disconnect();

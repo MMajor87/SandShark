@@ -301,7 +301,15 @@ const useTransports = ({
           rtpParameters: consumerRtpParameters
         });
 
-        logVoice('Created new consumer', { newConsumer });
+        logVoice('Created new consumer', {
+          consumerId: newConsumer.id,
+          producerId,
+          remoteId,
+          kind,
+          paused: newConsumer.paused,
+          trackMuted: newConsumer.track.muted,
+          trackReadyState: newConsumer.track.readyState
+        });
 
         const cleanupEvents = [
           'transportclose',
@@ -382,7 +390,7 @@ const useTransports = ({
           addRemoteUserStream(remoteId, stream, kind);
         }
       } catch (error) {
-        logVoice('Error consuming remote producer', { error });
+        logVoice('Error consuming remote producer', { error, remoteId, kind });
       } finally {
         consumeOperationsInProgress.current.delete(operationKey);
       }

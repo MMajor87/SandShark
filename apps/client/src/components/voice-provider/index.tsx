@@ -89,6 +89,7 @@ import {
   createProcessAudioTrack,
   type TProcessAudioTrack
 } from './process-audio-capture';
+import { monitorScreenAudio } from './screen-audio-diagnostics';
 import { SIMULCAST_WEBCAM_MAX_BITRATE } from './statics';
 import { VolumeControlProvider } from './volume-control-context';
 
@@ -999,10 +1000,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
           systemAudioRequested: Boolean(devices.shareSystemAudio)
         });
         await desktopApi.setDesktopCaptureSource(desktopCaptureSource.id);
-        if (
-          devices.shareSystemAudio &&
-          desktopCaptureSource.type === 'window'
-        ) {
+        if (devices.shareSystemAudio) {
           const applicationAudio =
             await desktopApi.startApplicationAudioCapture(
               desktopCaptureSource.id
@@ -1025,6 +1023,10 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
               processAudioTrackRef.current = processAudioTrack;
               displayMediaConstraints.audio = false;
               reportDesktopCaptureDiagnostic('application-audio-enabled', {
+                captureMode:
+                  desktopCaptureSource.type === 'screen'
+                    ? 'exclude-sandshark'
+                    : 'include-application',
                 sampleRate: applicationAudio.sampleRate,
                 channels: applicationAudio.channels,
                 format: applicationAudio.format
@@ -1046,12 +1048,8 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
                 'Could not start application audio capture.'
             );
           }
-        } else if (desktopCaptureSource.type === 'screen') {
-          displayMediaConstraints.audio = systemAudioConstraints;
         }
-        // Electron grants the selected desktop source and Windows loopback
-        // audio as one request. A second display request can fail because
-        // Chromium only has one active picker/capture authorization.
+        // native audio capture avoids Electron loopback recapturing our playback.
         stream = await navigator.mediaDevices.getDisplayMedia(
           displayMediaConstraints
         );
@@ -1071,7 +1069,10 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         videoTracks: stream.getVideoTracks().length,
         audioTracks: stream.getAudioTracks().length,
         videoTrackReadyState: videoTrack?.readyState,
-        audioTrackReadyState: audioTrack?.readyState
+        audioTrackReadyState: audioTrack?.readyState,
+        applicationAudio: Boolean(processAudioTrack),
+        audioEnabled: audioTrack?.enabled,
+        audioMuted: audioTrack?.muted
       });
 
       if (devices.shareSystemAudio && !audioTrack) {
@@ -1221,8 +1222,12 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         if (audioTrack) {
           logVoice('Obtained audio track', { audioTrack });
 
+          if (!producerTransport.current || producerTransport.current.closed) {
+            throw new Error('Screen audio producer transport is unavailable.');
+          }
+
           localScreenShareAudioProducer.current =
-            await producerTransport.current?.produce({
+            await producerTransport.current.produce({
               track: audioTrack,
               codecOptions: {
                 opusStereo: true,
@@ -1233,6 +1238,8 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
               },
               appData: { kind: StreamKind.SCREEN_AUDIO }
             });
+
+          monitorScreenAudio(localScreenShareAudioProducer.current);
 
           setLocalScreenShareAudio(new MediaStream([audioTrack]));
 
@@ -1274,7 +1281,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       logVoice('Error starting screen share stream', { error });
       reportDesktopCaptureDiagnostic('capture-failed', {
         errorName: error instanceof DOMException ? error.name : 'Error',
-        errorMessage: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : String(error),
         errorStack:
           error instanceof Error ? error.stack?.slice(0, 2_000) : undefined,
         systemAudioRequested: Boolean(devices.shareSystemAudio),

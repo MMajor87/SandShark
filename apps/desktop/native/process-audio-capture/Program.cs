@@ -11,9 +11,10 @@ internal static class Program
 
     public static int Main(string[] args)
     {
-        if (args.Length != 1)
+        var excludeProcess = args.Length == 2 && args[0] == "--exclude-process";
+        if (args.Length != 1 && !excludeProcess)
         {
-            Console.Error.WriteLine("Usage: ProcessAudioCapture <window-source-id>");
+            Console.Error.WriteLine("Usage: ProcessAudioCapture <window-source-id> | --exclude-process <pid>");
             return 2;
         }
 
@@ -25,8 +26,14 @@ internal static class Program
 
         try
         {
-            var processId = ResolveWindowProcessId(args[0]);
-            using var capture = new ProcessLoopbackCapture(processId);
+            var processId = excludeProcess
+                ? uint.Parse(args[1])
+                : ResolveWindowProcessId(args[0]);
+            if (processId == 0) throw new ArgumentException("The target process ID must be positive.");
+            var mode = excludeProcess
+                ? ProcessLoopbackMode.ExcludeTargetProcessTree
+                : ProcessLoopbackMode.IncludeTargetProcessTree;
+            using var capture = new ProcessLoopbackCapture(processId, mode);
             capture.Start();
             WriteHeader(capture.Format);
             capture.CopyTo(Console.OpenStandardOutput());
@@ -81,13 +88,18 @@ internal sealed class ProcessLoopbackCapture : IDisposable
     private const string VirtualProcessLoopbackDevice = "VAD\\Process_Loopback";
 
     private readonly uint _processId;
+    private readonly ProcessLoopbackMode _mode;
     private readonly ManualResetEvent _sampleReady = new(false);
     private readonly ManualResetEvent _stopRequested = new(false);
     private IAudioClient? _audioClient;
     private IAudioCaptureClient? _captureClient;
     private IntPtr _mixFormat;
 
-    public ProcessLoopbackCapture(uint processId) => _processId = processId;
+    public ProcessLoopbackCapture(uint processId, ProcessLoopbackMode mode)
+    {
+        _processId = processId;
+        _mode = mode;
+    }
 
     public WaveFormat Format { get; private set; }
 
@@ -100,7 +112,7 @@ internal sealed class ProcessLoopbackCapture : IDisposable
             ActivationType = AudioClientActivationType.ProcessLoopback,
             ProcessLoopbackParams = new AudioClientProcessLoopbackParams
             {
-                ProcessLoopbackMode = ProcessLoopbackMode.IncludeTargetProcessTree,
+                ProcessLoopbackMode = _mode,
                 TargetProcessId = _processId
             }
         };

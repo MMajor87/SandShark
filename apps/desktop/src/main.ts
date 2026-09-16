@@ -1483,8 +1483,11 @@ const startApplicationAudioCapture = async (
 ): Promise<TApplicationAudioCapture> => {
   stopApplicationAudioCapture();
 
-  if (process.platform !== 'win32' || !sourceId.startsWith('window:')) {
-    return { active: false, reason: 'Application audio is only available for Windows application windows.' };
+  if (
+    process.platform !== 'win32' ||
+    (!sourceId.startsWith('window:') && !sourceId.startsWith('screen:'))
+  ) {
+    return { active: false, reason: 'Native desktop audio capture is only available on Windows.' };
   }
 
   const executablePath = getProcessAudioCaptureExecutablePath();
@@ -1497,7 +1500,16 @@ const startApplicationAudioCapture = async (
 
   return new Promise((resolve) => {
     const captureId = randomUUID();
-    const captureProcess = spawn(executablePath, [sourceId], {
+    // exclude the Electron main process and all of its audio-rendering children.
+    const excludeOwnAudio = sourceId.startsWith('screen:');
+    const captureArguments = excludeOwnAudio
+      ? ['--exclude-process', String(process.pid)]
+      : [sourceId];
+    writeDesktopCaptureDiagnostic('native-audio-requested', {
+      mode: excludeOwnAudio ? 'exclude-sandshark' : 'include-application',
+      excludedProcessId: excludeOwnAudio ? process.pid : undefined
+    });
+    const captureProcess = spawn(executablePath, captureArguments, {
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -1869,8 +1881,11 @@ const registerDesktopIpcHandlers = () => {
     async (event, sourceId: unknown) => {
       const senderWindow = getSenderWindow(event);
 
-      if (typeof sourceId !== 'string' || !sourceId.startsWith('window:')) {
-        throw new Error('Application audio requires a valid application window.');
+      if (
+        typeof sourceId !== 'string' ||
+        (!sourceId.startsWith('window:') && !sourceId.startsWith('screen:'))
+      ) {
+        throw new Error('Desktop audio requires a valid screen or application window.');
       }
 
       return startApplicationAudioCapture(sourceId, senderWindow.webContents);

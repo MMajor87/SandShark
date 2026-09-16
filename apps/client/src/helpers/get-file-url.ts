@@ -1,3 +1,4 @@
+import { i18n } from '@/i18n';
 import type { TFile } from '@sharkord/shared';
 import { getServerConnection } from './server-connection';
 
@@ -5,7 +6,7 @@ const getHostFromServer = () => {
   const connection = getServerConnection();
 
   if (!connection) {
-    throw new Error('No Sharkord server has been selected.');
+    throw new Error(i18n.t('connect:noServerSelected'));
   }
 
   return new URL(connection.websocketUrl).host;
@@ -15,7 +16,7 @@ const getUrlFromServer = () => {
   const connection = getServerConnection();
 
   if (!connection) {
-    throw new Error('No Sharkord server has been selected.');
+    throw new Error(i18n.t('connect:noServerSelected'));
   }
 
   return connection.httpUrl;

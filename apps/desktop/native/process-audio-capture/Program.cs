@@ -11,6 +11,11 @@ internal static class Program
 
     public static int Main(string[] args)
     {
+        if (args.Length > 0 && (args[0] == "--list-minimized-windows" || args[0] == "--restore-window"))
+        {
+            return WindowCaptureSources.Run(args);
+        }
+
         var excludeProcess = args.Length == 2 && args[0] == "--exclude-process";
         if (args.Length != 1 && !excludeProcess)
         {

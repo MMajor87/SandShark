@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug in Sharkord. Please provide as much detail as possible to help us identify and fix the issue.
+description: Report a bug in SandShark. Please provide as much detail as possible to help us identify and fix the issue.
 title: "[Bug]: "
 labels: ["bug", "needs-triage"]
 assignees: []
@@ -24,7 +24,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Sharkord Version
+      label: SandShark Version
       description: Shown at the bottom of the connect screen. `latest` is not a version.
       placeholder: e.g. v1.2.3
     validations:
@@ -33,11 +33,12 @@ body:
   - type: dropdown
     id: deployment
     attributes:
-      label: How are you running Sharkord?
+      label: How are you running SandShark?
       options:
-        - Standalone binary
-        - Docker
-        - Built from source
+        - Windows desktop installer
+        - Unpacked Windows desktop build
+        - Desktop development build
+        - Browser client from source
         - Other (describe below)
     validations:
       required: true
@@ -46,10 +47,10 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Server OS, browser, and anything unusual about the setup.
+      description: Windows version, server version, and anything unusual about the setup. Include the browser version if applicable.
       placeholder: |
-        - OS: CachyOS
-        - Browser: Firefox 88
+        - OS: Windows 11
+        - Client: installed SandShark desktop app
         - Reverse proxy: Caddy
         - Anything else: custom config.ini, behind NAT, ...
     validations:
@@ -86,7 +87,7 @@ body:
     attributes:
       label: Logs
       description: |
-        Server logs and browser console output.
+        Desktop logs, renderer console output, and relevant server logs.
         **Redact your secret token before pasting**: the server prints it on first launch, and it grants
         ownership of your server as well as the ability to impersonate any account.
       render: shell

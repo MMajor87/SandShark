@@ -1,7 +1,7 @@
 <!--
 READ BEFORE CREATING A PULL REQUEST
 
-https://github.com/Sharkord/sharkord/blob/development/CONTRIBUTING.md
+https://github.com/MMajor87/SandShark/blob/main/CONTRIBUTING.md
 
 PRs that do not follow it may be closed without review. The ones people miss most:
 

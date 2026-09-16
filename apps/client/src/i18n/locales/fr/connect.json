@@ -21,6 +21,17 @@
     "server_error": "Une erreur est survenue lors de la connexion. Veuillez réessayer."
   },
   "loggingInAutomatically": "Connexion automatique...",
-  "loadingApp": "Chargement de Sharkord",
-  "loadingPlugins": "Chargement des plugins"
+  "loadingApp": "Chargement de SandShark",
+  "loadingPlugins": "Chargement des plugins",
+  "noServerSelected": "Aucun serveur n’a été sélectionné.",
+  "enterServerUrl": "Saisissez l’URL d’un serveur.",
+  "incompatibleServer": "Cette adresse ne semble pas correspondre à un serveur compatible.",
+  "savedServerUnreachable": "Impossible de joindre le serveur enregistré. Vérifiez son URL et réessayez.",
+  "validateServerFailed": "Impossible de valider le serveur.",
+  "addServerHint": "Ajoutez un serveur pour commencer à utiliser SandShark.",
+  "editServerTitle": "Modifier le serveur",
+  "addServerTitle": "Ajouter un serveur",
+  "serverUrlLabel": "URL du serveur",
+  "linkedServerFailed": "Impossible d’ouvrir le serveur indiqué par le lien.",
+  "chooseServerForLink": "Choisissez un serveur avant d’ouvrir un lien vers un salon."
 }

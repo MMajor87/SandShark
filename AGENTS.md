@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guide for AI agents working on Sharkord. Read [CONTRIBUTING.md](CONTRIBUTING.md) for
+Guide for AI agents working on SandShark. Read [CONTRIBUTING.md](CONTRIBUTING.md) for
 project scope and PR rules — this file covers how the code is organized.
 
 Core principle from CONTRIBUTING: **no over-engineering**. Follow the existing pattern,

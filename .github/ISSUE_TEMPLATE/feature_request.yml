@@ -1,5 +1,5 @@
 name: Feature Request
-description: Suggest an idea for Sharkord. Please provide as much detail as possible to help us understand and evaluate your request.
+description: Suggest an idea for SandShark. Please provide as much detail as possible to help us understand and evaluate your request.
 title: "[Feature]: "
 labels: ["feature", "needs-triage"]
 assignees: []
@@ -8,8 +8,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Please check the [Roadmap](https://github.com/Sharkord/sharkord/blob/development/ROADMAP.md)
-        and [what Sharkord is not](https://github.com/Sharkord/sharkord/blob/development/CONTRIBUTING.md#what-sharkord-is-not)
+        Please check the [Roadmap](https://github.com/MMajor87/SandShark/blob/main/ROADMAP.md)
+        and [what SandShark is not](https://github.com/MMajor87/SandShark/blob/main/CONTRIBUTING.md#what-sandshark-is-not)
         before requesting new features.
         Large features should be discussed before implementation.
         If your feature does not align with the project's goals, it may be closed.

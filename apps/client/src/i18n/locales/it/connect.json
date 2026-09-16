@@ -21,6 +21,17 @@
     "server_error": "Si è verificato un problema durante l'accesso. Riprova."
   },
   "loggingInAutomatically": "Accesso automatico in corso...",
-  "loadingApp": "Caricamento di Sharkord",
-  "loadingPlugins": "Caricamento plugin"
+  "loadingApp": "Caricamento di SandShark",
+  "loadingPlugins": "Caricamento plugin",
+  "noServerSelected": "Nessun server selezionato.",
+  "enterServerUrl": "Inserisci l’URL di un server.",
+  "incompatibleServer": "Questo indirizzo non sembra corrispondere a un server compatibile.",
+  "savedServerUnreachable": "Impossibile raggiungere il server salvato. Controlla il suo URL e riprova.",
+  "validateServerFailed": "Impossibile verificare il server.",
+  "addServerHint": "Aggiungi un server per iniziare a usare SandShark.",
+  "editServerTitle": "Modifica server",
+  "addServerTitle": "Aggiungi server",
+  "serverUrlLabel": "URL del server",
+  "linkedServerFailed": "Impossibile aprire il server indicato dal link.",
+  "chooseServerForLink": "Scegli un server prima di aprire un link a un canale."
 }

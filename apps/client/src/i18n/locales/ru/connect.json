@@ -21,6 +21,17 @@
     "server_error": "При входе произошла ошибка. Попробуйте ещё раз."
   },
   "loggingInAutomatically": "Автоматический вход...",
-  "loadingApp": "Загрузка Sharkord",
-  "loadingPlugins": "Загрузка плагинов"
+  "loadingApp": "Загрузка SandShark",
+  "loadingPlugins": "Загрузка плагинов",
+  "noServerSelected": "Сервер не выбран.",
+  "enterServerUrl": "Введите URL сервера.",
+  "incompatibleServer": "По этому адресу, похоже, нет совместимого сервера.",
+  "savedServerUnreachable": "Не удалось подключиться к сохранённому серверу. Проверьте его URL и повторите попытку.",
+  "validateServerFailed": "Не удалось проверить сервер.",
+  "addServerHint": "Добавьте сервер, чтобы начать пользоваться SandShark.",
+  "editServerTitle": "Изменить сервер",
+  "addServerTitle": "Добавить сервер",
+  "serverUrlLabel": "URL сервера",
+  "linkedServerFailed": "Не удалось открыть сервер по ссылке.",
+  "chooseServerForLink": "Выберите сервер перед открытием ссылки на канал."
 }

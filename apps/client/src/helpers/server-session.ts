@@ -1,3 +1,4 @@
+import { i18n } from '@/i18n';
 import { isBrowserClient } from '@/platform/environment';
 import { getServerConnection } from './server-connection';
 import {
@@ -68,7 +69,7 @@ const setCurrentSessionToken = (token: string) => {
   const key = getServerSessionKey();
 
   if (!key) {
-    throw new Error('No Sharkord server has been selected.');
+    throw new Error(i18n.t('connect:noServerSelected'));
   }
 
   setSessionStorageItem(SessionStorageKey.TOKEN, token);

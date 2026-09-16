@@ -121,9 +121,7 @@ export const loadApp = async () => {
     console.error('Failed to load server info during app load');
 
     if (isDesktopClient()) {
-      setServerConnectionError(
-        'Could not reach the saved Sharkord server. Check its URL and try again.'
-      );
+      setServerConnectionError(i18n.t('connect:savedServerUnreachable'));
       setServerConnectionRequired(true);
       setAppLoading(false);
     } else {

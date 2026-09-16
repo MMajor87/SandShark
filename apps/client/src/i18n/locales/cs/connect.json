@@ -21,6 +21,17 @@
     "server_error": "Při přihlašování se něco pokazilo. Zkuste to prosím znovu."
   },
   "loggingInAutomatically": "Automaticky se připojuji...",
-  "loadingApp": "Načítám Sharkord",
-  "loadingPlugins": "Načítám rozšíření"
+  "loadingApp": "Načítám SandShark",
+  "loadingPlugins": "Načítám rozšíření",
+  "noServerSelected": "Není vybrán žádný server.",
+  "enterServerUrl": "Zadejte URL serveru.",
+  "incompatibleServer": "Tato adresa zřejmě nepatří kompatibilnímu serveru.",
+  "savedServerUnreachable": "Uložený server není dostupný. Zkontrolujte jeho URL a zkuste to znovu.",
+  "validateServerFailed": "Server se nepodařilo ověřit.",
+  "addServerHint": "Začněte přidáním serveru do aplikace SandShark.",
+  "editServerTitle": "Upravit server",
+  "addServerTitle": "Přidat server",
+  "serverUrlLabel": "URL serveru",
+  "linkedServerFailed": "Server z odkazu se nepodařilo otevřít.",
+  "chooseServerForLink": "Před otevřením odkazu na kanál vyberte server."
 }

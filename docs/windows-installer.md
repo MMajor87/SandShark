@@ -4,7 +4,7 @@ SandShark uses electron-builder with an NSIS x64 installer. The package output i
 
 The installer creates Start Menu and desktop shortcuts, registers both `sandshark://` and legacy `sharkord://` protocols, and preserves the Electron user-data directory on uninstall. SandShark's Windows startup preference is registered by the application itself through Electron's login-item API.
 
-The installer is intentionally unsigned until the code-signing phase. Build it with:
+Release signing depends on the configured signing credentials. Local builds may be unsigned; see the [versioning and signing policy](sandshark-versioning.md). Build locally without publishing:
 
 ```powershell
 bun run --cwd apps/desktop package

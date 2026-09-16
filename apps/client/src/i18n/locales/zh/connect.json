@@ -21,6 +21,17 @@
     "server_error": "登录时出现问题，请重试。"
   },
   "loggingInAutomatically": "正在自动登录...",
-  "loadingApp": "正在加载 Sharkord",
-  "loadingPlugins": "正在加载插件"
+  "loadingApp": "正在加载 SandShark",
+  "loadingPlugins": "正在加载插件",
+  "noServerSelected": "尚未选择服务器。",
+  "enterServerUrl": "请输入服务器 URL。",
+  "incompatibleServer": "此地址似乎不是兼容的服务器。",
+  "savedServerUnreachable": "无法连接到已保存的服务器。请检查其 URL 后重试。",
+  "validateServerFailed": "无法验证服务器。",
+  "addServerHint": "添加服务器以开始使用 SandShark。",
+  "editServerTitle": "编辑服务器",
+  "addServerTitle": "添加服务器",
+  "serverUrlLabel": "服务器 URL",
+  "linkedServerFailed": "无法打开链接中的服务器。",
+  "chooseServerForLink": "打开频道链接前，请先选择服务器。"
 }

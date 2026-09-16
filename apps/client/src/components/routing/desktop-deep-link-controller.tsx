@@ -14,6 +14,7 @@ import {
 } from '@/helpers/server-connection';
 import { isDesktopClient } from '@/platform/environment';
 import { memo, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 type TDeepLinkDestination = {
@@ -84,6 +85,7 @@ const parseDeepLink = (value: string): TDeepLinkDestination | undefined => {
 };
 
 const DesktopDeepLinkController = memo(() => {
+  const { t } = useTranslation('connect');
   const isConnected = useIsConnected();
   const pendingDestinationRef = useRef<TDeepLinkDestination | undefined>(
     undefined
@@ -128,9 +130,7 @@ const DesktopDeepLinkController = memo(() => {
           beginServerConnection();
         } catch (error) {
           toast.error(
-            error instanceof Error
-              ? error.message
-              : 'Could not open the linked Sharkord server.'
+            error instanceof Error ? error.message : t('linkedServerFailed')
           );
         }
 
@@ -143,14 +143,14 @@ const DesktopDeepLinkController = memo(() => {
       }
 
       if (!getActiveServerProfile()) {
-        toast.error('Choose a Sharkord server before opening a channel link.');
+        toast.error(t('chooseServerForLink'));
         return;
       }
 
       pendingDestinationRef.current = destination;
       beginServerConnection();
     },
-    [isConnected, openChannel]
+    [isConnected, openChannel, t]
   );
 
   useEffect(() => {

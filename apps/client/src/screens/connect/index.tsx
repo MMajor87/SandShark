@@ -153,7 +153,7 @@ const Connect = memo(() => {
       return getFileUrl(info.logo);
     }
 
-    return `${import.meta.env.BASE_URL}logo.webp`;
+    return `${import.meta.env.BASE_URL}sandshark.png`;
   }, [info]);
 
   if (oidc.isCompleting) {
@@ -175,7 +175,7 @@ const Connect = memo(() => {
           <CardTitle className="flex flex-col items-center gap-2 text-center">
             <img
               src={logoSrc}
-              alt="Sharkord"
+              alt={info?.logo ? info.name : 'SandShark'}
               className="block max-h-32 max-w-full rounded-[5px]"
             />
             {info?.name && (
@@ -286,7 +286,7 @@ const Connect = memo(() => {
       <div className="flex justify-center items-center gap-2 text-xs text-muted-foreground select-none">
         <span>v{VITE_APP_VERSION}</span>
         <a
-          href="https://github.com/sharkord/sharkord"
+          href="https://github.com/MMajor87/SandShark"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -295,11 +295,11 @@ const Connect = memo(() => {
 
         <a
           className="text-xs"
-          href="https://sharkord.com"
+          href="https://github.com/MMajor87/SandShark"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Sharkord
+          SandShark
         </a>
       </div>
     </div>

@@ -16,8 +16,8 @@ class Updater {
 
   constructor() {
     this.bunUpdater = new BunUpdater({
-      repoOwner: 'Sharkord',
-      repoName: 'sharkord',
+      repoOwner: 'MMajor87',
+      repoName: 'SandShark',
       currentVersion: SERVER_VERSION
     });
 

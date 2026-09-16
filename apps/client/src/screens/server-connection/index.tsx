@@ -27,6 +27,7 @@ import {
 } from '@sharkord/ui';
 import { Pencil, Plus, RefreshCw, Server, Trash2 } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type TProfileEditorState = {
   profile?: TServerProfile;
@@ -35,6 +36,7 @@ type TProfileEditorState = {
 };
 
 const ServerConnection = memo(() => {
+  const { t } = useTranslation('connect');
   const savedConnectionError = useServerConnectionError();
   const [profiles, setProfiles] = useState(() => getServerProfiles());
   const [editor, setEditor] = useState<TProfileEditorState | undefined>();
@@ -107,14 +109,12 @@ const ServerConnection = memo(() => {
       }
     } catch (reason) {
       setError(
-        reason instanceof Error
-          ? reason.message
-          : 'Could not validate the Sharkord server.'
+        reason instanceof Error ? reason.message : t('validateServerFailed')
       );
     } finally {
       setLoading(false);
     }
-  }, [connectProfile, editor, refreshProfiles]);
+  }, [connectProfile, editor, refreshProfiles, t]);
 
   const removeProfile = useCallback(
     async (profile: TServerProfile) => {
@@ -163,7 +163,7 @@ const ServerConnection = memo(() => {
           {profiles.length === 0 ? (
             <div className="flex min-h-28 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
               <Server className="h-5 w-5" />
-              <span>Add a Sharkord server to get started.</span>
+              <span>{t('addServerHint')}</span>
               <Button size="sm" onClick={openCreate}>
                 Add server
               </Button>
@@ -242,12 +242,12 @@ const ServerConnection = memo(() => {
         <DialogContent close={closeEditor}>
           <DialogHeader>
             <DialogTitle>
-              {editor?.profile ? 'Edit Sharkord Server' : 'Add Sharkord Server'}
+              {editor?.profile ? t('editServerTitle') : t('addServerTitle')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="server-url">Sharkord server URL</Label>
+              <Label htmlFor="server-url">{t('serverUrlLabel')}</Label>
               <Input
                 id="server-url"
                 value={editor?.url ?? ''}

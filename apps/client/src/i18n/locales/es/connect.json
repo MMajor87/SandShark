@@ -21,6 +21,17 @@
     "server_error": "Algo salió mal al iniciar sesión. Inténtalo de nuevo."
   },
   "loggingInAutomatically": "Iniciando sesión automáticamente...",
-  "loadingApp": "Cargando Sharkord",
-  "loadingPlugins": "Cargando plugins"
+  "loadingApp": "Cargando SandShark",
+  "loadingPlugins": "Cargando plugins",
+  "noServerSelected": "No se ha seleccionado ningún servidor.",
+  "enterServerUrl": "Introduce la URL de un servidor.",
+  "incompatibleServer": "Esta dirección no parece corresponder a un servidor compatible.",
+  "savedServerUnreachable": "No se pudo conectar con el servidor guardado. Comprueba su URL e inténtalo de nuevo.",
+  "validateServerFailed": "No se pudo validar el servidor.",
+  "addServerHint": "Añade un servidor para empezar a usar SandShark.",
+  "editServerTitle": "Editar servidor",
+  "addServerTitle": "Añadir servidor",
+  "serverUrlLabel": "URL del servidor",
+  "linkedServerFailed": "No se pudo abrir el servidor del enlace.",
+  "chooseServerForLink": "Selecciona un servidor antes de abrir un enlace a un canal."
 }

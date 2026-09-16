@@ -1,4 +1,5 @@
 import { startOidcLogin } from './oidc-login.js';
+import { createMinimizedCaptureSources } from './minimized-capture-sources.js';
 import {
   app,
   BrowserWindow,
@@ -1469,6 +1470,10 @@ const getProcessAudioCaptureExecutablePath = () =>
     ? join(currentDirectory, '../native/bin/ProcessAudioCapture.exe')
     : join(process.resourcesPath, 'native', 'ProcessAudioCapture.exe');
 
+const minimizedCaptureSources = createMinimizedCaptureSources(
+  getProcessAudioCaptureExecutablePath()
+);
+
 const stopApplicationAudioCapture = () => {
   const capture = activeApplicationAudioCapture;
   activeApplicationAudioCapture = undefined;
@@ -1714,6 +1719,9 @@ const configureMediaPermissions = () => {
       }
 
       try {
+        if (process.platform === 'win32') {
+          await minimizedCaptureSources.restore(sourceId);
+        }
         const sources = await desktopCapturer.getSources({
           types: ['screen', 'window'],
           thumbnailSize: { width: 0, height: 0 },
@@ -1858,7 +1866,7 @@ const registerDesktopIpcHandlers = () => {
       fetchWindowIcons: false
     });
 
-    return sources.map<TDesktopCaptureSource>((source) => ({
+    const captureSources = sources.map<TDesktopCaptureSource>((source) => ({
       id: source.id,
       name: source.name || 'Untitled source',
       type: source.id.startsWith('screen:') ? 'screen' : 'window',
@@ -1866,6 +1874,22 @@ const registerDesktopIpcHandlers = () => {
         ? undefined
         : source.thumbnail.toDataURL()
     }));
+
+    if (process.platform === 'win32') {
+      try {
+        const minimizedSources = await minimizedCaptureSources.list();
+        const sourceIds = new Set(captureSources.map(({ id }) => id));
+        captureSources.push(
+          ...minimizedSources.filter(({ id }) => !sourceIds.has(id))
+        );
+      } catch (error) {
+        writeDesktopCaptureDiagnostic('minimized-window-list-error', {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+
+    return captureSources;
   });
   ipcMain.handle(
     'sandshark:set-desktop-capture-source',

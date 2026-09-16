@@ -21,6 +21,17 @@
     "server_error": "Something went wrong while signing in. Please try again."
   },
   "loggingInAutomatically": "Logging in automatically...",
-  "loadingApp": "Loading Sharkord",
-  "loadingPlugins": "Loading Plugins"
+  "loadingApp": "Loading SandShark",
+  "loadingPlugins": "Loading Plugins",
+  "noServerSelected": "No server has been selected.",
+  "enterServerUrl": "Enter a server URL.",
+  "incompatibleServer": "This endpoint does not appear to be a compatible server.",
+  "savedServerUnreachable": "Could not reach the saved server. Check its URL and try again.",
+  "validateServerFailed": "Could not validate the server.",
+  "addServerHint": "Add a server to get started with SandShark.",
+  "editServerTitle": "Edit server",
+  "addServerTitle": "Add server",
+  "serverUrlLabel": "Server URL",
+  "linkedServerFailed": "Could not open the linked server.",
+  "chooseServerForLink": "Choose a server before opening a channel link."
 }

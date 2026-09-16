@@ -1,14 +1,14 @@
-# Sharkord Contributing Guide
+# SandShark Contributing Guide
 
 ## Maintainer Authority
 
-Sharkord is maintained by its core maintainers.
+SandShark is maintained by its core maintainers.
 
 Contributions that do not align with the project’s vision, scope, or technical direction may be closed without merge. Maintainer decisions are final. This ensures the project remains focused, coherent, and sustainable long-term.
 
-## What Sharkord Is
+## What SandShark Is
 
-Sharkord is a self-hosted communication platform that provides core Discord-like features on your own infrastructure.
+SandShark is a Windows desktop client for compatible Sharkord servers. It builds on the upstream frontend and keeps the server and shared packages in this repository for compatibility and development.
 
 It follows the philosophy of TeamSpeak: focused, lightweight, and practical — with a clean, modern interface and an emphasis on ease of deployment.
 
@@ -21,9 +21,9 @@ It follows the philosophy of TeamSpeak: focused, lightweight, and practical — 
 - **Small Group Focus**: Designed for families, friends, and small teams.
 - **No Paywalls**: Fully free and open. No premium tiers.
 
-## What Sharkord Is Not
+## What SandShark Is Not
 
-- **Not a Discord Clone**: We do not aim to replicate every Discord feature. Sharkord is not intended to be a huge community platform or a knowledge base. We focus on core communication features, not feature parity with Discord.
+- **Not a Discord Clone**: We do not aim to replicate every Discord feature. SandShark is not intended to be a huge community platform or a knowledge base. We focus on core communication features, not feature parity with Discord.
 - **Not for Large Communities**: Enterprise-scale or massive community features are out of scope.
 - **Not Bloated Software**: We reject unnecessary features, over-engineering, and complexity.
 
@@ -47,7 +47,7 @@ Your issue must:
 
 - Clearly describe the problem or feature
 - Include relevant context (logs, screenshots, reproduction steps if applicable)
-- Explain why it fits Sharkord’s scope
+- Explain why it fits SandShark’s scope
 
 Vague or low-effort issues may be closed.
 

@@ -44,7 +44,7 @@ const getDocumentTitle = (
   serverName: string | undefined,
   unreadCount: number
 ): string => {
-  if (!isConnected || !serverName) return 'Sharkord';
+  if (!isConnected || !serverName) return 'SandShark';
 
   return unreadCount > 0 ? `${serverName} (${unreadCount})` : serverName;
 };

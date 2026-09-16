@@ -77,7 +77,7 @@ export const connect = async () => {
   const connection = getServerConnection();
 
   if (!connection) {
-    throw new Error('No Sharkord server has been selected.');
+    throw new Error(i18n.t('connect:noServerSelected'));
   }
 
   const trpc = await connectToTRPC(connection.websocketUrl);

@@ -99,11 +99,11 @@ describe('getDocumentTitle', () => {
   });
 
   test('should fall back to the app name while disconnected', () => {
-    expect(getDocumentTitle(false, 'My Server', 5)).toBe('Sharkord');
+    expect(getDocumentTitle(false, 'My Server', 5)).toBe('SandShark');
   });
 
   // the name arrives with the join payload, so it is briefly missing on a live connection
   test('should fall back to the app name before the server name arrives', () => {
-    expect(getDocumentTitle(true, undefined, 0)).toBe('Sharkord');
+    expect(getDocumentTitle(true, undefined, 0)).toBe('SandShark');
   });
 });

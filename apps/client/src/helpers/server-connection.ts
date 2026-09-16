@@ -1,3 +1,4 @@
+import { i18n } from '@/i18n';
 import { isDesktopClient } from '@/platform/environment';
 import type { TServerInfo } from '@sharkord/shared';
 import {
@@ -27,7 +28,7 @@ const normalizeServerUrl = (value: string) => {
   const input = value.trim();
 
   if (!input) {
-    throw new Error('Enter a Sharkord server URL.');
+    throw new Error(i18n.t('connect:enterServerUrl'));
   }
 
   const url = new URL(/^https?:\/\//i.test(input) ? input : `https://${input}`);
@@ -294,7 +295,7 @@ const validateServerConnection = async (value: string) => {
     typeof info.name !== 'string' ||
     typeof info.version !== 'string'
   ) {
-    throw new Error('This endpoint does not appear to be a Sharkord server.');
+    throw new Error(i18n.t('connect:incompatibleServer'));
   }
 
   return {

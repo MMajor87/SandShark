@@ -1,6 +1,6 @@
 # Sharkord v0.0.25 merge checklist
 
-Status: integration in progress on `integrate/sharkord-v0.0.25` in `.integration/sharkord-v0.0.25`.
+Status: local integration complete. Merge commit `1875f5e3` is on `main` and `integrate/sharkord-v0.0.25`. Release-only checks remain unchecked below.
 
 Target: `b94d9a9e` (Sharkord v0.0.25). See [the assessment](UPSTREAM_MERGE_ASSESSMENT.md) for evidence and release links. Complete the phases in order. A checked task must have a recorded result; unresolved failures stay unchecked.
 
@@ -60,7 +60,7 @@ Gate: server/shared types compile, route tests pass, and plugin compatibility is
 ## 5. Reconcile desktop integration and redesigned UI
 
 - [x] Resolve routing, connect screen, tRPC, storage and server-state conflicts while preserving saved servers/accounts and desktop credentials.
-- [ ] Integrate OIDC and session invalidation; test local login, logout, expiration, reconnect and server switching.
+- [x] Integrate OIDC and session invalidation; test local login, logout, expiration, reconnect and server switching.
 - [ ] Verify OIDC's external-browser/callback flow fits desktop navigation and deep-link restrictions. Test enabled and disabled configurations.
 - [x] Move the avatar/banner fixes into the redesigned profile UI before accepting removal of the old manager components.
 - [x] Retain desktop/update settings, calendar navigation and SandShark branding in the new settings layout.
@@ -93,7 +93,7 @@ Gate: actual listener tests confirm useful audio and self-audio exclusion; a liv
 - [x] Run `bun run synci18n` from `packages/scripts`; fix only keys affected by the integration across supported languages, including pt-BR.
 - [x] Review all conflict resolutions, auto-merged fork files and remaining conflict markers.
 - [x] Run `bun run magic` and `bun run test` from the repository root. Resolve new failures and record any remaining blockers.
-- [ ] Run `bun run db:check` from `apps/server` and upstream E2E coverage through the merged root `test:e2e` script.
+- [x] Run `bun run db:check` from `apps/server` and upstream E2E coverage through the merged root `test:e2e` script.
 - [x] Build the server, client, Electron main process and native helper; run desktop security-boundary and packaged-startup checks.
 
 Gate: the merged source builds and required checks pass, with reproducible commands/results recorded.
@@ -104,9 +104,9 @@ Gate: the merged source builds and required checks pass, with reproducible comma
 - [ ] Repeat desktop login, update controls, profiles, calendars, files, plugins and live audio checks on the packaged candidate.
 - [ ] Rehearse the upgrade using the database copy, including migration backup behavior and rollback to the old code plus old data backup. Upgrade, backup creation and repeat startup pass; old-executable rollback smoke remains a release check.
 - [x] Review the final diff for lost SandShark behavior, accidental upstream branding/version replacements, secrets and unrelated changes.
-- [ ] Record final upstream ancestry and the tested target commit; verify the next upstream comparison starts from v0.0.25.
+- [x] Record final upstream ancestry and the tested target commit; verify the next upstream comparison starts from v0.0.25.
 - [x] Write release notes covering SDK/plugin incompatibility, database upgrade behavior, audio changes and remaining limitations.
-- [ ] Complete the authorized local integration merge and present the candidate with test evidence. Publishing and deployment remain outside this task.
+- [x] Complete the authorized local integration merge and present the candidate with test evidence. Publishing and deployment remain outside this task.
 
 Gate: a reviewable, tested candidate exists with a demonstrated rollback path.
 
@@ -127,7 +127,7 @@ Results are recorded below as each phase is validated. Unchecked live checks rem
 | 4. Server/plugins | Integrated | 1,456 server and 207 shared tests pass; no installed local plugins | Deployed third-party plugin inventory |
 | 5. Desktop/UI | Integrated | Types, client build, 7 desktop OIDC tests and security boundary pass | Real identity provider and installed desktop workflows |
 | 6. Voice/audio | Preserved and integrated | Client diagnostics and 3 native helper tests pass | Second-participant listening tests |
-| 7. Repository checks | Final candidate | magic, unit tests, db:check and all build targets pass | Final E2E run pending |
+| 7. Repository checks | Final candidate | magic, unit tests, db:check and all build targets pass | E2E exits 0; media-scroll check required retry |
 | 8. Candidate | Local unpacked Windows app | Packaged startup passes; release notes written | Live audio, real OIDC and deployment checks |
 
 ### Progress: checkpoint and baseline
@@ -161,4 +161,15 @@ Results are recorded below as each phase is validated. Unchecked live checks rem
 - `bun run magic` passes with warnings only. Final `bun run test`: server 1,456 passed, shared 207 passed (one existing skip), client 86 passed, desktop 7 passed. Native helper tests: 3 passed.
 - E2E findings resolved: late media resizing now keeps a bottom-following reader at the bottom; confirmation helpers click the intended action instead of racing autofocus; Windows test data is cleaned by the next seed before server startup rather than while SQLite is open; saved-token assertions now use SandShark's per-server storage; logout preserves identity and clears credentials.
 - Unit and browser suites must run sequentially because both use mediasoup UDP port 40000. A concurrent run collided on that port; the subsequent sequential unit run passed.
-- Final full E2E command is running with portable Node on PATH and PLAYWRIGHT_BROWSERS_PATH pointing to `.integration/browsers`.
+- Final full E2E command completed with portable Node on PATH and PLAYWRIGHT_BROWSERS_PATH pointing to `.integration/browsers`: 46 passed directly, 1 flaky test passed on retry, 1 exploration harness skipped, exit code 0.
+
+### Completion
+
+- Merge commit `1875f5e3` has parents `287d316e` and `b94d9a9e`. `git merge-base HEAD v0.0.25^{}` resolves to `b94d9a9e`, so the next upstream merge starts from the correct release.
+- Fast-forwarded the main checkout and ran `bun install --frozen-lockfile` successfully. Only the pre-existing deletion of `Sharkord_Desktop_Fork_TODO.md` remains as a tracked working-tree change.
+- Original uncommitted audio files and planning documents are additionally preserved in the named stash `pre-upstream-merge workspace preserved; audio changes included in e7983d4c`. Their implemented audio changes are already committed; do not apply that stash over the merged code.
+- Final E2E: 46 passed directly, the media-scroll check passed on its second retry, and 1 exploration-only test was skipped. The scroll check remains flaky and should be stabilized before relying on it as a strict release gate. All other checks passed without retries.
+- Final packaged startup passes with isolated user data. The smoke script now clears and restores inherited ELECTRON_RUN_AS_NODE so it starts the actual desktop application.
+- Candidate: `.integration/sharkord-v0.0.25/apps/desktop/release/win-unpacked/SandShark.exe`. Server release binaries are under the integration worktree's `apps/server/build/out`.
+- Evidence logs are at the main checkout root: `integration-magic.log`, `integration-tests.log`, `integration-e2e-final.log`, `integration-upgrade.log`, `integration-server-build.log`, `integration-native-build.log`, `integration-package.log`, and `integration-startup.log`. These logs and build artifacts are not committed.
+- Remaining release checks: real OIDC provider, deployed plugin inventory, installed desktop update/persistence workflows, old-executable rollback startup, and second-participant audio/exclusion testing. No push, publication or deployment was performed.

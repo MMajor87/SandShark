@@ -27,6 +27,7 @@ The plugin SDK and runtime changed together. Existing deployed plugins must be c
 - Test an actual identity provider in the packaged desktop application.
 - Test saved-server switching, updater controls and desktop persistence on the target installation.
 - Use a second participant to verify program/screen audio, SandShark voice/notification exclusion, mute/deafen, device changes and capture recovery. Native startup and RTP statistics alone do not establish audible correctness.
+- The media-scroll E2E check passes on retry and remains flaky.
 - Development-only upstream commits remain outside this merge.
 
 See `UPSTREAM_MERGE_CHECKLIST.md` for commands, results and outstanding gates. No release was published and no deployment database was modified.

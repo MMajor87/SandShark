@@ -7,6 +7,8 @@ $ErrorActionPreference = "Stop"
 
 $resolvedExecutable = Resolve-Path -LiteralPath $ExecutablePath -ErrorAction Stop
 $userDataDir = Join-Path ([System.IO.Path]::GetTempPath()) ("sandshark-smoke-" + [Guid]::NewGuid().ToString("N"))
+$previousElectronRunAsNode = $env:ELECTRON_RUN_AS_NODE
+$env:ELECTRON_RUN_AS_NODE = $null
 $previousSmokeTest = $env:SANDSHARK_SMOKE_TEST
 $previousSmokeUserDataDir = $env:SANDSHARK_SMOKE_USER_DATA_DIR
 
@@ -44,6 +46,7 @@ try {
     Status = "Running"
   } | Format-List
 } finally {
+  $env:ELECTRON_RUN_AS_NODE = $previousElectronRunAsNode
   $env:SANDSHARK_SMOKE_TEST = $previousSmokeTest
   $env:SANDSHARK_SMOKE_USER_DATA_DIR = $previousSmokeUserDataDir
 

@@ -1,7 +1,7 @@
 import { BrowserWindow } from 'electron';
 import { randomUUID } from 'node:crypto';
 
-const startOidcLogin = (parent: BrowserWindow, serverUrl: string) => {
+const startOidcLogin = (parent: BrowserWindow, serverUrl: string, invite?: string) => {
   const server = new URL(serverUrl);
   if (
     !['https:', 'http:'].includes(server.protocol) ||
@@ -13,6 +13,12 @@ const startOidcLogin = (parent: BrowserWindow, serverUrl: string) => {
   ) {
     throw new Error('Invalid authentication server URL.');
   }
+
+  if (invite !== undefined && (typeof invite !== 'string' || invite.length > 256)) {
+    throw new Error('Invalid invite code.');
+  }
+  const loginUrl = new URL('/oidc/login', server);
+  if (invite) loginUrl.searchParams.set('invite', invite);
 
   return new Promise<string | null>((resolve, reject) => {
     const loginWindow = new BrowserWindow({
@@ -100,7 +106,7 @@ const startOidcLogin = (parent: BrowserWindow, serverUrl: string) => {
     loginWindow.webContents.on('will-redirect', handleNavigation);
     loginWindow.on('closed', () => finish(null));
     void loginWindow
-      .loadURL(`${server.origin}/oidc/login`)
+      .loadURL(loginUrl.href)
       .catch((error: Error) => finish(null, error));
   });
 };

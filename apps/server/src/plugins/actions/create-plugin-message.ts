@@ -1,4 +1,8 @@
-import { getPlainTextFromHtml, isEmptyMessage } from '@sharkord/shared';
+import {
+  getPlainTextFromHtml,
+  isEmptyMessage,
+  type TPluginMessageComponent
+} from '@sharkord/shared';
 import { eq } from 'drizzle-orm';
 import { pluginManager } from '..';
 import { db } from '../../db';
@@ -7,9 +11,11 @@ import { getSettings } from '../../db/queries/server';
 import { channels, messageFiles, messages } from '../../db/schema';
 import { fileManager } from '../../helpers/file-manager';
 import { sanitizeMessageHtml } from '../../helpers/sanitize-html';
+import { followThreadOnReply } from '../../helpers/threads';
 import { enqueueProcessMetadata } from '../../queues/message-metadata';
 import { invariant } from '../../utils/invariant';
 import { eventBus } from '../event-bus';
+import { parsePluginMessageComponents } from './plugin-message-components';
 
 type TPluginMessageFile = {
   name: string;
@@ -24,6 +30,7 @@ type TCreatePluginMessageOptions = {
   replyToMessageId?: number;
   files?: TPluginMessageFile[];
   previews?: boolean;
+  components?: TPluginMessageComponent[];
 };
 
 const createPluginMessage = async (
@@ -36,7 +43,8 @@ const createPluginMessage = async (
     parentMessageId,
     replyToMessageId,
     files = [],
-    previews = true
+    previews = true,
+    components
   } = options;
 
   invariant(pluginManager.isEnabled(pluginId), {
@@ -113,6 +121,9 @@ const createPluginMessage = async (
     message: `At most ${settings.storageMaxFilesPerMessage} file(s) can be attached per message.`
   });
 
+  const parsedComponents =
+    components === undefined ? null : parsePluginMessageComponents(components);
+
   const sanitizedContent = sanitizeMessageHtml(content);
 
   invariant(!isEmptyMessage(sanitizedContent) || files.length > 0, {
@@ -139,6 +150,7 @@ const createPluginMessage = async (
         channelId,
         userId: null,
         pluginId,
+        pluginComponents: parsedComponents,
         content: sanitizedContent,
         editable: false,
         parentMessageId: parentMessageId ?? null,
@@ -163,6 +175,13 @@ const createPluginMessage = async (
     return created;
   });
 
+  if (message.parentMessageId) {
+    await followThreadOnReply({
+      ...message,
+      parentMessageId: message.parentMessageId
+    });
+  }
+
   publishMessage(message.id, channelId, 'create');
 
   if (parentMessageId) {
@@ -177,7 +196,10 @@ const createPluginMessage = async (
     userId: null,
     pluginId,
     content: sanitizedContent,
-    textContent: getPlainTextFromHtml(sanitizedContent)
+    textContent: getPlainTextFromHtml(sanitizedContent),
+    parentMessageId: message.parentMessageId,
+    replyToMessageId: message.replyToMessageId,
+    fileIds
   });
 
   return { messageId: message.id };

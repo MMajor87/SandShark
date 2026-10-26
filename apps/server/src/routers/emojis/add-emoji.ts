@@ -1,12 +1,9 @@
-import { ActivityLogType, FileSaveType, Permission } from '@sharkord/shared';
+import { FileSaveType, Permission } from '@sharkord/shared';
 import { z } from 'zod';
 import { config } from '../../config';
-import { db } from '../../db';
-import { publishEmoji } from '../../db/publishers';
 import { getUniqueEmojiName } from '../../db/queries/emojis';
-import { emojis } from '../../db/schema';
+import { insertEmojis } from '../../helpers/emojis';
 import { fileManager } from '../../helpers/file-manager';
-import { enqueueActivityLog } from '../../queues/activity-log';
 import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
 
 const MAX_EMOJIS_PER_CALL = 20;
@@ -45,31 +42,7 @@ const addEmojiRoute = rateLimitedProcedure(protectedProcedure, {
       });
     }
 
-    const createdEmojis = db.transaction((tx) =>
-      tx
-        .insert(emojis)
-        .values(
-          prepared.map(({ name, fileId }) => ({
-            name,
-            fileId,
-            userId: ctx.userId,
-            createdAt: Date.now()
-          }))
-        )
-        .returning()
-        .all()
-    );
-
-    for (const emoji of createdEmojis) {
-      publishEmoji(emoji.id, 'create');
-      enqueueActivityLog({
-        type: ActivityLogType.CREATED_EMOJI,
-        userId: ctx.user.id,
-        details: {
-          name: emoji.name
-        }
-      });
-    }
+    insertEmojis(prepared, ctx.userId, ctx.user.id);
   });
 
 export { addEmojiRoute };

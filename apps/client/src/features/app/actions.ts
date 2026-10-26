@@ -1,5 +1,6 @@
 import { assertNotificationsPermission } from '@/helpers/assert-notifications-permission';
 import { getFileUrl, getUrlFromServer } from '@/helpers/get-file-url';
+import { setMutedNotificationChannelIds } from '@/helpers/muted-notification-channels';
 import {
   getActiveServerProfile,
   getServerConnection,
@@ -14,12 +15,17 @@ import {
 } from '@/helpers/storage';
 import { i18n } from '@/i18n';
 import { isDesktopClient } from '@/platform/environment';
-import type { TMessageJumpToTarget } from '@/types';
+import {
+  MicMode,
+  type TMessageJumpToTarget,
+  type TThreadTarget
+} from '@/types';
 import type { TServerInfo } from '@sharkord/shared';
 import { toast } from 'sonner';
 import { markChannelAsRead, setInfo, switchServer } from '../server/actions';
 import { store } from '../store';
 import {
+  mutedChannelIdsSelector,
   pluginSlotDebugSelector,
   voiceChatChannelIdSelector,
   voiceChatSidebarDataSelector
@@ -203,12 +209,37 @@ export const resetApp = () => {
       channelId: undefined
     })
   );
+  store.dispatch(appSliceActions.setSelectedThread(undefined));
 };
 
 export const setAutoJoinLastChannel = (autoJoin: boolean) => {
   store.dispatch(appSliceActions.setAutoJoinLastChannel(autoJoin));
 
   setLocalStorageItemBool(LocalStorageKey.AUTO_JOIN_LAST_CHANNEL, autoJoin);
+};
+
+export const setMicMode = (micMode: MicMode) => {
+  store.dispatch(appSliceActions.setMicMode(micMode));
+
+  setLocalStorageItem(LocalStorageKey.MIC_MODE, micMode);
+};
+
+export const setHotkeysEnabled = (enabled: boolean) => {
+  store.dispatch(appSliceActions.setHotkeysEnabled(enabled));
+
+  setLocalStorageItemBool(LocalStorageKey.HOTKEYS_ENABLED, enabled);
+
+  if (!enabled) {
+    setMicMode(MicMode.OPEN);
+  }
+};
+
+export const setSelectedThread = (thread: TThreadTarget | undefined) => {
+  store.dispatch(appSliceActions.setSelectedThread(thread));
+
+  if (thread) {
+    closeThreadSidebar();
+  }
 };
 
 export const setSelectedDmChannelId = (channelId: number | undefined) => {
@@ -262,6 +293,26 @@ export const setBrowserNotificationsForReplies = async (enabled: boolean) => {
     LocalStorageKey.BROWSER_NOTIFICATIONS_FOR_REPLIES,
     enabled
   );
+};
+
+export const setNotificationSounds = (enabled: boolean) => {
+  store.dispatch(appSliceActions.setNotificationSounds(enabled));
+  setLocalStorageItemBool(LocalStorageKey.NOTIFICATION_SOUNDS, enabled);
+};
+
+export const setMessageSentSound = (enabled: boolean) => {
+  store.dispatch(appSliceActions.setMessageSentSound(enabled));
+  setLocalStorageItemBool(LocalStorageKey.MESSAGE_SENT_SOUND, enabled);
+};
+
+export const toggleChannelMuted = (channelId: number) => {
+  const mutedChannelIds = mutedChannelIdsSelector(store.getState());
+  const nextMutedChannelIds = mutedChannelIds.includes(channelId)
+    ? mutedChannelIds.filter((id) => id !== channelId)
+    : [...mutedChannelIds, channelId];
+
+  store.dispatch(appSliceActions.setMutedChannelIds(nextMutedChannelIds));
+  setMutedNotificationChannelIds(nextMutedChannelIds);
 };
 
 export const setMessageJumpTarget = (

@@ -18,11 +18,15 @@ const getOidcHandoffCode = () =>
 const startOidcLogin = async () => {
   suppressOidcAutoRedirect();
 
+  const invite = new URLSearchParams(window.location.search).get('invite');
   if (isDesktopClient() && window.sandSharkDesktop) {
-    return window.sandSharkDesktop.startOidcLogin(getUrlFromServer());
+    return window.sandSharkDesktop.startOidcLogin(
+      getUrlFromServer(),
+      invite ?? undefined
+    );
   }
-
-  window.location.href = `${getUrlFromServer()}/oidc/login`;
+  const query = invite ? `?${new URLSearchParams({ invite })}` : '';
+  window.location.href = `${getUrlFromServer()}/oidc/login${query}`;
 };
 
 export {

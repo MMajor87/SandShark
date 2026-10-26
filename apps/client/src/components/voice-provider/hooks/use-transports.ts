@@ -1,8 +1,4 @@
-import {
-  logVoice,
-  logVoiceError,
-  logVoiceWarn
-} from '@/helpers/browser-logger';
+import { voiceLogger } from '@/helpers/browser-logger';
 import { getTRPCClient } from '@/lib/trpc';
 import type { TRemoteUserStreamKinds } from '@/types';
 import {
@@ -78,14 +74,14 @@ const useTransports = ({
 
   const createProducerTransport = useCallback(
     async (device: Device) => {
-      logVoice('producer transport: creating');
+      voiceLogger.info('producer transport: creating');
 
       const trpc = getTRPCClient();
 
       try {
         const params = await trpc.voice.createProducerTransport.mutate();
 
-        logVoice('producer transport: created', {
+        voiceLogger.info('producer transport: created', {
           transportId: params.id,
           iceCandidates: params.iceCandidates.length
         });
@@ -95,7 +91,7 @@ const useTransports = ({
         producerTransport.current.on(
           'connect',
           async ({ dtlsParameters }, callback, errback) => {
-            logVoice('producer transport: dtls connect requested', {
+            voiceLogger.info('producer transport: dtls connect requested', {
               role: dtlsParameters.role
             });
 
@@ -107,29 +103,34 @@ const useTransports = ({
               callback();
             } catch (error) {
               errback(error as Error);
-              logVoiceError('producer transport: dtls connect failed', error);
+              voiceLogger.error(
+                'producer transport: dtls connect failed',
+                error
+              );
             }
           }
         );
 
         producerTransport.current.on('connectionstatechange', (state) => {
-          logVoice('producer transport: connection state changed', { state });
+          voiceLogger.info('producer transport: connection state changed', {
+            state
+          });
 
           if (state === 'failed') {
-            logVoiceError(
+            voiceLogger.error(
               'producer transport: ice failed, closing',
               new Error(`connection state ${state}`)
             );
             producerTransport.current?.close();
             onTransportFailed();
           } else if (state === 'closed') {
-            logVoice('producer transport: closed');
+            voiceLogger.info('producer transport: closed');
             producerTransport.current = undefined;
           }
         });
 
         producerTransport.current.on('icecandidateerror', (error) => {
-          logVoiceWarn('producer transport: ice candidate error', {
+          voiceLogger.warn('producer transport: ice candidate error', {
             address: error.address,
             port: error.port,
             errorCode: error.errorCode,
@@ -140,7 +141,7 @@ const useTransports = ({
         producerTransport.current.on(
           'produce',
           async ({ rtpParameters, appData }, callback, errback) => {
-            logVoice('producer transport: producing track', {
+            voiceLogger.info('producer transport: producing track', {
               kind: (appData as { kind: StreamKind }).kind,
               codec: rtpParameters.codecs[0]?.mimeType,
               encodings: rtpParameters.encodings?.length ?? 0
@@ -161,7 +162,7 @@ const useTransports = ({
                 qualityLayers
               });
 
-              logVoice('producer transport: track produced', {
+              voiceLogger.info('producer transport: track produced', {
                 kind,
                 producerId
               });
@@ -170,7 +171,9 @@ const useTransports = ({
             } catch (error) {
               if (error instanceof TRPCClientError) {
                 if (error.data.code === 'FORBIDDEN') {
-                  logVoiceWarn('producer transport: produce denied', { kind });
+                  voiceLogger.warn('producer transport: produce denied', {
+                    kind
+                  });
                   errback(
                     new Error(
                       `You don't have permission to ${kind} in this channel`
@@ -181,7 +184,7 @@ const useTransports = ({
                 }
               }
 
-              logVoiceError('producer transport: produce failed', error, {
+              voiceLogger.error('producer transport: produce failed', error, {
                 kind
               });
               errback(error as Error);
@@ -189,7 +192,7 @@ const useTransports = ({
           }
         );
       } catch (error) {
-        logVoiceError('producer transport: create failed', error);
+        voiceLogger.error('producer transport: create failed', error);
       }
     },
     [onTransportFailed]
@@ -197,14 +200,14 @@ const useTransports = ({
 
   const createConsumerTransport = useCallback(
     async (device: Device) => {
-      logVoice('consumer transport: creating');
+      voiceLogger.info('consumer transport: creating');
 
       const trpc = getTRPCClient();
 
       try {
         const params = await trpc.voice.createConsumerTransport.mutate();
 
-        logVoice('consumer transport: created', {
+        voiceLogger.info('consumer transport: created', {
           transportId: params.id,
           iceCandidates: params.iceCandidates.length
         });
@@ -214,7 +217,7 @@ const useTransports = ({
         consumerTransport.current.on(
           'connect',
           async ({ dtlsParameters }, callback, errback) => {
-            logVoice('consumer transport: dtls connect requested', {
+            voiceLogger.info('consumer transport: dtls connect requested', {
               role: dtlsParameters.role
             });
 
@@ -226,16 +229,21 @@ const useTransports = ({
               callback();
             } catch (error) {
               errback(error as Error);
-              logVoiceError('consumer transport: dtls connect failed', error);
+              voiceLogger.error(
+                'consumer transport: dtls connect failed',
+                error
+              );
             }
           }
         );
 
         consumerTransport.current.on('connectionstatechange', (state) => {
-          logVoice('consumer transport: connection state changed', { state });
+          voiceLogger.info('consumer transport: connection state changed', {
+            state
+          });
 
           if (state === 'failed') {
-            logVoiceError(
+            voiceLogger.error(
               'consumer transport: ice failed, closing',
               new Error(`connection state ${state}`)
             );
@@ -251,13 +259,13 @@ const useTransports = ({
             consumerTransport.current = undefined;
             onTransportFailed();
           } else if (state === 'closed') {
-            logVoice('consumer transport: closed');
+            voiceLogger.info('consumer transport: closed');
             consumerTransport.current = undefined;
           }
         });
 
         consumerTransport.current.on('icecandidateerror', (error) => {
-          logVoiceWarn('consumer transport: ice candidate error', {
+          voiceLogger.warn('consumer transport: ice candidate error', {
             address: error.address,
             port: error.port,
             errorCode: error.errorCode,
@@ -265,7 +273,7 @@ const useTransports = ({
           });
         });
       } catch (error) {
-        logVoiceError('consumer transport: create failed', error);
+        voiceLogger.error('consumer transport: create failed', error);
       }
     },
     [onTransportFailed]
@@ -278,7 +286,7 @@ const useTransports = ({
       rtpCapabilities: RtpCapabilities
     ) => {
       if (!consumerTransport.current) {
-        logVoiceWarn('consumer: skipped, no consumer transport', {
+        voiceLogger.warn('consumer: skipped, no consumer transport', {
           remoteId,
           kind
         });
@@ -288,7 +296,7 @@ const useTransports = ({
       const operationKey = `${remoteId}-${kind}`;
 
       if (consumeOperationsInProgress.current.has(operationKey)) {
-        logVoiceWarn('consumer: skipped, consume already in progress', {
+        voiceLogger.warn('consumer: skipped, consume already in progress', {
           remoteId,
           kind
         });
@@ -298,7 +306,7 @@ const useTransports = ({
       consumeOperationsInProgress.current.add(operationKey);
 
       try {
-        logVoice('consumer: consuming', { remoteId, kind });
+        voiceLogger.info('consumer: consuming', { remoteId, kind });
 
         const trpc = getTRPCClient();
 
@@ -315,7 +323,7 @@ const useTransports = ({
           rtpCapabilities
         });
 
-        logVoice('consumer: parameters received', {
+        voiceLogger.info('consumer: parameters received', {
           remoteId,
           producerId,
           consumerId,
@@ -331,7 +339,7 @@ const useTransports = ({
         const existingConsumer = consumers.current[remoteId][consumerKind];
 
         if (existingConsumer && !existingConsumer.closed) {
-          logVoice('consumer: replacing existing consumer', {
+          voiceLogger.info('consumer: replacing existing consumer', {
             remoteId,
             kind
           });
@@ -347,7 +355,7 @@ const useTransports = ({
           rtpParameters: consumerRtpParameters
         });
 
-        logVoice('consumer: created', {
+        voiceLogger.info('consumer: created', {
           remoteId,
           kind,
           consumerId: newConsumer.id,
@@ -364,7 +372,11 @@ const useTransports = ({
         cleanupEvents.forEach((event) => {
           // @ts-expect-error - YOLO
           newConsumer?.on(event, () => {
-            logVoice('consumer: cleanup event', { event, remoteId, kind });
+            voiceLogger.info('consumer: cleanup event', {
+              event,
+              remoteId,
+              kind
+            });
 
             if (
               kind === StreamKind.EXTERNAL_VIDEO ||
@@ -430,7 +442,10 @@ const useTransports = ({
           addRemoteUserStream(remoteId, stream, kind);
         }
       } catch (error) {
-        logVoiceError('consumer: consume failed', error, { remoteId, kind });
+        voiceLogger.error('consumer: consume failed', error, {
+          remoteId,
+          kind
+        });
       } finally {
         consumeOperationsInProgress.current.delete(operationKey);
       }
@@ -452,7 +467,7 @@ const useTransports = ({
         [streamId: number]: { audio?: boolean; video?: boolean };
       }
     ) => {
-      logVoice('session: consuming existing producers');
+      voiceLogger.info('session: consuming existing producers');
 
       const trpc = getTRPCClient();
 
@@ -465,7 +480,7 @@ const useTransports = ({
           remoteExternalStreamIds
         } = await trpc.voice.getProducers.query();
 
-        logVoice('session: existing producers received', {
+        voiceLogger.info('session: existing producers received', {
           remoteAudioIds,
           remoteVideoIds,
           remoteScreenIds,
@@ -500,7 +515,10 @@ const useTransports = ({
           }
         });
       } catch (error) {
-        logVoiceError('session: consuming existing producers failed', error);
+        voiceLogger.error(
+          'session: consuming existing producers failed',
+          error
+        );
       }
     },
     [consume]
@@ -514,7 +532,7 @@ const useTransports = ({
   );
 
   const cleanupTransports = useCallback(() => {
-    logVoice('session: cleaning up transports');
+    voiceLogger.info('session: cleaning up transports');
 
     Object.values(consumers.current).forEach((userConsumers) => {
       Object.values(userConsumers).forEach((consumer) => {
@@ -543,7 +561,7 @@ const useTransports = ({
 
     consumerTransport.current = undefined;
 
-    logVoice('session: transports cleanup complete');
+    voiceLogger.info('session: transports cleanup complete');
   }, [clearRemoteConsumerMetadata]);
 
   return {

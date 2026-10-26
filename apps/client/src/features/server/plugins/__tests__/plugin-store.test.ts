@@ -14,11 +14,20 @@ const SLICES = {
   ownUserId: 1,
   selectedChannelId: 1,
   currentVoiceChannelId: undefined,
+  ownVoiceState: {
+    micMuted: false,
+    soundMuted: false,
+    webcamEnabled: false,
+    sharingScreen: false
+  },
   publicSettings: undefined
 };
 
+// the plugin state also reads the user's hotkeys setting from the app slice
+const APP = { hotkeysEnabled: false };
+
 const stateWith = (overrides: Record<string, unknown> = {}) =>
-  ({ server: { ...SLICES, ...overrides } }) as unknown as IRootState;
+  ({ server: { ...SLICES, ...overrides }, app: APP }) as unknown as IRootState;
 
 describe('mapStateToPluginState', () => {
   // plugins read state through getState, and the standard react integration
@@ -46,13 +55,23 @@ describe('mapStateToPluginState', () => {
     expect(after.selectedChannelId).toBe(42);
   });
 
+  // a plugin playing audio for the call has to go quiet when the user deafens
+  test('should expose the own voice state as it changes', () => {
+    const deafened = { ...SLICES.ownVoiceState, soundMuted: true };
+    const after = mapStateToPluginState(stateWith({ ownVoiceState: deafened }));
+
+    expect(after.ownVoiceState.soundMuted).toBe(true);
+  });
+
   test('should expose exactly the documented keys', () => {
     expect(Object.keys(mapStateToPluginState(stateWith())).sort()).toEqual([
       'categories',
       'channels',
       'currentVoiceChannelId',
       'emojis',
+      'hotkeysEnabled',
       'ownUserId',
+      'ownVoiceState',
       'plugins',
       'publicSettings',
       'roles',

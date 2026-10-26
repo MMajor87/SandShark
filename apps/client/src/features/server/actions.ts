@@ -1,5 +1,6 @@
 import { Dialog } from '@/components/dialogs/dialogs';
 import { logDebug } from '@/helpers/browser-logger';
+import { getMutedNotificationChannelIds } from '@/helpers/muted-notification-channels';
 import { getServerConnection } from '@/helpers/server-connection';
 import { clearCurrentServerAutoLogin } from '@/helpers/server-session';
 import { playSound } from '@/helpers/sounds';
@@ -40,6 +41,14 @@ export const setConnected = (status: boolean) => {
 
 export const resetServerState = () => {
   store.dispatch(serverSliceActions.resetState());
+  store.dispatch(appSliceActions.setSelectedThread(undefined));
+  store.dispatch(
+    appSliceActions.setThreadSidebarOpen({
+      open: false,
+      parentMessageId: undefined,
+      channelId: undefined
+    })
+  );
 };
 
 export const setDisconnectInfo = (info: TDisconnectInfo | undefined) => {
@@ -65,6 +74,9 @@ export const setActiveFullscreenPluginId = (pluginId: string | undefined) => {
 };
 
 export const connect = async () => {
+  store.dispatch(
+    appSliceActions.setMutedChannelIds(getMutedNotificationChannelIds())
+  );
   const state = store.getState();
   const info = infoSelector(state);
 
@@ -254,6 +266,8 @@ export const reconnectToServer = (info: TDisconnectInfo) => {
 };
 
 export const jumpToMessage = (target: TMessageJumpToTarget) => {
+  store.dispatch(serverSliceActions.setThreadsOpen(false));
+  store.dispatch(appSliceActions.setSelectedThread(undefined));
   store.dispatch(appSliceActions.setMessageJumpTarget(target));
 
   if (target.isDm) {

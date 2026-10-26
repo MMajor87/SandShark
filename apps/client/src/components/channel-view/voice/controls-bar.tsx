@@ -1,3 +1,5 @@
+import { Protect } from '@/components/protect';
+import { useIsCurrentVoiceChannelSelected } from '@/features/server/channels/hooks';
 import { useChannelCan } from '@/features/server/hooks';
 import { leaveVoice } from '@/features/server/voice/actions';
 import {
@@ -6,7 +8,7 @@ import {
   useVoice
 } from '@/features/server/voice/hooks';
 import { cn } from '@/lib/utils';
-import { ChannelPermission } from '@sharkord/shared';
+import { ChannelPermission, Permission } from '@sharkord/shared';
 import { Button, Tooltip } from '@sharkord/ui';
 import {
   HeadphoneOff,
@@ -21,6 +23,7 @@ import {
 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { ControlToggleButton } from './control-toggle-button';
+import { ReactionsButton } from './reactions-button';
 
 type TControlsBarProps = {
   channelId: number;
@@ -38,6 +41,7 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
   const ownVoiceState = useOwnVoiceState();
   const channelCan = useChannelCan(channelId);
   const alwaysShowControls = useAlwaysShowVoiceControls();
+  const isConnectedToThisChannel = useIsCurrentVoiceChannelSelected();
 
   const permissions = useMemo(
     () => ({
@@ -78,7 +82,11 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
           disabledIcon={Mic}
           enabledClassName="bg-red-500/20 text-red-500 hover:bg-red-500/30 hover:text-red-500"
           onClick={toggleMic}
-          disabled={!permissions.canSpeak || ownVoiceState.soundMuted}
+          disabled={
+            !permissions.canSpeak ||
+            ownVoiceState.soundMuted ||
+            ownVoiceState.serverMuted
+          }
         />
 
         {pushToTalkActive && (
@@ -125,11 +133,19 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
             disabled={!permissions.canShareScreen}
           />
         )}
+
+        {isConnectedToThisChannel && (
+          <Protect permission={Permission.SEND_VOICE_REACTION}>
+            <div className="h-8 border-r-2 border-border" />
+
+            <ReactionsButton />
+          </Protect>
+        )}
       </div>
       <Tooltip content="Disconnect">
         <Button
           className={cn(
-            'inline-flex h-full min-w-11 items-center justify-center rounded px-3 border border-border',
+            'inline-flex h-auto self-stretch min-w-11 items-center justify-center rounded px-3 border border-border',
             'pointer-events-auto text-white shadow-xl transition-all',
             'bg-[#ec4245] hover:bg-[#da373c]'
           )}

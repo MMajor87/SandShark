@@ -1788,10 +1788,15 @@ const configureYouTubeEmbedIdentity = () => {
 };
 
 const registerDesktopIpcHandlers = () => {
-  ipcMain.handle('sandshark:start-oidc-login', (event, serverUrl: unknown) => {
+  ipcMain.handle('sandshark:start-oidc-login', (event, payload: unknown) => {
+    if (!payload || typeof payload !== 'object') throw new Error('Invalid authentication request.');
+    const { serverUrl, invite } = payload as { serverUrl?: unknown; invite?: unknown };
     const senderWindow = getSenderWindow(event);
     if (typeof serverUrl !== 'string' || serverUrl.length > 2048) throw new Error('Invalid authentication server URL.');
-    return startOidcLogin(senderWindow, serverUrl);
+    if (invite !== undefined && (typeof invite !== 'string' || invite.length > 256)) {
+      throw new Error('Invalid invite code.');
+    }
+    return startOidcLogin(senderWindow, serverUrl, invite);
   });
   ipcMain.handle('sandshark:get-version', (event) => {
     getSenderWindow(event);

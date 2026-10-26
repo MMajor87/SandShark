@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import type { Consumer, Producer } from 'mediasoup/types';
 import { eventBus } from '../../plugins/event-bus';
 import { pubsub } from '../../utils/pubsub';
-import { VoiceRuntime } from '../voice';
+import { EXTERNAL_STREAM_ID_BASE, VoiceRuntime } from '../voice';
 
 type TCloseHandler = () => void;
 
@@ -25,6 +25,12 @@ const createProducerStub = () => {
     close: () => {
       stub.closed = true;
       handlers.forEach((handler) => handler());
+    },
+    pause: async () => {
+      stub.paused = true;
+    },
+    resume: async () => {
+      stub.paused = false;
     }
   };
 
@@ -133,10 +139,10 @@ describe('VoiceRuntime producer and consumer maps', () => {
 });
 
 describe('VoiceRuntime external streams', () => {
-  // ids come from a counter that starts at zero, so the second stream in a channel is id 1,
-  // which is also the first user id. the client cannot decide "this producer is mine" from
-  // the id alone, see isOwnProducerEvent
-  test('should hand out ids from zero, colliding with user ids', () => {
+  // the id reaches clients in the same field as a user id, and anything that reads
+  // one as the other drops the stream for exactly the user whose id matched: the
+  // music that played for everyone else. so the two ranges cannot overlap
+  test('should hand out ids that cannot collide with user ids', () => {
     const runtime = createRuntime();
 
     const first = runtime.createExternalStream({
@@ -153,8 +159,8 @@ describe('VoiceRuntime external streams', () => {
       producers: { audio: createProducerStub() as unknown as Producer }
     });
 
-    expect(first).toBe(0);
-    expect(second).toBe(1);
+    expect(first).toBe(EXTERNAL_STREAM_ID_BASE);
+    expect(second).toBe(EXTERNAL_STREAM_ID_BASE + 1);
   });
 
   test('should expose a new stream to the joining snapshot', () => {
@@ -299,5 +305,177 @@ describe('VoiceRuntime producer events', () => {
         producerId: first.id
       }
     ]);
+  });
+});
+
+describe('VoiceRuntime state events', () => {
+  test('should announce the whole state after a change', async () => {
+    const runtime = createRuntime();
+    const seen: unknown[] = [];
+
+    runtime.addUser(3, { micMuted: false, soundMuted: false });
+
+    const unregister = eventBus.register(
+      'test-plugin',
+      'voice:state_updated',
+      (payload) => {
+        seen.push(payload);
+      }
+    );
+
+    runtime.updateUserState(3, { micMuted: true });
+
+    await Bun.sleep(0);
+    unregister();
+
+    expect(seen).toEqual([
+      {
+        channelId: runtime.id,
+        userId: 3,
+        state: {
+          micMuted: true,
+          soundMuted: false,
+          webcamEnabled: false,
+          sharingScreen: false,
+          serverMuted: false
+        }
+      }
+    ]);
+  });
+
+  test('should stay quiet for a user who is not in the channel', async () => {
+    const runtime = createRuntime();
+    const seen: unknown[] = [];
+
+    const unregister = eventBus.register(
+      'test-plugin',
+      'voice:state_updated',
+      (payload) => {
+        seen.push(payload);
+      }
+    );
+
+    runtime.updateUserState(3, { micMuted: true });
+
+    await Bun.sleep(0);
+    unregister();
+
+    expect(seen).toEqual([]);
+  });
+});
+
+describe('VoiceRuntime server mute', () => {
+  test('should mute the user and pause the audio they are sending', async () => {
+    const runtime = createRuntime();
+    const producer = createProducerStub();
+
+    runtime.addUser(3, { micMuted: false, soundMuted: false });
+    runtime.addProducer(3, StreamKind.AUDIO, producer as unknown as Producer);
+
+    VoiceRuntime.setServerMuted(3, true);
+    runtime.syncServerMute(3);
+
+    await Bun.sleep(0);
+
+    expect(producer.paused).toBe(true);
+    expect(VoiceRuntime.isServerMuted(3)).toBe(true);
+    expect(runtime.getUserState(3)).toMatchObject({
+      micMuted: true,
+      serverMuted: true
+    });
+  });
+
+  // the user unmutes themselves once they are ready, as after any mute
+  test('should resume the audio but leave the mic muted when lifted', async () => {
+    const runtime = createRuntime();
+    const producer = createProducerStub();
+
+    runtime.addUser(3, { micMuted: false, soundMuted: false });
+    runtime.addProducer(3, StreamKind.AUDIO, producer as unknown as Producer);
+
+    VoiceRuntime.setServerMuted(3, true);
+    runtime.syncServerMute(3);
+    VoiceRuntime.setServerMuted(3, false);
+    runtime.syncServerMute(3);
+
+    await Bun.sleep(0);
+
+    expect(producer.paused).toBe(false);
+    expect(VoiceRuntime.isServerMuted(3)).toBe(false);
+    expect(runtime.getUserState(3)).toMatchObject({
+      micMuted: true,
+      serverMuted: false
+    });
+  });
+
+  test('should pause audio a muted user starts sending later', async () => {
+    const runtime = createRuntime();
+    const producer = createProducerStub();
+
+    runtime.addUser(3, { micMuted: false, soundMuted: false });
+    VoiceRuntime.setServerMuted(3, true);
+    runtime.syncServerMute(3);
+    runtime.addProducer(3, StreamKind.AUDIO, producer as unknown as Producer);
+
+    await Bun.sleep(0);
+
+    expect(producer.paused).toBe(true);
+  });
+
+  test('should leave a muted user video alone', async () => {
+    const runtime = createRuntime();
+    const producer = createProducerStub();
+
+    runtime.addUser(3, { micMuted: false, soundMuted: false });
+    VoiceRuntime.setServerMuted(3, true);
+    runtime.syncServerMute(3);
+    runtime.addProducer(3, StreamKind.VIDEO, producer as unknown as Producer);
+
+    await Bun.sleep(0);
+
+    expect(producer.paused).toBe(false);
+  });
+
+  test('should apply the mute in whichever channel the user joins', () => {
+    const runtime = createRuntime();
+    const otherRuntime = createRuntime();
+
+    runtime.addUser(3, { micMuted: false, soundMuted: false });
+    VoiceRuntime.setServerMuted(3, true);
+    runtime.syncServerMute(3);
+    runtime.removeUser(3);
+    otherRuntime.addUser(3, { micMuted: false, soundMuted: false });
+
+    expect(otherRuntime.getUserState(3)).toMatchObject({
+      micMuted: true,
+      serverMuted: true
+    });
+  });
+
+  test('should mute a user who joins after the mute was set', () => {
+    const runtime = createRuntime();
+
+    VoiceRuntime.setServerMuted(3, true);
+    runtime.addUser(3, { micMuted: false, soundMuted: false });
+
+    expect(runtime.getUserState(3)).toMatchObject({
+      micMuted: true,
+      serverMuted: true
+    });
+  });
+
+  test('should keep the mute when the user leaves and rejoins', () => {
+    const runtime = createRuntime();
+
+    runtime.addUser(3, { micMuted: false, soundMuted: false });
+    VoiceRuntime.setServerMuted(3, true);
+    runtime.syncServerMute(3);
+    runtime.removeUser(3);
+    runtime.addUser(3, { micMuted: false, soundMuted: false });
+
+    expect(runtime.getUserState(3)).toMatchObject({
+      micMuted: true,
+      serverMuted: true
+    });
   });
 });

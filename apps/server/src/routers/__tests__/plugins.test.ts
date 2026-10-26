@@ -4,34 +4,46 @@ import {
   DEFAULT_LOCALE,
   OWNER_ROLE_ID,
   Permission,
+  PLUGIN_MESSAGE_COMPONENTS_MAX_BYTES,
   PluginCapabilityMode,
   PluginCapabilityType,
   PluginSlot,
   ServerEvents,
   type TInvokerContext,
   type TPluginCapabilityAccessRule,
+  type TPluginEphemeralResponse,
   type TPluginInfo,
   type TPluginPushEvent
 } from '@sharkord/shared';
-import { beforeEach, describe, expect, mock, test } from 'bun:test';
+import { beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import fs from 'fs/promises';
 import path from 'path';
-import { initTest } from '../../__tests__/helpers';
-import { loadMockedPlugins, resetPluginMocks } from '../../__tests__/mocks';
+import { initTest, sendMessage } from '../../__tests__/helpers';
+import {
+  loadMockedPlugins,
+  mockPluginDownload,
+  resetPluginMocks
+} from '../../__tests__/mocks';
 import { tdb, testsBaseUrl } from '../../__tests__/setup';
-import { getUserRoleIds } from '../../db/queries/roles';
+import * as publishers from '../../db/publishers';
+import { getChannelsReadStatesForUser } from '../../db/queries/channels';
+import { getRole, getUserRoleIds } from '../../db/queries/roles';
 import {
   activityLog,
   categories,
   channels,
+  emojis,
   files,
+  invites,
   messageFiles,
   messageReactions,
   messages,
   pluginData,
+  pluginStorage,
   pluginUserData,
   rolePermissions,
+  roles,
   userRoles,
   users
 } from '../../db/schema';
@@ -40,9 +52,12 @@ import {
   canUseCapability,
   getCapabilityAccessRules
 } from '../../helpers/plugin-capability-access';
+import { hasVoiceMoveGrant } from '../../helpers/voice-move-grants';
 import { pluginManager } from '../../plugins';
 import { eventBus } from '../../plugins/event-bus';
 import { drainActivityLogQueue } from '../../queues/activity-log';
+import * as messageMetadata from '../../queues/message-metadata';
+import { VoiceRuntime } from '../../runtimes/voice';
 import { pubsub } from '../../utils/pubsub';
 
 describe('plugins router', () => {
@@ -223,6 +238,18 @@ describe('plugins router', () => {
   });
 
   describe('getCommands', () => {
+    test('should name the plugin each command belongs to', async () => {
+      const { caller } = await initTest();
+
+      await pluginManager.load('plugin-b');
+
+      const commands = await caller.plugins.getCommands({});
+      const [command] = commands['plugin-b']!;
+
+      expect(command!.pluginName).toBe('plugin-b');
+      expect(command!.pluginLogo).toBe('https://example.com/logo.png');
+    });
+
     test('should throw when user lacks permissions', async () => {
       const { caller } = await initTest(2);
 
@@ -744,6 +771,75 @@ describe('plugins router', () => {
         })
       ).rejects.toThrow();
     });
+
+    describe('channel and role settings', () => {
+      beforeEach(() => pluginManager.load('plugin-with-settings'));
+
+      const update = async (key: string, value: string | number) => {
+        const { caller } = await initTest();
+
+        await caller.plugins.updateSetting({
+          pluginId: 'plugin-with-settings',
+          key,
+          value
+        });
+
+        const result = await caller.plugins.getSettings({
+          pluginId: 'plugin-with-settings'
+        });
+
+        return result.values[key];
+      };
+
+      test('should start unset', async () => {
+        const { caller } = await initTest();
+
+        const result = await caller.plugins.getSettings({
+          pluginId: 'plugin-with-settings'
+        });
+
+        expect(result.values.logChannel).toBe(0);
+        expect(result.values.modRole).toBe(0);
+      });
+
+      test('should store a channel that exists', async () => {
+        expect(await update('logChannel', 1)).toBe(1);
+      });
+
+      test('should store a role that exists', async () => {
+        expect(await update('modRole', 4)).toBe(4);
+      });
+
+      test('should accept clearing back to unset', async () => {
+        await update('logChannel', 1);
+
+        expect(await update('logChannel', 0)).toBe(0);
+      });
+
+      test('should refuse a channel that does not exist', async () => {
+        await expect(update('logChannel', 9999)).rejects.toThrow(
+          'Channel not found.'
+        );
+      });
+
+      test('should refuse a DM channel', async () => {
+        await expect(update('logChannel', 3)).rejects.toThrow(
+          'Channel not found.'
+        );
+      });
+
+      test('should refuse a role that does not exist', async () => {
+        await expect(update('modRole', 9999)).rejects.toThrow(
+          'Role not found.'
+        );
+      });
+
+      test('should refuse a value that is not an id', async () => {
+        await expect(update('logChannel', 'general')).rejects.toThrow(
+          "Setting 'logChannel' expects a number, received string"
+        );
+      });
+    });
   });
 
   describe('install', () => {
@@ -762,22 +858,7 @@ describe('plugins router', () => {
       const { caller } = await initTest();
       const mockDownload = mock(() => Promise.resolve());
 
-      mock.module('../../helpers/downloads', () => ({
-        downloadPlugin: mockDownload,
-        downloadFile: mock(() => Promise.resolve())
-      }));
-
-      mock.module('../../helpers/marketplace', () => ({
-        fetchMarketplaceVersion: mock(() =>
-          Promise.resolve({
-            version: '0.0.1',
-            downloadUrl: 'https://example.com/plugin.tar.gz',
-            checksum: 'deadbeef1234',
-            sdkVersion: 1,
-            size: 1000
-          })
-        )
-      }));
+      mockPluginDownload(mockDownload);
 
       await caller.plugins.install({
         pluginId: 'plugin-example',
@@ -820,30 +901,15 @@ describe('plugins router', () => {
       const order: string[] = [];
       let active = 0;
 
-      mock.module('../../helpers/downloads', () => ({
-        downloadPlugin: mock(async () => {
-          active += 1;
-          order.push(`start:${active}`);
+      mockPluginDownload(async () => {
+        active += 1;
+        order.push(`start:${active}`);
 
-          await Bun.sleep(20);
+        await Bun.sleep(20);
 
-          order.push(`end:${active}`);
-          active -= 1;
-        }),
-        downloadFile: mock(() => Promise.resolve())
-      }));
-
-      mock.module('../../helpers/marketplace', () => ({
-        fetchMarketplaceVersion: mock(() =>
-          Promise.resolve({
-            version: '0.0.1',
-            downloadUrl: 'https://example.com/plugin-a.tar.gz',
-            checksum: 'deadbeef1234',
-            sdkVersion: 1,
-            size: 1000
-          })
-        )
-      }));
+        order.push(`end:${active}`);
+        active -= 1;
+      });
 
       await Promise.all([
         caller.plugins.install({ pluginId: 'plugin-a', version: '0.0.1' }),
@@ -859,29 +925,14 @@ describe('plugins router', () => {
       let active = 0;
       let peak = 0;
 
-      mock.module('../../helpers/downloads', () => ({
-        downloadPlugin: mock(async () => {
-          active += 1;
-          peak = Math.max(peak, active);
+      mockPluginDownload(async () => {
+        active += 1;
+        peak = Math.max(peak, active);
 
-          await Bun.sleep(20);
+        await Bun.sleep(20);
 
-          active -= 1;
-        }),
-        downloadFile: mock(() => Promise.resolve())
-      }));
-
-      mock.module('../../helpers/marketplace', () => ({
-        fetchMarketplaceVersion: mock(() =>
-          Promise.resolve({
-            version: '0.0.1',
-            downloadUrl: 'https://example.com/plugin.tar.gz',
-            checksum: 'deadbeef1234',
-            sdkVersion: 1,
-            size: 1000
-          })
-        )
-      }));
+        active -= 1;
+      });
 
       await Promise.all([
         caller.plugins.install({ pluginId: 'plugin-a', version: '0.0.1' }),
@@ -895,28 +946,13 @@ describe('plugins router', () => {
       const { caller } = await initTest();
       let calls = 0;
 
-      mock.module('../../helpers/downloads', () => ({
-        downloadPlugin: mock(async () => {
-          calls += 1;
+      mockPluginDownload(async () => {
+        calls += 1;
 
-          if (calls === 1) {
-            throw new Error('network exploded');
-          }
-        }),
-        downloadFile: mock(() => Promise.resolve())
-      }));
-
-      mock.module('../../helpers/marketplace', () => ({
-        fetchMarketplaceVersion: mock(() =>
-          Promise.resolve({
-            version: '0.0.1',
-            downloadUrl: 'https://example.com/plugin-a.tar.gz',
-            checksum: 'deadbeef1234',
-            sdkVersion: 1,
-            size: 1000
-          })
-        )
-      }));
+        if (calls === 1) {
+          throw new Error('network exploded');
+        }
+      });
 
       const [first, second] = await Promise.allSettled([
         caller.plugins.install({ pluginId: 'plugin-a', version: '0.0.1' }),
@@ -929,6 +965,64 @@ describe('plugins router', () => {
     });
   });
 
+  // a plugin message is a message everyone in the channel has yet to read, and
+  // the badge that says so is the only sign it arrived
+  describe('unread counts', () => {
+    beforeEach(() => pluginManager.load('plugin-b'));
+
+    const sendPluginMessage = async (channelId: number) => {
+      const { caller } = await initTest();
+
+      return (await caller.plugins.executeCommand({
+        pluginId: 'plugin-b',
+        commandName: 'send-link',
+        args: { channelId, previews: false }
+      })) as { messageId: number };
+    };
+
+    // channel 1 is seeded with one message from user 1, so every count here is
+    // measured as a delta rather than against a fixed number
+    const unreadInChannelOne = async (userId: number) =>
+      (await getChannelsReadStatesForUser(userId, 1))[1] ?? 0;
+
+    // the control: whatever the seed leaves behind, a user message moves this
+    test('should count a user message as unread for everyone else', async () => {
+      const { caller } = await initTest(1);
+      const before = await unreadInChannelOne(2);
+
+      await caller.messages.send({ channelId: 1, content: 'hello', files: [] });
+
+      expect(await unreadInChannelOne(2)).toBe(before + 1);
+    });
+
+    test('should count a plugin message as unread', async () => {
+      const before = await unreadInChannelOne(2);
+
+      await sendPluginMessage(1);
+
+      expect(await unreadInChannelOne(2)).toBe(before + 1);
+    });
+
+    // the message belongs to the plugin, not to whoever ran the command, so it
+    // is unread for them too
+    test('should count a plugin message for the user who triggered it', async () => {
+      const before = await unreadInChannelOne(1);
+
+      await sendPluginMessage(1);
+
+      expect(await unreadInChannelOne(1)).toBe(before + 1);
+    });
+
+    test('should clear a plugin message once the channel is read', async () => {
+      const { caller } = await initTest(2);
+
+      await sendPluginMessage(1);
+      await caller.channels.markAsRead({ channelId: 1 });
+
+      expect(await unreadInChannelOne(2)).toBe(0);
+    });
+  });
+
   // a plugin posting a formatted message does not want the host rewriting it
   // with a link card underneath, and may not want the url fetched at all
   describe('link previews', () => {
@@ -937,10 +1031,9 @@ describe('plugins router', () => {
     beforeEach(async () => {
       enqueue.mockClear();
 
-      mock.module('../../queues/message-metadata', () => ({
-        enqueueProcessMetadata: enqueue,
-        messageMetadataQueue: { push: mock(() => {}) }
-      }));
+      spyOn(messageMetadata, 'enqueueProcessMetadata').mockImplementation(
+        enqueue
+      );
 
       await pluginManager.load('plugin-b');
     });
@@ -1318,6 +1411,45 @@ describe('plugins router', () => {
       expect(message.content).toContain('&quot;result&quot;: 5');
     });
 
+    // a blank argument is sent as an empty token so the ones after it keep
+    // their position, and it must reach the plugin as absent, not as 0 or ''
+    test('should treat a blank argument as absent and keep the next in place', async () => {
+      const { caller } = await initTest();
+
+      await pluginManager.load('plugin-b');
+      await caller.messages.send({
+        channelId: 1,
+        content: '<p>/echo-optional "" 5</p>',
+        files: []
+      });
+
+      await Bun.sleep(50);
+
+      const message = await getLastMessage(caller);
+
+      expect(message.content).toContain('data-status="completed"');
+      expect(message.content).toContain('&quot;label&quot;: null');
+      expect(message.content).toContain('&quot;count&quot;: 5');
+    });
+
+    test('should treat a blank number as absent rather than 0', async () => {
+      const { caller } = await initTest();
+
+      await pluginManager.load('plugin-b');
+      await caller.messages.send({
+        channelId: 1,
+        content: '<p>/echo-optional label ""</p>',
+        files: []
+      });
+
+      await Bun.sleep(50);
+
+      const message = await getLastMessage(caller);
+
+      expect(message.content).toContain('&quot;label&quot;: &quot;label&quot;');
+      expect(message.content).toContain('&quot;count&quot;: null');
+    });
+
     test('should leave a normal message alone when it is not a command', async () => {
       const { caller } = await initTest();
 
@@ -1553,6 +1685,142 @@ describe('plugins router', () => {
         'This account is not allowed to sign in'
       );
     });
+
+    test('should let a plugin refuse a reaction', async () => {
+      const { caller } = await initTest();
+
+      await expect(
+        caller.messages.toggleReaction({ messageId: 1, emoji: 'no_entry' })
+      ).rejects.toThrow('That reaction is not allowed');
+
+      expect(
+        await tdb
+          .select()
+          .from(messageReactions)
+          .where(eq(messageReactions.emoji, 'no_entry'))
+      ).toHaveLength(0);
+    });
+
+    test('should store a reaction the plugin allows', async () => {
+      const { caller } = await initTest();
+
+      await caller.messages.toggleReaction({ messageId: 1, emoji: 'thumbsup' });
+
+      expect(
+        await tdb
+          .select()
+          .from(messageReactions)
+          .where(eq(messageReactions.emoji, 'thumbsup'))
+      ).toHaveLength(1);
+    });
+
+    // a refused emoji that is already there can still be taken back
+    test('should never gate removing a reaction', async () => {
+      const { caller } = await initTest();
+
+      await tdb.insert(messageReactions).values({
+        messageId: 1,
+        emoji: 'no_entry',
+        userId: 1,
+        createdAt: Date.now()
+      });
+
+      await caller.messages.toggleReaction({ messageId: 1, emoji: 'no_entry' });
+
+      expect(
+        await tdb
+          .select()
+          .from(messageReactions)
+          .where(eq(messageReactions.emoji, 'no_entry'))
+      ).toHaveLength(0);
+    });
+
+    test('should let a plugin rewrite a profile as it is saved', async () => {
+      const { caller } = await initTest();
+
+      await caller.users.update({ name: 'renameme', profileColor: '#ffffff' });
+
+      const user = await tdb.select().from(users).where(eq(users.id, 1)).get();
+
+      expect(user!.name).toBe('renamed-by-plugin');
+      expect(user!.bio).toBe('set by plugin');
+    });
+
+    test('should let a plugin refuse a profile', async () => {
+      const { caller } = await initTest();
+
+      await expect(
+        caller.users.update({ name: 'rejectme', profileColor: '#ffffff' })
+      ).rejects.toThrow('That name is not allowed');
+
+      const user = await tdb.select().from(users).where(eq(users.id, 1)).get();
+
+      expect(user!.name).not.toBe('rejectme');
+    });
+
+    test('should refuse a profile a plugin left without a name', async () => {
+      const { caller } = await initTest();
+
+      await expect(
+        caller.users.update({ name: 'blankme', profileColor: '#ffffff' })
+      ).rejects.toThrow('replaced this profile with an invalid name or bio');
+    });
+
+    test('should let a plugin refuse deleting a channel', async () => {
+      const { caller } = await initTest();
+
+      const channelId = await caller.channels.add({
+        name: 'protected-room',
+        type: ChannelType.TEXT,
+        categoryId: 1
+      });
+
+      await expect(caller.channels.delete({ channelId })).rejects.toThrow(
+        'This channel is protected'
+      );
+
+      expect(
+        await tdb.select().from(channels).where(eq(channels.id, channelId))
+      ).toHaveLength(1);
+    });
+
+    test('should let a plugin refuse deleting the category of a protected channel', async () => {
+      const { caller } = await initTest();
+
+      const categoryId = await caller.categories.add({ name: 'Archive' });
+      const channelId = await caller.channels.add({
+        name: 'protected-room',
+        type: ChannelType.TEXT,
+        categoryId
+      });
+
+      await expect(caller.categories.delete({ categoryId })).rejects.toThrow(
+        'This channel is protected'
+      );
+
+      expect(
+        await tdb.select().from(categories).where(eq(categories.id, categoryId))
+      ).toHaveLength(1);
+      expect(
+        await tdb.select().from(channels).where(eq(channels.id, channelId))
+      ).toHaveLength(1);
+    });
+
+    test('should delete a channel the plugin does not protect', async () => {
+      const { caller } = await initTest();
+
+      const channelId = await caller.channels.add({
+        name: 'disposable',
+        type: ChannelType.TEXT,
+        categoryId: 1
+      });
+
+      await caller.channels.delete({ channelId });
+
+      expect(
+        await tdb.select().from(channels).where(eq(channels.id, channelId))
+      ).toHaveLength(0);
+    });
   });
 
   describe('permissions and roles', () => {
@@ -1645,6 +1913,121 @@ describe('plugins router', () => {
         })
       ).rejects.toThrow('Role not found');
     });
+
+    const runRole = async (
+      commandName: 'create-role' | 'update-role',
+      args: Record<string, unknown>
+    ) => {
+      const { caller } = await initTest();
+
+      return (await caller.plugins.executeCommand({
+        pluginId: 'plugin-b',
+        commandName,
+        args
+      })) as { id: number; name: string; color: string; permissions: string[] };
+    };
+
+    test('should let a plugin create a role', async () => {
+      const role = await runRole('create-role', {
+        input: JSON.stringify({
+          name: 'Level 10',
+          color: '#ff0000',
+          permissions: [Permission.SEND_MESSAGES]
+        })
+      });
+
+      const stored = await getRole(role.id);
+
+      expect(stored!.name).toBe('Level 10');
+      expect(stored!.color).toBe('#ff0000');
+      expect(stored!.permissions).toEqual([Permission.SEND_MESSAGES]);
+      expect(role.permissions).toEqual([Permission.SEND_MESSAGES]);
+    });
+
+    test('should create a white role without permissions by default', async () => {
+      const role = await runRole('create-role', {
+        input: JSON.stringify({ name: 'Plain' })
+      });
+
+      const stored = await getRole(role.id);
+
+      expect(stored!.color).toBe('#ffffff');
+      expect(stored!.permissions).toEqual([]);
+    });
+
+    test('should refuse a role with an invalid color', async () => {
+      await expect(
+        runRole('create-role', {
+          input: JSON.stringify({ name: 'Bad', color: 'red' })
+        })
+      ).rejects.toThrow('Invalid hex color');
+    });
+
+    test('should refuse a role past the server limit', async () => {
+      const seededRoles = await tdb.select({ id: roles.id }).from(roles);
+
+      await tdb.insert(roles).values(
+        Array.from({ length: 100 - seededRoles.length }, (_, index) => ({
+          name: `Filler ${index}`,
+          isDefault: false,
+          isPersistent: false,
+          createdAt: Date.now()
+        }))
+      );
+
+      await expect(
+        runRole('create-role', { input: JSON.stringify({ name: 'One more' }) })
+      ).rejects.toThrow('cannot have more than 100 roles');
+    });
+
+    test('should let a plugin update a role and replace its permissions', async () => {
+      await runRole('update-role', {
+        roleId: MODERATOR_ROLE_ID,
+        values: JSON.stringify({
+          name: 'Mods',
+          permissions: [Permission.PIN_MESSAGES]
+        })
+      });
+
+      const stored = await getRole(MODERATOR_ROLE_ID);
+
+      expect(stored!.name).toBe('Mods');
+      expect(stored!.permissions).toEqual([Permission.PIN_MESSAGES]);
+    });
+
+    test('should keep the permissions a plugin update leaves out', async () => {
+      const before = await getRole(MODERATOR_ROLE_ID);
+
+      await runRole('update-role', {
+        roleId: MODERATOR_ROLE_ID,
+        values: JSON.stringify({ color: '#00ff00' })
+      });
+
+      const stored = await getRole(MODERATOR_ROLE_ID);
+
+      expect(stored!.color).toBe('#00ff00');
+      expect(stored!.permissions.sort()).toEqual(before!.permissions.sort());
+    });
+
+    test('should refuse to update the owner role', async () => {
+      await expect(
+        runRole('update-role', {
+          roleId: OWNER_ROLE_ID,
+          values: JSON.stringify({ name: 'Taken' })
+        })
+      ).rejects.toThrow('Plugins cannot change the owner role.');
+
+      expect((await getRole(OWNER_ROLE_ID))!.name).not.toBe('Taken');
+    });
+
+    test('should refuse to update a role that does not exist', async () => {
+      await expect(
+        runRole('update-role', {
+          roleId: 9999,
+          values: JSON.stringify({ name: 'Ghost' })
+        })
+      ).rejects.toThrow('Role not found');
+    });
   });
 
   // plugin channel and category writes go through the same helpers the routes
@@ -1714,7 +2097,7 @@ describe('plugins router', () => {
       expect(result.channel).toBe('General');
       expect(result.category).toBe('Text Channels');
       expect(result.role).toBe('Owner');
-      expect(result.userCount).toBe(5);
+      expect(result.userCount).toBe(8);
     });
 
     test('should answer undefined for ids that do not exist', async () => {
@@ -1857,6 +2240,32 @@ describe('plugins router', () => {
       const { messageId } = await attach();
 
       expect(messageId).toBeGreaterThan(0);
+    });
+
+    test('should hand the plugin the attachment it can read from disk', async () => {
+      const { messageId } = await attach('clip bytes');
+      const file = await attachedFile(messageId);
+      const { caller } = await initTest();
+
+      const result = await caller.plugins.executeCommand({
+        pluginId: 'plugin-b',
+        commandName: 'read-file',
+        args: { fileId: file!.id }
+      });
+
+      expect(result).toEqual({ found: true, body: 'clip bytes' });
+    });
+
+    test('should answer an unknown file id with nothing', async () => {
+      const { caller } = await initTest();
+
+      const result = await caller.plugins.executeCommand({
+        pluginId: 'plugin-b',
+        commandName: 'read-file',
+        args: { fileId: 999999 }
+      });
+
+      expect(result).toEqual({ found: false });
     });
 
     test('should refuse more files than the server allows', async () => {
@@ -2108,6 +2517,697 @@ describe('plugins router', () => {
     });
   });
 
+  describe('storage', () => {
+    beforeEach(() => pluginManager.load('plugin-b'));
+
+    const run = async (commandName: string, args: Record<string, unknown>) => {
+      const { caller } = await initTest();
+
+      return (await caller.plugins.executeCommand({
+        pluginId: 'plugin-b',
+        commandName,
+        args
+      })) as {
+        value?: unknown;
+        entries?: { key: string; value: unknown }[];
+      };
+    };
+
+    const set = (key: string, value: unknown) =>
+      run('storage-set', { key, value: JSON.stringify(value) });
+
+    const list = async (options?: Record<string, unknown>) => {
+      const result = await run(
+        'storage-list',
+        options ? { options: JSON.stringify(options) } : {}
+      );
+
+      return result.entries;
+    };
+
+    test('should store and read back a value', async () => {
+      await set('poll:1', { question: 'Pizza?', votes: [1, 2] });
+
+      expect((await run('storage-get', { key: 'poll:1' })).value).toEqual({
+        question: 'Pizza?',
+        votes: [1, 2]
+      });
+    });
+
+    test('should overwrite a value stored under the same key', async () => {
+      await set('counter', 1);
+      await set('counter', 2);
+
+      expect((await run('storage-get', { key: 'counter' })).value).toBe(2);
+      expect(
+        await tdb
+          .select()
+          .from(pluginStorage)
+          .where(eq(pluginStorage.key, 'counter'))
+      ).toHaveLength(1);
+    });
+
+    test('should answer undefined for a key that was never stored', async () => {
+      expect((await run('storage-get', { key: 'missing' })).value).toBe(
+        undefined
+      );
+    });
+
+    test('should delete a value', async () => {
+      await set('poll:1', 'gone soon');
+      await run('storage-delete', { key: 'poll:1' });
+
+      expect((await run('storage-get', { key: 'poll:1' })).value).toBe(
+        undefined
+      );
+    });
+
+    test('should list one prefix, ordered by key', async () => {
+      await set('poll:2', 'b');
+      await set('reminder:1', 'other');
+      await set('poll:1', 'a');
+
+      expect(await list({ prefix: 'poll:' })).toEqual([
+        { key: 'poll:1', value: 'a' },
+        { key: 'poll:2', value: 'b' }
+      ]);
+    });
+
+    // a prefix is a range, not a LIKE pattern, so its characters are literal
+    test('should treat a prefix literally', async () => {
+      await set('a%b', 1);
+      await set('axb', 2);
+
+      expect(await list({ prefix: 'a%' })).toEqual([{ key: 'a%b', value: 1 }]);
+    });
+
+    test('should page with limit and after', async () => {
+      await set('k:1', 1);
+      await set('k:2', 2);
+      await set('k:3', 3);
+
+      const firstPage = await list({ prefix: 'k:', limit: 2 });
+
+      expect(firstPage!.map(({ key }) => key)).toEqual(['k:1', 'k:2']);
+
+      const secondPage = await list({ prefix: 'k:', limit: 2, after: 'k:2' });
+
+      expect(secondPage!.map(({ key }) => key)).toEqual(['k:3']);
+    });
+
+    test('should list everything without options', async () => {
+      await set('b', 2);
+      await set('a', 1);
+
+      expect(await list()).toEqual([
+        { key: 'a', value: 1 },
+        { key: 'b', value: 2 }
+      ]);
+    });
+
+    test('should keep plugins apart', async () => {
+      await tdb.insert(pluginStorage).values({
+        pluginId: 'plugin-a',
+        key: 'secret',
+        value: 'not yours',
+        updatedAt: Date.now()
+      });
+
+      expect((await run('storage-get', { key: 'secret' })).value).toBe(
+        undefined
+      );
+      expect(await list()).toEqual([]);
+    });
+
+    test('should refuse a limit out of range', async () => {
+      await expect(list({ limit: 0 })).rejects.toThrow(
+        'The limit must be between 1 and 1000.'
+      );
+      await expect(list({ limit: 1001 })).rejects.toThrow(
+        'The limit must be between 1 and 1000.'
+      );
+    });
+
+    test('should refuse a key over the length cap', async () => {
+      await expect(set('k'.repeat(257), 1)).rejects.toThrow(
+        'Storage keys must be between 1 and 256 characters.'
+      );
+    });
+
+    test('should refuse a value over the size cap', async () => {
+      await expect(set('big', 'x'.repeat(70_000))).rejects.toThrow(
+        'cannot exceed'
+      );
+
+      expect(await tdb.select().from(pluginStorage)).toHaveLength(0);
+    });
+
+    test('should go when the plugin is uninstalled', async () => {
+      await set('poll:1', 'a');
+
+      await pluginManager.removePlugin('plugin-b');
+
+      expect(
+        await tdb
+          .select()
+          .from(pluginStorage)
+          .where(eq(pluginStorage.pluginId, 'plugin-b'))
+      ).toHaveLength(0);
+    });
+  });
+
+  describe('ephemeral commands', () => {
+    beforeEach(() => pluginManager.load('plugin-b'));
+
+    const listen = (userId: number) => {
+      const received: TPluginEphemeralResponse[] = [];
+
+      const subscription = pubsub
+        .subscribeFor(userId, ServerEvents.PLUGIN_EPHEMERAL_RESPONSE)
+        .subscribe({ next: (event) => received.push(event) });
+
+      return { received, subscription };
+    };
+
+    test('should answer only the invoker and store nothing', async () => {
+      const { caller } = await initTest();
+      const before = await tdb.select({ id: messages.id }).from(messages);
+      const invoker = listen(1);
+      const bystander = listen(2);
+
+      const messageId = await caller.messages.send({
+        channelId: 1,
+        content: '<p>/whisper hello</p>',
+        files: []
+      });
+
+      // the command deliberately runs after the mutation returns
+      await Bun.sleep(50);
+
+      invoker.subscription.unsubscribe();
+      bystander.subscription.unsubscribe();
+
+      expect(messageId).toBeNull();
+      expect(await tdb.select({ id: messages.id }).from(messages)).toHaveLength(
+        before.length
+      );
+      expect(invoker.received).toEqual([
+        {
+          pluginId: 'plugin-b',
+          commandName: 'whisper',
+          channelId: 1,
+          status: 'completed',
+          response: 'only you: hello'
+        }
+      ]);
+      expect(bystander.received).toEqual([]);
+    });
+
+    test('should tell the invoker privately when it fails', async () => {
+      const { caller } = await initTest();
+      const invoker = listen(1);
+
+      await caller.messages.send({
+        channelId: 1,
+        content: '<p>/whisper-fail</p>',
+        files: []
+      });
+
+      await Bun.sleep(50);
+      invoker.subscription.unsubscribe();
+
+      expect(invoker.received).toHaveLength(1);
+      expect(invoker.received[0]!.status).toBe('failed');
+      expect(invoker.received[0]!.response).toContain('whispered failure');
+    });
+
+    test('should log the run like any other command', async () => {
+      const { caller } = await initTest();
+
+      await caller.messages.send({
+        channelId: 1,
+        content: '<p>/whisper logged</p>',
+        files: []
+      });
+
+      await Bun.sleep(50);
+      await drainActivityLogQueue();
+
+      const logs = await tdb
+        .select()
+        .from(activityLog)
+        .where(eq(activityLog.type, ActivityLogType.EXECUTED_PLUGIN_COMMAND));
+
+      expect(logs).toHaveLength(1);
+    });
+  });
+
+  describe('message components', () => {
+    beforeEach(() => pluginManager.load('plugin-b'));
+
+    const run = async (commandName: string, args: Record<string, unknown>) => {
+      const { caller } = await initTest();
+
+      return (await caller.plugins.executeCommand({
+        pluginId: 'plugin-b',
+        commandName,
+        args
+      })) as { messageId?: number };
+    };
+
+    const sendComponents = async (components: unknown) => {
+      const { messageId } = await run('send-components', {
+        channelId: 1,
+        components: JSON.stringify(components)
+      });
+
+      return messageId!;
+    };
+
+    const storedMessage = async (messageId: number) =>
+      tdb.select().from(messages).where(eq(messages.id, messageId)).get();
+
+    const poll = { name: 'poll', props: { options: ['Yes', 'No'] } };
+
+    test('should store the components with the message', async () => {
+      const messageId = await sendComponents([poll]);
+
+      expect((await storedMessage(messageId))!.pluginComponents).toEqual([
+        poll
+      ]);
+    });
+
+    test('should hand the components to clients with the message', async () => {
+      const messageId = await sendComponents([poll]);
+      const { caller } = await initTest();
+
+      const message = await caller.messages.getOne({ messageId });
+
+      expect(message.pluginComponents).toEqual([poll]);
+      expect(message.pluginId).toBe('plugin-b');
+    });
+
+    // stored complete, so a client never has to default it
+    test('should store empty props for a component sent without them', async () => {
+      const messageId = await sendComponents([{ name: 'banner' }]);
+
+      expect((await storedMessage(messageId))!.pluginComponents).toEqual([
+        { name: 'banner', props: {} }
+      ]);
+    });
+
+    test('should leave a message sent without components without any', async () => {
+      const { caller } = await initTest();
+
+      const { messageId } = (await caller.plugins.executeCommand({
+        pluginId: 'plugin-b',
+        commandName: 'attach',
+        args: { channelId: 1, name: 'note.txt', body: 'hello' }
+      })) as { messageId: number };
+
+      expect((await storedMessage(messageId))!.pluginComponents).toBeNull();
+    });
+
+    test('should replace the components without marking the message edited', async () => {
+      const messageId = await sendComponents([poll]);
+      const updated = { name: 'poll', props: { options: ['Yes'] } };
+
+      await run('set-components', {
+        messageId,
+        components: JSON.stringify([updated])
+      });
+
+      const message = await storedMessage(messageId);
+
+      expect(message!.pluginComponents).toEqual([updated]);
+      expect(message!.editedAt).toBeNull();
+    });
+
+    test('should tell clients the components changed', async () => {
+      const messageId = await sendComponents([poll]);
+      const publish = spyOn(publishers, 'publishMessage');
+
+      await run('set-components', {
+        messageId,
+        components: JSON.stringify([poll])
+      });
+
+      expect(publish).toHaveBeenCalledWith(messageId, 1, 'update');
+    });
+
+    test('should remove the components with null', async () => {
+      const messageId = await sendComponents([poll]);
+
+      await run('set-components', { messageId, components: 'null' });
+
+      expect((await storedMessage(messageId))!.pluginComponents).toBeNull();
+    });
+
+    test('should keep the components when the text is edited', async () => {
+      const messageId = await sendComponents([poll]);
+
+      await run('edit-text', { messageId });
+
+      expect((await storedMessage(messageId))!.pluginComponents).toEqual([
+        poll
+      ]);
+    });
+
+    test('should refuse changing the components of another message', async () => {
+      await expect(
+        run('set-components', {
+          messageId: 1,
+          components: JSON.stringify([poll])
+        })
+      ).rejects.toThrow('You do not have permission to edit this message');
+    });
+
+    test('should refuse changing the components of a missing message', async () => {
+      await expect(
+        run('set-components', {
+          messageId: 999999,
+          components: JSON.stringify([poll])
+        })
+      ).rejects.toThrow('Message not found');
+    });
+
+    test('should refuse components that are not a list', async () => {
+      await expect(sendComponents(poll)).rejects.toThrow(
+        'Message components must be a list.'
+      );
+    });
+
+    test('should refuse more components than the cap', async () => {
+      await expect(
+        sendComponents(Array.from({ length: 6 }, () => poll))
+      ).rejects.toThrow('A message can carry at most 5 components.');
+    });
+
+    test('should refuse a component without a name', async () => {
+      await expect(sendComponents([{ props: {} }])).rejects.toThrow(
+        'Every message component needs a name of 1 to 64 characters.'
+      );
+    });
+
+    test('should refuse props that are not an object', async () => {
+      await expect(
+        sendComponents([{ name: 'poll', props: [1, 2] }])
+      ).rejects.toThrow('Message component props must be a JSON object.');
+    });
+
+    test('should refuse components over the size cap', async () => {
+      await expect(
+        sendComponents([
+          {
+            name: 'poll',
+            props: { blob: 'x'.repeat(PLUGIN_MESSAGE_COMPONENTS_MAX_BYTES) }
+          }
+        ])
+      ).rejects.toThrow('cannot exceed');
+    });
+  });
+
+  describe('voice moderation', () => {
+    const VOICE_CHANNEL_ID = 2;
+    const PRIVATE_VOICE_CHANNEL_ID = 4;
+
+    beforeEach(() => pluginManager.load('plugin-b'));
+
+    const run = async (commandName: string, args: Record<string, unknown>) => {
+      const { caller } = await initTest();
+
+      return caller.plugins.executeCommand({
+        pluginId: 'plugin-b',
+        commandName,
+        args
+      });
+    };
+
+    const withUserInVoice = async (
+      run: (runtime: VoiceRuntime) => Promise<void>
+    ) => {
+      const runtime = new VoiceRuntime(VOICE_CHANNEL_ID);
+
+      runtime.addUser(2, { micMuted: false, soundMuted: false });
+
+      try {
+        await run(runtime);
+      } finally {
+        await runtime.destroy();
+      }
+    };
+
+    test('should move a user to another voice channel', async () => {
+      await withUserInVoice(async () => {
+        const received: unknown[] = [];
+
+        const subscription = pubsub
+          .subscribeFor(2, ServerEvents.USER_VOICE_MOVED)
+          .subscribe({ next: (event) => received.push(event) });
+
+        await run('voice-move', {
+          userId: 2,
+          channelId: PRIVATE_VOICE_CHANNEL_ID
+        });
+
+        subscription.unsubscribe();
+
+        expect(received).toEqual([
+          {
+            channelId: PRIVATE_VOICE_CHANNEL_ID,
+            fromChannelId: VOICE_CHANNEL_ID
+          }
+        ]);
+        expect(hasVoiceMoveGrant(2, PRIVATE_VOICE_CHANNEL_ID)).toBe(true);
+      });
+    });
+
+    test('should refuse moving into a channel that is not a voice channel', async () => {
+      await withUserInVoice(async () => {
+        await expect(
+          run('voice-move', { userId: 2, channelId: 1 })
+        ).rejects.toThrow('Channel is not a voice channel');
+      });
+    });
+
+    test('should refuse moving a user who is not in voice', async () => {
+      await expect(
+        run('voice-move', { userId: 2, channelId: VOICE_CHANNEL_ID })
+      ).rejects.toThrow('User is not in a voice channel');
+    });
+
+    test('should refuse moving a user into the channel they are in', async () => {
+      await withUserInVoice(async () => {
+        await expect(
+          run('voice-move', { userId: 2, channelId: VOICE_CHANNEL_ID })
+        ).rejects.toThrow('User is already in that channel');
+      });
+    });
+
+    test('should disconnect a user and tell everyone', async () => {
+      await withUserInVoice(async (runtime) => {
+        const received: unknown[] = [];
+
+        const subscription = pubsub
+          .subscribe(ServerEvents.USER_LEAVE_VOICE)
+          .subscribe({ next: (event) => received.push(event) });
+
+        await run('voice-disconnect', { userId: 2 });
+
+        subscription.unsubscribe();
+
+        expect(runtime.getUser(2)).toBeUndefined();
+        expect(received).toEqual([{ channelId: VOICE_CHANNEL_ID, userId: 2 }]);
+      });
+    });
+
+    test('should refuse disconnecting a user who is not in voice', async () => {
+      await expect(run('voice-disconnect', { userId: 2 })).rejects.toThrow(
+        'User is not in a voice channel'
+      );
+    });
+
+    test('should server mute a user and tell everyone', async () => {
+      await withUserInVoice(async (runtime) => {
+        const received: { state: { serverMuted: boolean } }[] = [];
+
+        const subscription = pubsub
+          .subscribe(ServerEvents.USER_VOICE_STATE_UPDATE)
+          .subscribe({ next: (event) => received.push(event) });
+
+        await run('voice-mute', {
+          userId: 2,
+          muted: true
+        });
+
+        subscription.unsubscribe();
+
+        expect(VoiceRuntime.isServerMuted(2)).toBe(true);
+        expect(runtime.getUserState(2).micMuted).toBe(true);
+        expect(received.at(-1)!.state.serverMuted).toBe(true);
+      });
+    });
+
+    test('should lift a server mute', async () => {
+      await withUserInVoice(async () => {
+        await run('voice-mute', {
+          userId: 2,
+          muted: true
+        });
+        await run('voice-mute', {
+          userId: 2,
+          muted: false
+        });
+
+        expect(VoiceRuntime.isServerMuted(2)).toBe(false);
+      });
+    });
+
+    test('should mute a user who is not in voice yet', async () => {
+      await run('voice-mute', { userId: 3, muted: true });
+
+      expect(VoiceRuntime.isServerMuted(3)).toBe(true);
+    });
+
+    test('should refuse muting a user who does not exist', async () => {
+      await expect(
+        run('voice-mute', { userId: 999, muted: true })
+      ).rejects.toThrow('User not found');
+    });
+  });
+
+  describe('invites, emojis and channel order', () => {
+    beforeEach(() => pluginManager.load('plugin-b'));
+
+    const run = async (commandName: string, args: Record<string, unknown>) => {
+      const { caller } = await initTest();
+
+      return caller.plugins.executeCommand({
+        pluginId: 'plugin-b',
+        commandName,
+        args
+      });
+    };
+
+    test('should create an invite attributed to the given user', async () => {
+      const invite = (await run('create-invite', {
+        input: JSON.stringify({ creatorId: 2, code: 'plugin-made', maxUses: 1 })
+      })) as { id: number };
+
+      const stored = await tdb
+        .select()
+        .from(invites)
+        .where(eq(invites.id, invite.id))
+        .get();
+
+      expect(stored!.code).toBe('plugin-made');
+      expect(stored!.creatorId).toBe(2);
+      expect(stored!.maxUses).toBe(1);
+    });
+
+    test('should refuse an invite for the owner role', async () => {
+      await expect(
+        run('create-invite', {
+          input: JSON.stringify({ creatorId: 2, roleId: OWNER_ROLE_ID })
+        })
+      ).rejects.toThrow('Plugins cannot create invites for the owner role.');
+    });
+
+    test('should refuse an invite for a user who does not exist', async () => {
+      await expect(
+        run('create-invite', { input: JSON.stringify({ creatorId: 9999 }) })
+      ).rejects.toThrow('User not found');
+    });
+
+    test('should add an emoji attributed to the given user', async () => {
+      const emoji = (await run('create-emoji', {
+        name: 'plugin_emoji',
+        fileName: 'shark.png',
+        userId: 2
+      })) as { id: number; name: string };
+
+      const stored = await tdb
+        .select()
+        .from(emojis)
+        .where(eq(emojis.id, emoji.id))
+        .get();
+      const file = await tdb
+        .select()
+        .from(files)
+        .where(eq(files.id, stored!.fileId))
+        .get();
+
+      expect(stored!.name).toBe('plugin_emoji');
+      expect(stored!.userId).toBe(2);
+      expect(file!.pluginId).toBe('plugin-b');
+    });
+
+    test('should refuse an emoji that is not an image', async () => {
+      await expect(
+        run('create-emoji', { name: 'notes', fileName: 'notes.txt', userId: 2 })
+      ).rejects.toThrow('An emoji must be an image.');
+    });
+
+    test('should refuse an emoji for a user who does not exist', async () => {
+      await expect(
+        run('create-emoji', {
+          name: 'ghost',
+          fileName: 'ghost.png',
+          userId: 9999
+        })
+      ).rejects.toThrow('User not found');
+    });
+
+    test('should delete an emoji', async () => {
+      const emoji = (await run('create-emoji', {
+        name: 'short_lived',
+        fileName: 'short.png',
+        userId: 2
+      })) as { id: number };
+
+      await run('delete-emoji', { emojiId: emoji.id });
+
+      expect(
+        await tdb.select().from(emojis).where(eq(emojis.id, emoji.id))
+      ).toHaveLength(0);
+    });
+
+    test('should reorder the channels of a category', async () => {
+      await run('reorder-channels', {
+        categoryId: 2,
+        channelIds: JSON.stringify([4, 2])
+      });
+
+      const ordered = await tdb
+        .select({ id: channels.id })
+        .from(channels)
+        .where(eq(channels.categoryId, 2))
+        .orderBy(channels.position);
+
+      expect(ordered.map(({ id }) => id)).toEqual([4, 2]);
+    });
+
+    test('should refuse reordering into a category that does not exist', async () => {
+      await expect(
+        run('reorder-channels', {
+          categoryId: 9999,
+          channelIds: JSON.stringify([2])
+        })
+      ).rejects.toThrow('Category not found');
+    });
+
+    test('should refuse reordering more channels than the cap', async () => {
+      await expect(
+        run('reorder-channels', {
+          categoryId: 2,
+          channelIds: JSON.stringify(
+            Array.from({ length: 501 }, (_, index) => index + 1)
+          )
+        })
+      ).rejects.toThrow('At most 500 channels can be reordered at once.');
+    });
+  });
+
   describe('pinning and reacting', () => {
     beforeEach(() => pluginManager.load('plugin-b'));
 
@@ -2153,7 +3253,7 @@ describe('plugins router', () => {
     test('should refuse to pin a thread message', async () => {
       const { caller } = await initTest();
 
-      const reply = await caller.messages.send({
+      const reply = await sendMessage(caller, {
         channelId: 1,
         content: '<p>reply</p>',
         parentMessageId: 1,
@@ -2214,6 +3314,9 @@ describe('plugins router', () => {
 
   // pushes are addressed server side, so a subscriber only ever sees its own
   describe('push', () => {
+    // the seeded voice channel
+    const VOICE_CHANNEL_ID = 2;
+
     beforeEach(() => pluginManager.load('plugin-b'));
 
     const listen = (userId: number) => {
@@ -2271,6 +3374,34 @@ describe('plugins router', () => {
       target.stop();
     });
 
+    test('should reach everyone in a voice channel and nobody outside it', async () => {
+      const runtime = new VoiceRuntime(VOICE_CHANNEL_ID);
+
+      runtime.addUser(2, { micMuted: false, soundMuted: false });
+
+      const inside = listen(2);
+      const outside = listen(5);
+
+      await push({ target: 'voice', channelId: VOICE_CHANNEL_ID });
+
+      expect(inside.received).toHaveLength(1);
+      expect(outside.received).toHaveLength(0);
+
+      inside.stop();
+      outside.stop();
+      await runtime.destroy();
+    });
+
+    test('should reach nobody in a voice channel no one is in', async () => {
+      const target = listen(2);
+
+      await push({ target: 'voice', channelId: VOICE_CHANNEL_ID });
+
+      expect(target.received).toHaveLength(0);
+
+      target.stop();
+    });
+
     test('should stop reaching a listener that unsubscribed', async () => {
       const target = listen(2);
 
@@ -2291,6 +3422,81 @@ describe('plugins router', () => {
           args: { userId: 2 }
         })
       ).rejects.toThrow('cannot exceed');
+    });
+  });
+
+  describe('voice reactions', () => {
+    // the seeded voice channel
+    const VOICE_CHANNEL_ID = 2;
+
+    beforeEach(() => pluginManager.load('plugin-b'));
+
+    const react = async (args: Record<string, unknown>) => {
+      const { caller } = await initTest();
+
+      return caller.plugins.executeCommand({
+        pluginId: 'plugin-b',
+        commandName: 'voice-react',
+        args: { channelId: VOICE_CHANNEL_ID, userId: 2, emoji: '🔊', ...args }
+      });
+    };
+
+    const withRuntime = async (run: () => Promise<void>) => {
+      const runtime = new VoiceRuntime(VOICE_CHANNEL_ID);
+
+      runtime.addUser(2, { micMuted: false, soundMuted: false });
+
+      try {
+        await run();
+      } finally {
+        await runtime.destroy();
+      }
+    };
+
+    test('should float the emoji on the user card like their own reaction', async () => {
+      await withRuntime(async () => {
+        const received: unknown[] = [];
+
+        const subscription = pubsub
+          .subscribe(ServerEvents.USER_VOICE_REACTION)
+          .subscribe({ next: (event) => received.push(event) });
+
+        await react({});
+
+        subscription.unsubscribe();
+
+        expect(received).toEqual([
+          { channelId: VOICE_CHANNEL_ID, userId: 2, emoji: '🔊' }
+        ]);
+      });
+    });
+
+    test('should refuse a user who is not in the channel', async () => {
+      await withRuntime(async () => {
+        await expect(react({ userId: 5 })).rejects.toThrow(
+          'User is not in this voice channel.'
+        );
+      });
+    });
+
+    test('should refuse a channel with no one in it', async () => {
+      await expect(react({})).rejects.toThrow('Voice runtime not found');
+    });
+
+    test('should refuse an unknown emoji', async () => {
+      await withRuntime(async () => {
+        await expect(react({ emoji: 'not an emoji' })).rejects.toThrow(
+          'Unknown emoji'
+        );
+      });
+    });
+
+    test('should refuse an empty emoji', async () => {
+      await withRuntime(async () => {
+        await expect(react({ emoji: '' })).rejects.toThrow(
+          'Emoji must be between'
+        );
+      });
     });
   });
 
@@ -3116,22 +4322,12 @@ describe('plugins router', () => {
       const { caller } = await initTest();
       const mockDownload = mock(() => Promise.resolve());
 
-      mock.module('../../helpers/downloads', () => ({
-        downloadPlugin: mockDownload,
-        downloadFile: mock(() => Promise.resolve())
-      }));
-
-      mock.module('../../helpers/marketplace', () => ({
-        fetchMarketplaceVersion: mock(() =>
-          Promise.resolve({
-            version: '2.0.0',
-            downloadUrl: 'https://example.com/plugin-a-v2.tar.gz',
-            checksum: 'cafebabe5678',
-            sdkVersion: 1,
-            size: 2000
-          })
-        )
-      }));
+      mockPluginDownload(mockDownload, {
+        version: '2.0.0',
+        downloadUrl: 'https://example.com/plugin-a-v2.tar.gz',
+        checksum: 'cafebabe5678',
+        size: 2000
+      });
 
       await caller.plugins.update({
         pluginId: 'plugin-a',
@@ -3150,24 +4346,7 @@ describe('plugins router', () => {
 
       await pluginManager.togglePlugin('plugin-a', true);
 
-      mock.module('../../helpers/downloads', () => ({
-        downloadPlugin: mock(() =>
-          Promise.reject(new Error('network exploded'))
-        ),
-        downloadFile: mock(() => Promise.resolve())
-      }));
-
-      mock.module('../../helpers/marketplace', () => ({
-        fetchMarketplaceVersion: mock(() =>
-          Promise.resolve({
-            version: '0.0.1',
-            downloadUrl: 'https://example.com/plugin-a.tar.gz',
-            checksum: 'deadbeef1234',
-            sdkVersion: 1,
-            size: 1000
-          })
-        )
-      }));
+      mockPluginDownload(() => Promise.reject(new Error('network exploded')));
 
       await expect(
         caller.plugins.update({ pluginId: 'plugin-a', version: '0.0.1' })
@@ -3281,22 +4460,7 @@ describe('plugins router', () => {
     test('should log a plugin install with its version', async () => {
       const { caller } = await initTest();
 
-      mock.module('../../helpers/downloads', () => ({
-        downloadPlugin: mock(() => Promise.resolve()),
-        downloadFile: mock(() => Promise.resolve())
-      }));
-
-      mock.module('../../helpers/marketplace', () => ({
-        fetchMarketplaceVersion: mock(() =>
-          Promise.resolve({
-            version: '0.0.1',
-            downloadUrl: 'https://example.com/plugin.tar.gz',
-            checksum: 'deadbeef1234',
-            sdkVersion: 1,
-            size: 1000
-          })
-        )
-      }));
+      mockPluginDownload();
 
       await caller.plugins.install({
         pluginId: 'plugin-example',
@@ -3363,7 +4527,7 @@ describe('plugin commands in messages', () => {
 
     // the <script> is stripped by sanitizeMessageHtml, so a parser reading the
     // raw input would see different text than what gets stored and displayed
-    const messageId = await caller.messages.send({
+    const messageId = await sendMessage(caller, {
       channelId: 1,
       content: '<p>/test-command hello<script>ignored</script></p>',
       files: []

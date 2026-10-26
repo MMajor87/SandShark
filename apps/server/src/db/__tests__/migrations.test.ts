@@ -425,6 +425,16 @@ describe('migrations', () => {
     const count = (sql: string) => (sqlite.query(sql).get() as { c: number }).c;
 
     expect(count('SELECT COUNT(*) c FROM calendar_events')).toBe(1);
+    expect(
+      count(
+        "SELECT COUNT(*) c FROM role_permissions WHERE role_id = 1 AND permission = 'SEND_VOICE_REACTION'"
+      )
+    ).toBe(1);
+    expect(
+      sqlite.query('SELECT plugin_components FROM messages WHERE id = 1').get()
+    ).toEqual({ plugin_components: null });
+    expect(count('SELECT COUNT(*) c FROM plugin_storage')).toBe(0);
+    expect(count('SELECT COUNT(*) c FROM thread_followers')).toBe(0);
     expect(count('SELECT COUNT(*) c FROM calendar_event_invitees')).toBe(1);
     expect(
       sqlite.query('SELECT token_version FROM users WHERE id = 1').get()
@@ -432,6 +442,16 @@ describe('migrations', () => {
     expect(sqlite.query('PRAGMA foreign_key_check').all()).toEqual([]);
     await migrateDatabase(sqlite, db, SRC_MIGRATIONS_PATH);
     expect(count('SELECT COUNT(*) c FROM calendar_events')).toBe(1);
+    expect(
+      count(
+        "SELECT COUNT(*) c FROM role_permissions WHERE role_id = 1 AND permission = 'SEND_VOICE_REACTION'"
+      )
+    ).toBe(1);
+    expect(
+      sqlite.query('SELECT plugin_components FROM messages WHERE id = 1').get()
+    ).toEqual({ plugin_components: null });
+    expect(count('SELECT COUNT(*) c FROM plugin_storage')).toBe(0);
+    expect(count('SELECT COUNT(*) c FROM thread_followers')).toBe(0);
     expect(count('SELECT COUNT(*) c FROM messages')).toBe(2);
     expect(count('SELECT COUNT(*) c FROM message_files')).toBe(1);
     expect(count('SELECT COUNT(*) c FROM message_reactions')).toBe(1);

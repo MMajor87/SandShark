@@ -36,7 +36,7 @@ describe('tests setup', () => {
     ]);
 
     expect(settingsResults.length).toBe(1);
-    expect(usersResults.length).toBe(5);
+    expect(usersResults.length).toBe(8);
     expect(channelsResults.length).toBe(5);
     expect(rolesResults.length).toBe(4);
     expect(messagesResults.length).toBe(2);
@@ -48,8 +48,8 @@ describe('tests setup', () => {
       tdb.select().from(rolePermissions)
     ]);
 
-    expect(userRolesResults.length).toBe(5);
-    expect(rolePermissionsResults.length).toBe(30);
+    expect(userRolesResults.length).toBe(8);
+    expect(rolePermissionsResults.length).toBe(32);
   });
 
   test('should seed the channel permission rows that disagree with each other', async () => {

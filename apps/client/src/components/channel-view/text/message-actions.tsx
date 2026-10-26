@@ -4,13 +4,15 @@ import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { Protect } from '@/components/protect';
 import {
   shouldUseFallbackImage,
+  withoutShadowedEmojis,
   type TEmojiItem
 } from '@/components/tiptap-input/helpers';
 import { openThreadSidebar } from '@/features/app/actions';
 import { useIsShiftHeld } from '@/features/app/hooks';
 import { requestConfirmation } from '@/features/dialogs/actions';
+import { useCustomEmojis } from '@/features/server/emojis/hooks';
 import { getTRPCClient } from '@/lib/trpc';
-import { Permission, PluginSlot } from '@sharkord/shared';
+import { Permission, PluginSlot, TestId } from '@sharkord/shared';
 import { IconButton } from '@sharkord/ui';
 import {
   MessageSquareText,
@@ -86,10 +88,15 @@ const MessageActions = memo(
   }: TMessageActionsProps) => {
     const { t } = useTranslation();
     const { recentEmojis } = useRecentEmojis();
-    const recentEmojisToShow = useMemo(
-      () => recentEmojis.slice(0, MAX_QUICK_EMOJIS),
-      [recentEmojis]
-    );
+    const customEmojis = useCustomEmojis();
+
+    // a built-in picked before a custom emoji took its name would show itself
+    // but react with the custom one
+    const recentEmojisToShow = useMemo(() => {
+      const reachableEmojis = withoutShadowedEmojis(recentEmojis, customEmojis);
+
+      return reachableEmojis.slice(0, MAX_QUICK_EMOJIS);
+    }, [recentEmojis, customEmojis]);
 
     const isShiftHeld = useIsShiftHeld();
 
@@ -173,6 +180,7 @@ const MessageActions = memo(
             icon={MessageSquareText}
             onClick={onReplyClick}
             title={t('replyInThread')}
+            data-testid={TestId.MESSAGE_REPLY_IN_THREAD}
           />
         )}
         {canManage && (
@@ -193,6 +201,7 @@ const MessageActions = memo(
               className={isShiftHeld ? 'text-destructive' : ''}
               onClick={onDeleteClick}
               title={t('deleteMessageTitle')}
+              data-testid={TestId.MESSAGE_DELETE}
             />
           </>
         )}

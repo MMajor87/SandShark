@@ -6,6 +6,7 @@ import {
   usePublicServerSettings,
   useServerName
 } from '@/features/server/hooks';
+import { useThreadsOpen } from '@/features/server/threads/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { LocalStorageKey } from '@/helpers/storage';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,8 @@ import { DmButton } from './direct-messages/dm-button';
 import { useFollowVoiceMove, useRestoreLastSelectedChannel } from './hooks';
 import { PluginButtons } from './plugin-buttons';
 import { ServerDropdownMenu, ServerSwitcher } from './server-dropdown';
+import { Threads } from './threads';
+import { ThreadsButton } from './threads/threads-button';
 import { UserControl } from './user-control';
 import { VoiceControl } from './voice-control';
 
@@ -33,11 +36,20 @@ const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
   const serverName = useServerName();
   const info = useInfo();
   const dmsOpen = useDmsOpen();
+  const threadsOpen = useThreadsOpen();
   const publicSettings = usePublicServerSettings();
   const serverIcon = info?.logo ? getFileUrl(info.logo) : undefined;
 
   useRestoreLastSelectedChannel();
   useFollowVoiceMove();
+
+  let content = <Categories />;
+
+  if (threadsOpen) {
+    content = <Threads />;
+  } else if (dmsOpen) {
+    content = <DirectMessages />;
+  }
 
   return (
     <ResizableSidebar
@@ -69,11 +81,12 @@ const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
           <ServerDropdownMenu />
         </div>
       </div>
-      {publicSettings?.directMessagesEnabled && <DmButton />}
-      <PluginButtons />
-      <div className="flex-1 overflow-y-auto">
-        {dmsOpen ? <DirectMessages /> : <Categories />}
+      <div className="space-y-0.5 border-b border-border px-2 py-2">
+        {publicSettings?.directMessagesEnabled && <DmButton />}
+        <ThreadsButton />
       </div>
+      <PluginButtons />
+      <div className="flex-1 overflow-y-auto">{content}</div>
       <VoiceControl />
       <UserControl />
     </ResizableSidebar>

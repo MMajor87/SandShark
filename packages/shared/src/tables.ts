@@ -137,6 +137,7 @@ export type TJoinedMessage = TMessage & {
   files: TFile[];
   reactions: TJoinedMessageReaction[];
   replyCount?: number;
+  replyUserIds?: number[];
   replyTo?: TMessageReplyPreview | null;
 };
 

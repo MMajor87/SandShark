@@ -1,3 +1,4 @@
+import type { TConversationKey } from '@/types';
 import { createSelector } from '@reduxjs/toolkit';
 import {
   OWNER_ROLE_ID,
@@ -7,6 +8,11 @@ import {
   type TPluginStoreState
 } from '@sharkord/shared';
 import { createCachedSelector } from 're-reselect';
+import {
+  hotkeysEnabledSelector,
+  selectedThreadSelector,
+  threadSidebarDataSelector
+} from '../app/selectors';
 import type { IRootState } from '../store';
 import { categoriesSelector } from './categories/selectors';
 import {
@@ -20,11 +26,14 @@ import {
   selectedChannelIdSelector
 } from './channels/selectors';
 import { emojisSelector } from './emojis/selectors';
-import { canViewChannel, hasUnreadMentionInMessages } from './helpers';
+import {
+  canViewChannel,
+  getConversationKey,
+  hasUnreadMentionInMessages
+} from './helpers';
 import {
   messagesByChannelIdSelector,
   messagesMapSelector,
-  threadTypingMapSelector,
   typingMapSelector
 } from './messages/selectors';
 import {
@@ -32,15 +41,20 @@ import {
   pluginsMetadataSelector
 } from './plugins/selectors';
 import { rolesSelector } from './roles/selectors';
+import { threadsOpenSelector } from './threads/selectors';
 import type { TVoiceUser } from './types';
 import {
   ownUserIdSelector,
+  ownUserRoleIdsSelector,
   ownUserSelector,
   userByIdSelector,
   usersMapSelector,
   usersSelector
 } from './users/selectors';
-import { voiceChannelStateSelector } from './voice/selectors';
+import {
+  ownVoiceStateSelector,
+  voiceChannelStateSelector
+} from './voice/selectors';
 
 export const connectedSelector = (state: IRootState) => state.server.connected;
 
@@ -66,16 +80,18 @@ export const totalUnreadMentionsSelector = createSelector(
     channelsSelector,
     channelsReadStatesSelector,
     messagesMapSelector,
-    ownUserIdSelector
+    ownUserIdSelector,
+    ownUserRoleIdsSelector
   ],
-  (channels, readStatesMap, messagesMap, ownUserId) =>
+  (channels, readStatesMap, messagesMap, ownUserId, ownRoleIds) =>
     channels.reduce(
       (total, channel) =>
         total +
         (hasUnreadMentionInMessages(
           readStatesMap[channel.id] ?? 0,
           messagesMap[channel.id] ?? [],
-          ownUserId
+          ownUserId,
+          ownRoleIds
         )
           ? 1
           : 0),
@@ -172,33 +188,19 @@ export const userRolesSelector = createCachedSelector(
   }
 )((_, userId: number) => userId);
 
-const createTypingUsersSelector = (
-  typingMap: (state: IRootState) => Record<number, number[]>,
-  keyPrefix: string
-) =>
-  createCachedSelector(
-    [
-      typingMap,
-      (_: IRootState, key: number) => key,
-      ownUserIdSelector,
-      usersMapSelector
-    ],
-    (map, key, ownUserId, usersMap) =>
-      (map[key] ?? (DEFAULT_ARRAY as number[]))
-        .filter((id) => id !== ownUserId)
-        .map((id) => usersMap[id])
-        .filter((user) => !!user)
-  )((_, key: number) => `${keyPrefix}-${key}`);
-
-export const typingUsersByChannelIdSelector = createTypingUsersSelector(
-  typingMapSelector,
-  'channel'
-);
-
-export const typingUsersByThreadIdSelector = createTypingUsersSelector(
-  threadTypingMapSelector,
-  'thread'
-);
+export const typingUsersByConversationKeySelector = createCachedSelector(
+  [
+    typingMapSelector,
+    (_: IRootState, conversationKey: TConversationKey) => conversationKey,
+    ownUserIdSelector,
+    usersMapSelector
+  ],
+  (typingMap, conversationKey, ownUserId, usersMap) =>
+    (typingMap[conversationKey] ?? (DEFAULT_ARRAY as number[]))
+      .filter((id) => id !== ownUserId)
+      .map((id) => usersMap[id])
+      .filter((user) => !!user)
+)((_, conversationKey: TConversationKey) => conversationKey);
 
 export const hasSharingScreenUsersSelector = createCachedSelector(
   [voiceChannelStateSelector],
@@ -256,12 +258,18 @@ export const hasUnreadMentionsSelector = createCachedSelector(
     channelReadStateByIdSelector,
     channelByIdSelector,
     messagesByChannelIdSelector,
-    ownUserIdSelector
+    ownUserIdSelector,
+    ownUserRoleIdsSelector
   ],
-  (readState, channel, messages, ownUserId) => {
+  (readState, channel, messages, ownUserId, ownRoleIds) => {
     if (!channel || !messages) return false;
 
-    return hasUnreadMentionInMessages(readState, messages, ownUserId);
+    return hasUnreadMentionInMessages(
+      readState,
+      messages,
+      ownUserId,
+      ownRoleIds
+    );
   }
 )((_, channelId: number) => channelId);
 
@@ -279,14 +287,16 @@ export const categoryHasUnreadMentionsSelector = createCachedSelector(
     visibleChannelsInCategorySelector,
     channelsReadStatesSelector,
     messagesMapSelector,
-    ownUserIdSelector
+    ownUserIdSelector,
+    ownUserRoleIdsSelector
   ],
-  (channelsInCategory, readStatesMap, messagesMap, ownUserId) => {
+  (channelsInCategory, readStatesMap, messagesMap, ownUserId, ownRoleIds) => {
     return channelsInCategory.some((channel) => {
       return hasUnreadMentionInMessages(
         readStatesMap[channel.id] ?? 0,
-        messagesMap[channel.id] ?? [],
-        ownUserId
+        messagesMap[getConversationKey({ channelId: channel.id })] ?? [],
+        ownUserId,
+        ownRoleIds
       );
     });
   }
@@ -330,6 +340,8 @@ export const mapStateToPluginState = createSelector(
     ownUserIdSelector,
     selectedChannelIdSelector,
     currentVoiceChannelIdSelector,
+    ownVoiceStateSelector,
+    hotkeysEnabledSelector,
     publicServerSettingsSelector
   ],
   (
@@ -342,6 +354,8 @@ export const mapStateToPluginState = createSelector(
     ownUserId,
     selectedChannelId,
     currentVoiceChannelId,
+    ownVoiceState,
+    hotkeysEnabled,
     publicSettings
   ): TPluginStoreState => ({
     users,
@@ -353,6 +367,8 @@ export const mapStateToPluginState = createSelector(
     ownUserId,
     selectedChannelId,
     currentVoiceChannelId,
+    ownVoiceState,
+    hotkeysEnabled,
     publicSettings
   })
 );
@@ -456,3 +472,21 @@ export const userSettingsPluginsSelector = createSelector(
     return plugins.length > 0 ? plugins : DEFAULT_USER_SETTINGS_PLUGINS;
   }
 );
+
+// no need to cache this as it is only used from actions
+// if in the future you need to use this in a performance-critical path, memoize it
+export const isThreadOpenSelector = (
+  state: IRootState,
+  parentMessageId: number
+) => {
+  const threadSidebar = threadSidebarDataSelector(state);
+  const threadsOpen = threadsOpenSelector(state);
+  const selectedThread = selectedThreadSelector(state);
+
+  const isInSidebar =
+    threadSidebar.isOpen && threadSidebar.parentMessageId === parentMessageId;
+  const isInMainView =
+    threadsOpen && selectedThread?.parentMessageId === parentMessageId;
+
+  return isInSidebar || isInMainView;
+};

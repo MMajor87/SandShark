@@ -141,6 +141,13 @@
       "when": 1789523511171,
       "tag": "0019_eminent_patch",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1793038382395,
+      "tag": "0020_brief_rogue",
+      "breakpoints": true
     }
   ]
 }

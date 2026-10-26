@@ -105,13 +105,18 @@ const enforceHttpRateLimit = (
     `[Rate Limiter HTTP] ${options.route} rate limited for key "${key}"`
   );
 
-  res.setHeader(
-    'Retry-After',
-    getRateLimitRetrySeconds(rateLimit.retryAfterMs)
-  );
-  sendJsonError(res, 429, options.message);
+  sendTooManyRequests(res, rateLimit.retryAfterMs, options.message);
 
   return false;
+};
+
+const sendTooManyRequests = (
+  res: http.ServerResponse,
+  retryAfterMs: number,
+  message: string
+) => {
+  res.setHeader('Retry-After', getRateLimitRetrySeconds(retryAfterMs));
+  sendJsonError(res, 429, message);
 };
 
 const applyCorsHeaders = (
@@ -222,8 +227,9 @@ const sanitizeFileName = (name: string): string | null => {
 
   const normalized = decoded.replace(/\\/g, '/');
 
-  // strip any directory components (e.g. "../../etc/passwd" -> "passwd")
-  const baseName = path.basename(normalized);
+  // strip any directory components (e.g. "../../etc/passwd" -> "passwd"). posix on purpose:
+  // the win32 basename also drops a drive prefix, turning "a:b.txt" into "b.txt"
+  const baseName = path.posix.basename(normalized);
 
   // reject empty names (e.g. after stripping path components from "/")
   if (!baseName || baseName === '.' || baseName === '..') {
@@ -528,6 +534,7 @@ export {
   sendJsonError,
   sendJsonFieldErrors,
   sendNotModified,
+  sendTooManyRequests,
   supportedHttpMethods
 };
 export type { HttpRouteHandler, TSupportedHttpMethod };

@@ -87,6 +87,20 @@ const login = async (
     })
   });
 
+type TCaller = Awaited<ReturnType<typeof getCaller>>['caller'];
+type TSendMessageInput = Parameters<TCaller['messages']['send']>[0];
+
+// a message that is stored always has an id, null is only an ephemeral command
+const sendMessage = async (caller: TCaller, input: TSendMessageInput) => {
+  const messageId = await caller.messages.send(input);
+
+  if (messageId === null) {
+    throw new Error('The message was not stored.');
+  }
+
+  return messageId;
+};
+
 const uploadFile = async (file: File, token: string) =>
   fetch(`${testsBaseUrl}/upload`, {
     method: 'POST',
@@ -94,7 +108,7 @@ const uploadFile = async (file: File, token: string) =>
       'Content-Type': 'application/octet-stream',
       [UploadHeaders.TYPE]: file.type,
       [UploadHeaders.CONTENT_LENGTH]: file.size.toString(),
-      [UploadHeaders.ORIGINAL_NAME]: file.name,
+      [UploadHeaders.ORIGINAL_NAME]: encodeURIComponent(file.name),
       [UploadHeaders.TOKEN]: token
     },
     body: file
@@ -106,6 +120,7 @@ export {
   getMockedToken,
   initTest,
   login,
+  sendMessage,
   uploadFile,
   type TFakeSocket
 };

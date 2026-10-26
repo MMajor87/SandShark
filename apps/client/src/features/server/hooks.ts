@@ -1,9 +1,11 @@
+import type { TConversation } from '@/types';
 import { ChannelPermission, Permission } from '@sharkord/shared';
 import { useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import type { IRootState } from '../store';
 import { useChannelById, useChannelPermissionsById } from './channels/hooks';
 import { channelReadStateByIdSelector } from './channels/selectors';
+import { getConversationKey } from './helpers';
 import {
   activeFullscreenPluginIdSelector,
   categoryHasUnreadMentionsSelector,
@@ -24,12 +26,12 @@ import {
   reconnectingSelector,
   reconnectSelector,
   referenceableChannelsSelector,
+  serverIdSelector,
   serverNameSelector,
   totalUnreadCountSelector,
   totalUnreadMentionsSelector,
   totalUnreadMessagesSelector,
-  typingUsersByChannelIdSelector,
-  typingUsersByThreadIdSelector,
+  typingUsersByConversationKeySelector,
   userRolesSelector,
   userSettingsPluginsSelector,
   voiceUsersByChannelIdSelector,
@@ -43,6 +45,8 @@ export const useIsReconnecting = () => useSelector(reconnectingSelector);
 export const useReconnectState = () => useSelector(reconnectSelector);
 
 export const useDisconnectInfo = () => useSelector(disconnectInfoSelector);
+
+export const useServerId = () => useSelector(serverIdSelector);
 
 export const useServerName = () => useSelector(serverNameSelector);
 
@@ -132,15 +136,13 @@ export const useHasVisibleChannelsInCategory = (categoryId: number) =>
 export const useUserRoles = (userId: number) =>
   useSelector((state: IRootState) => userRolesSelector(state, userId));
 
-export const useTypingUsersByChannelId = (channelId: number) =>
-  useSelector((state: IRootState) =>
-    typingUsersByChannelIdSelector(state, channelId)
-  );
+export const useTypingUsers = (conversation: TConversation) => {
+  const conversationKey = getConversationKey(conversation);
 
-export const useTypingUsersByThreadId = (parentMessageId: number) =>
-  useSelector((state: IRootState) =>
-    typingUsersByThreadIdSelector(state, parentMessageId)
+  return useSelector((state: IRootState) =>
+    typingUsersByConversationKeySelector(state, conversationKey)
   );
+};
 
 export const useVoiceUsersByChannelId = (channelId: number) =>
   useSelector((state: IRootState) =>

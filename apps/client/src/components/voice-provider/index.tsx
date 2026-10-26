@@ -17,11 +17,7 @@ import {
 import { createNsChain } from '@/helpers/audio-worklet/ns-worklet';
 import { playSound } from '@/helpers/sounds';
 
-import {
-  logVoice,
-  logVoiceError,
-  logVoiceWarn
-} from '@/helpers/browser-logger';
+import { voiceLogger } from '@/helpers/browser-logger';
 import {
   getRestrictOwnAudioSupport,
   getSuppressLocalAudioPlaybackSupport
@@ -88,6 +84,7 @@ import { useTransportStats } from './hooks/use-transport-stats';
 import { useTransports } from './hooks/use-transports';
 import { useVoiceControls } from './hooks/use-voice-controls';
 import { useVoiceEvents } from './hooks/use-voice-events';
+import { useVoiceHotkeys } from './hooks/use-voice-hotkeys';
 import {
   createProcessAudioTrack,
   type TProcessAudioTrack
@@ -111,6 +108,8 @@ type TVideoProducerAppData = {
   qualityLayers?: TStreamQualityLayer[];
 };
 
+type TRefsKey = number | `external:${number}`;
+
 export type { AudioVideoRefs };
 
 enum ConnectionStatus {
@@ -124,10 +123,10 @@ export type TVoiceProvider = {
   loading: boolean;
   connectionStatus: ConnectionStatus;
   pushToTalkActive: boolean;
-  audioVideoRefsMap: Map<number, AudioVideoRefs>;
+  audioVideoRefsMap: Map<TRefsKey, AudioVideoRefs>;
   ownVoiceState: TVoiceUserState;
   isScreenShareSupported: boolean;
-  getOrCreateRefs: (remoteId: number) => AudioVideoRefs;
+  getOrCreateRefs: (remoteId: number, isExternal?: boolean) => AudioVideoRefs;
   getConsumerCodec: (remoteId: number, kind: StreamKind) => string | undefined;
   getStreamQuality: (remoteId: number, kind: StreamKind) => TStreamQuality;
   getStreamQualityLayers: (
@@ -185,7 +184,8 @@ const VoiceProviderContext = createContext<TVoiceProvider>({
     micMuted: false,
     soundMuted: false,
     webcamEnabled: false,
-    sharingScreen: false
+    sharingScreen: false,
+    serverMuted: false
   },
   localAudioStream: undefined,
   localVideoStream: undefined,
@@ -221,7 +221,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
   const [pushToTalkRegistered, setPushToTalkRegistered] = useState(false);
   const routerRtpCapabilities = useRef<RtpCapabilities | null>(null);
   const deviceRtpCapabilities = useRef<RtpCapabilities | null>(null);
-  const audioVideoRefsMap = useRef<Map<number, AudioVideoRefs>>(new Map());
+  const audioVideoRefsMap = useRef<Map<TRefsKey, AudioVideoRefs>>(new Map());
   const previousVoiceChannelIdRef = useRef<number | undefined>(undefined);
   const transportRecoveryRef = useRef<() => void>(() => {});
   const transportRecoveryInProgressRef = useRef(false);
@@ -362,9 +362,13 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
           quality
         });
 
-        logVoice('consumer: quality changed', { remoteId, kind, quality });
+        voiceLogger.info('consumer: quality changed', {
+          remoteId,
+          kind,
+          quality
+        });
       } catch (error) {
-        logVoiceError('consumer: quality change failed', error, {
+        voiceLogger.error('consumer: quality change failed', error, {
           remoteId,
           kind,
           quality
@@ -374,20 +378,25 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     [shouldShowQualityPicker]
   );
 
-  const getOrCreateRefs = useCallback((remoteId: number): AudioVideoRefs => {
-    if (!audioVideoRefsMap.current.has(remoteId)) {
-      audioVideoRefsMap.current.set(remoteId, {
-        videoRef: { current: null },
-        audioRef: { current: null },
-        screenShareRef: { current: null },
-        screenShareAudioRef: { current: null },
-        externalAudioRef: { current: null },
-        externalVideoRef: { current: null }
-      });
-    }
+  const getOrCreateRefs = useCallback(
+    (remoteId: number, isExternal = false): AudioVideoRefs => {
+      const key: TRefsKey = isExternal ? `external:${remoteId}` : remoteId;
 
-    return audioVideoRefsMap.current.get(remoteId)!;
-  }, []);
+      if (!audioVideoRefsMap.current.has(key)) {
+        audioVideoRefsMap.current.set(key, {
+          videoRef: { current: null },
+          audioRef: { current: null },
+          screenShareRef: { current: null },
+          screenShareAudioRef: { current: null },
+          externalAudioRef: { current: null },
+          externalVideoRef: { current: null }
+        });
+      }
+
+      return audioVideoRefsMap.current.get(key)!;
+    },
+    []
+  );
 
   const {
     addExternalStreamTrack,
@@ -484,7 +493,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
   }, []);
 
   const cleanupMicProcessingResources = useCallback(() => {
-    logVoice('mic: releasing capture resources');
+    voiceLogger.info('mic: releasing capture resources');
 
     if (microphoneNoiseGateWorkletNodeRef.current) {
       microphoneNoiseGateWorkletNodeRef.current.disconnect();
@@ -541,7 +550,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
 
   const startMicStream = useCallback(async () => {
     try {
-      logVoice('mic: starting');
+      voiceLogger.info('mic: starting');
       cleanupMicProcessingResources();
 
       const useNsChain =
@@ -568,14 +577,14 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         video: false
       };
 
-      logVoice('mic: requesting stream', {
+      voiceLogger.info('mic: requesting stream', {
         constraints: micStreamConstraints
       });
 
       const rawStream =
         await navigator.mediaDevices.getUserMedia(micStreamConstraints);
 
-      logVoice('mic: stream obtained', {
+      voiceLogger.info('mic: stream obtained', {
         trackId: rawStream.getAudioTracks()[0]?.id,
         label: rawStream.getAudioTracks()[0]?.label
       });
@@ -623,7 +632,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
               noiseGateNode.disconnect();
               audioContext.close();
               audioContext = null;
-              logVoiceWarn(
+              voiceLogger.warn(
                 'mic: noise gate produced no track, using ungated stream'
               );
             }
@@ -632,7 +641,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
               audioContext.close();
             }
 
-            logVoiceError(
+            voiceLogger.error(
               'mic: noise gate worklet failed, using ungated stream',
               error
             );
@@ -641,13 +650,16 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
             );
           }
         } else if (shouldUseNoiseGate && !noiseGateAvailability.available) {
-          logVoiceWarn('mic: noise gate unavailable, using ungated stream', {
-            reason: noiseGateAvailability.reason
-          });
+          voiceLogger.warn(
+            'mic: noise gate unavailable, using ungated stream',
+            {
+              reason: noiseGateAvailability.reason
+            }
+          );
         }
 
         if (useNsChain) {
-          logVoice('mic: setting up noise suppression', {
+          voiceLogger.info('mic: setting up noise suppression', {
             type: devices.noiseSuppression
           });
 
@@ -659,9 +671,9 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
             nsAudioContextsRef.current = chain.contexts;
             transmitTrack = chain.outputTrack;
             transmitStream = new MediaStream([chain.outputTrack]);
-            logVoice('mic: noise suppression ready');
+            voiceLogger.info('mic: noise suppression ready');
           } catch (nsError) {
-            logVoiceWarn('mic: noise suppression setup failed', {
+            voiceLogger.warn('mic: noise suppression setup failed', {
               error: nsError
             });
           }
@@ -671,7 +683,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         setLocalAudioStream(transmitStream);
         syncTransmitMicrophoneTrackState();
 
-        logVoice('mic: audio track obtained', {
+        voiceLogger.info('mic: audio track obtained', {
           trackId: rawAudioTrack.id,
           readyState: rawAudioTrack.readyState,
           settings: rawAudioTrack.getSettings()
@@ -696,12 +708,12 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
           appData: { kind: StreamKind.AUDIO }
         });
 
-        logVoice('mic: producer created', {
+        voiceLogger.info('mic: producer created', {
           producerId: localAudioProducer.current.id
         });
 
         localAudioProducer.current?.observer.on('close', async () => {
-          logVoice('mic: producer closed');
+          voiceLogger.info('mic: producer closed');
 
           const trpc = getTRPCClient();
 
@@ -710,12 +722,15 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
               kind: StreamKind.AUDIO
             });
           } catch (error) {
-            logVoiceError('mic: closing producer on the server failed', error);
+            voiceLogger.error(
+              'mic: closing producer on the server failed',
+              error
+            );
           }
         });
 
         rawAudioTrack.onended = () => {
-          logVoiceWarn('mic: track ended, cleaning up');
+          voiceLogger.warn('mic: track ended, cleaning up');
 
           transmitStream.getAudioTracks().forEach((track) => {
             track.stop();
@@ -732,7 +747,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     } catch (error) {
       cleanupMicProcessingResources();
       setLocalAudioStream(undefined);
-      logVoiceError('mic: start failed', error);
+      voiceLogger.error('mic: start failed', error);
     }
   }, [
     cleanupMicProcessingResources,
@@ -752,7 +767,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     let stream: MediaStream | undefined;
 
     try {
-      logVoice('webcam: starting');
+      voiceLogger.info('webcam: starting');
 
       const hasSpecificWebcam =
         !!devices?.webcamId && devices.webcamId !== 'default';
@@ -766,20 +781,25 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         audio: false
       };
 
-      logVoice('webcam: requesting stream', { constraints: webcamConstraints });
+      voiceLogger.info('webcam: requesting stream', {
+        constraints: webcamConstraints
+      });
 
       const webcamStream =
         await navigator.mediaDevices.getUserMedia(webcamConstraints);
       stream = webcamStream;
 
-      logVoice('Webcam stream obtained', { stream: webcamStream });
+      voiceLogger.info('webcam: stream obtained', {
+        trackId: stream.getVideoTracks()[0]?.id,
+        label: stream.getVideoTracks()[0]?.label
+      });
 
       setLocalVideoStream(webcamStream);
 
       const videoTrack = webcamStream.getVideoTracks()[0];
 
       if (videoTrack) {
-        logVoice('webcam: video track obtained', {
+        voiceLogger.info('webcam: video track obtained', {
           trackId: videoTrack.id,
           readyState: videoTrack.readyState,
           settings: videoTrack.getSettings()
@@ -804,7 +824,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         let simulcastWebcamProducerOptions = webcamProducerOptions;
 
         if (simulcastCodec) {
-          logVoice('webcam: using vp8 for simulcast', {
+          voiceLogger.info('webcam: using vp8 for simulcast', {
             codec: simulcastCodec.mimeType
           });
 
@@ -827,7 +847,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         } catch (error) {
           if (!simulcastCodec) throw error;
 
-          logVoiceWarn(
+          voiceLogger.warn(
             'webcam: simulcast producer failed, retrying without simulcast',
             { error: getErrorMessage(error) }
           );
@@ -837,12 +857,12 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
           );
         }
 
-        logVoice('webcam: producer created', {
+        voiceLogger.info('webcam: producer created', {
           producerId: localVideoProducer.current?.id
         });
 
         localVideoProducer.current?.observer.on('close', async () => {
-          logVoice('webcam: producer closed');
+          voiceLogger.info('webcam: producer closed');
 
           const trpc = getTRPCClient();
 
@@ -851,7 +871,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
               kind: StreamKind.VIDEO
             });
           } catch (error) {
-            logVoiceError(
+            voiceLogger.error(
               'webcam: closing producer on the server failed',
               error
             );
@@ -859,7 +879,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         });
 
         videoTrack.onended = () => {
-          logVoiceWarn('webcam: track ended, cleaning up');
+          voiceLogger.warn('webcam: track ended, cleaning up');
 
           webcamStream.getVideoTracks().forEach((track) => {
             track.stop();
@@ -873,9 +893,12 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
           void getTRPCClient()
             .voice.updateState.mutate({ webcamEnabled: false })
             .catch((error) => {
-              logVoice('Error updating webcam state after camera ended', {
-                error
-              });
+              voiceLogger.info(
+                'Error updating webcam state after camera ended',
+                {
+                  error
+                }
+              );
             });
         };
       } else {
@@ -886,7 +909,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       localVideoProducer.current?.close();
       localVideoProducer.current = undefined;
       setLocalVideoStream(undefined);
-      logVoice('Error starting webcam stream', { error });
+      voiceLogger.info('Error starting webcam stream', { error });
       throw error;
     }
   }, [
@@ -900,10 +923,10 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
   ]);
 
   const stopWebcamStream = useCallback(() => {
-    logVoice('webcam: stopping');
+    voiceLogger.info('webcam: stopping');
 
     localVideoStream?.getVideoTracks().forEach((track) => {
-      logVoice('webcam: stopping track', { trackId: track.id });
+      voiceLogger.info('webcam: stopping track', { trackId: track.id });
 
       track.stop();
       localVideoStream.removeTrack(track);
@@ -916,10 +939,10 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
   }, [localVideoStream, setLocalVideoStream, localVideoProducer]);
 
   const stopScreenShareStream = useCallback(() => {
-    logVoice('screen: stopping');
+    voiceLogger.info('screen: stopping');
 
     localScreenShareStream?.getTracks().forEach((track) => {
-      logVoice('screen: stopping track', {
+      voiceLogger.info('screen: stopping track', {
         trackId: track.id,
         kind: track.kind
       });
@@ -950,7 +973,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
 
   const startScreenShareStream = useCallback(async () => {
     try {
-      logVoice('Starting screen share stream');
+      voiceLogger.info('Starting screen share stream');
       await stopProcessAudioTrack();
       const canRestrictOwnAudio = getRestrictOwnAudioSupport();
       const canSuppressLocalAudioPlayback =
@@ -987,7 +1010,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         audio: isDesktopScreenShare ? false : systemAudioConstraints
       };
 
-      logVoice(
+      voiceLogger.info(
         'Requesting display media with constraints',
         displayMediaConstraints
       );
@@ -1080,7 +1103,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         );
       }
 
-      logVoice('screen: stream obtained', {
+      voiceLogger.info('screen: stream obtained', {
         videoTrackId: stream.getVideoTracks()[0]?.id,
         hasAudio: stream.getAudioTracks().length > 0
       });
@@ -1100,7 +1123,9 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       });
 
       if (devices.shareSystemAudio && !audioTrack) {
-        logVoice('System audio is unavailable for the selected capture source');
+        voiceLogger.info(
+          'System audio is unavailable for the selected capture source'
+        );
         toast.warning(
           'System audio is unavailable for this source. Sharing video only.'
         );
@@ -1110,17 +1135,17 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         try {
           await videoTrack.applyConstraints(screenCaptureConstraints);
         } catch (error) {
-          logVoice('Could not apply screen share output constraints', {
+          voiceLogger.info('Could not apply screen share output constraints', {
             error,
             requested: screenCaptureConstraints
           });
         }
 
-        logVoice('Screen share track settings after constraints', {
+        voiceLogger.info('Screen share track settings after constraints', {
           requested: screenCaptureConstraints,
           actual: videoTrack.getSettings()
         });
-        logVoice('Obtained video track', { videoTrack });
+        voiceLogger.info('Obtained video track', { videoTrack });
 
         videoTrack.contentHint = 'detail';
 
@@ -1138,7 +1163,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
           );
 
           if (preferredCodec) {
-            logVoice('screen: using preferred codec', {
+            voiceLogger.info('screen: using preferred codec', {
               codec: preferredCodec.mimeType
             });
           }
@@ -1151,11 +1176,13 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         const screenCodec = simulcastCodec ?? preferredCodec;
 
         if (simulcastCodec) {
-          logVoice('screen: using vp8 for simulcast', {
+          voiceLogger.info('screen: using vp8 for simulcast', {
             codec: simulcastCodec.mimeType
           });
         } else if (simulcastEnabled) {
-          logVoiceWarn('screen: vp8 unavailable, creating without simulcast');
+          voiceLogger.warn(
+            'screen: vp8 unavailable, creating without simulcast'
+          );
         }
         const screenShareProducerOptions: ProducerOptions<TVideoProducerAppData> =
           {
@@ -1197,7 +1224,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         } catch (error) {
           if (!simulcastCodec) throw error;
 
-          logVoiceWarn(
+          voiceLogger.warn(
             'screen: simulcast producer failed, retrying without simulcast',
             { error: getErrorMessage(error) }
           );
@@ -1208,7 +1235,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
             );
         }
 
-        logVoice('screen: producer created', {
+        voiceLogger.info('screen: producer created', {
           producerId: localScreenShareProducer.current?.id,
           simulcast: !!simulcastCodec
         });
@@ -1216,7 +1243,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         setScreenShareProducer(localScreenShareProducer.current);
 
         localScreenShareProducer.current?.observer.on('close', async () => {
-          logVoice('screen: producer closed');
+          voiceLogger.info('screen: producer closed');
 
           const trpc = getTRPCClient();
 
@@ -1225,7 +1252,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
               kind: StreamKind.SCREEN
             });
           } catch (error) {
-            logVoiceError(
+            voiceLogger.error(
               'screen: closing producer on the server failed',
               error
             );
@@ -1233,7 +1260,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         });
 
         videoTrack.onended = () => {
-          logVoice('screen: track ended, cleaning up');
+          voiceLogger.info('screen: track ended, cleaning up');
 
           stream.getTracks().forEach((track) => {
             track.stop();
@@ -1250,7 +1277,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         };
 
         if (audioTrack) {
-          logVoice('screen audio: audio track obtained', {
+          voiceLogger.info('screen audio: audio track obtained', {
             trackId: audioTrack.id,
             settings: audioTrack.getSettings()
           });
@@ -1273,7 +1300,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
             });
 
           monitorScreenAudio(localScreenShareAudioProducer.current);
-          logVoice('screen audio: producer created', {
+          voiceLogger.info('screen audio: producer created', {
             producerId: localScreenShareAudioProducer.current?.id
           });
 
@@ -1282,7 +1309,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
           localScreenShareAudioProducer.current?.observer.on(
             'close',
             async () => {
-              logVoice('screen audio: producer closed');
+              voiceLogger.info('screen audio: producer closed');
 
               const trpc = getTRPCClient();
 
@@ -1291,7 +1318,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
                   kind: StreamKind.SCREEN_AUDIO
                 });
               } catch (error) {
-                logVoiceError(
+                voiceLogger.error(
                   'screen audio: closing producer on the server failed',
                   error
                 );
@@ -1320,7 +1347,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
 
       setLocalScreenShare(undefined);
       setLocalScreenShareAudio(undefined);
-      logVoice('Error starting screen share stream', { error });
+      voiceLogger.info('Error starting screen share stream', { error });
       reportDesktopCaptureDiagnostic('capture-failed', {
         errorName: error instanceof DOMException ? error.name : 'Error',
         error: error instanceof Error ? error.message : String(error),
@@ -1329,7 +1356,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         systemAudioRequested: Boolean(devices.shareSystemAudio),
         desktopApiAvailable: Boolean(window.sandSharkDesktop)
       });
-      logVoiceError('screen: start failed', error);
+      voiceLogger.error('screen: start failed', error);
       throw error;
     }
   }, [
@@ -1353,7 +1380,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
   ]);
 
   const cleanup = useCallback(() => {
-    logVoice('session: cleanup');
+    voiceLogger.info('session: cleanup');
 
     void stopProcessAudioTrack();
     stopMonitoring();
@@ -1389,7 +1416,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     }
 
     if (transportRecoveryAttemptsRef.current >= 2) {
-      logVoice('Voice transport recovery limit reached');
+      voiceLogger.info('Voice transport recovery limit reached');
       setConnectionStatus(ConnectionStatus.FAILED);
       return;
     }
@@ -1400,7 +1427,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
     setConnectionStatus(ConnectionStatus.CONNECTING);
 
     try {
-      logVoice('Recovering failed voice transports', {
+      voiceLogger.info('Recovering failed voice transports', {
         channelId: currentVoiceChannelId,
         attempt: transportRecoveryAttemptsRef.current
       });
@@ -1441,9 +1468,9 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       startMonitoring(producerTransport.current, consumerTransport.current);
       transportRecoveryAttemptsRef.current = 0;
       setConnectionStatus(ConnectionStatus.CONNECTED);
-      logVoice('Voice transport recovery completed');
+      voiceLogger.info('Voice transport recovery completed');
     } catch (error) {
-      logVoice('Voice transport recovery failed', { error });
+      voiceLogger.info('Voice transport recovery failed', { error });
       setConnectionStatus(ConnectionStatus.FAILED);
     } finally {
       setLoading(false);
@@ -1484,7 +1511,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       incomingRouterRtpCapabilities: RtpCapabilities,
       channelId: number
     ) => {
-      logVoice('session: initializing', {
+      voiceLogger.info('session: initializing', {
         channelId,
         routerCodecs: incomingRouterRtpCapabilities.codecs?.length ?? 0
       });
@@ -1528,7 +1555,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
         setLoading(false);
         playSound(SoundType.OWN_USER_JOINED_VOICE_CHANNEL);
       } catch (error) {
-        logVoiceError('session: init failed', error, { channelId });
+        voiceLogger.error('session: init failed', error, { channelId });
         cleanup();
 
         setConnectionStatus(ConnectionStatus.FAILED);
@@ -1558,6 +1585,8 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       startScreenShareStream,
       stopScreenShareStream
     });
+
+  useVoiceHotkeys({ toggleMic, toggleSound });
 
   const setMicMutedForBridge = useCallback(
     async (muted: boolean) => {
@@ -1715,7 +1744,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
   useEffect(() => {
     if (previousConnectionStatus.current === connectionStatus) return;
 
-    logVoice('session: connection status changed', {
+    voiceLogger.info('session: connection status changed', {
       from: previousConnectionStatus.current,
       to: connectionStatus
     });
@@ -1772,7 +1801,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
       previousVoiceChannelId !== undefined &&
       currentVoiceChannelId === undefined
     ) {
-      logVoice('session: left voice channel, releasing resources', {
+      voiceLogger.info('session: left voice channel, releasing resources', {
         channelId: previousVoiceChannelId
       });
       cleanup();
@@ -1781,7 +1810,7 @@ const VoiceProvider = memo(({ children }: TVoiceProviderProps) => {
 
   useEffect(() => {
     return () => {
-      logVoice('session: provider unmounting');
+      voiceLogger.info('session: provider unmounting');
       cleanup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,20 +1,20 @@
 import {
-  EMOJI_CHARACTER_REGEX,
-  EMOJI_SHORTCODE_REGEX,
   Permission,
-  REACTION_EMOJI_MAX_LENGTH
+  REACTION_EMOJI_MAX_LENGTH,
+  type TBeforeReactionPayload
 } from '@sharkord/shared';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';
 import { db } from '../../db';
 import { publishMessage } from '../../db/publishers';
-import { getEmojiFileIdByEmojiName } from '../../db/queries/emojis';
 import { getReaction } from '../../db/queries/messages';
 import { messageReactions } from '../../db/schema';
 import { loadMessageForWrite } from '../../helpers/load-message-for-write';
+import { resolveKnownEmojiFileId } from '../../helpers/resolve-known-emoji-file-id';
+import { pluginManager } from '../../plugins';
 import { eventBus } from '../../plugins/event-bus';
-import { invariant } from '../../utils/invariant';
+import { runHook } from '../../plugins/run-hook';
 import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
 
 const toggleMessageReactionRoute = rateLimitedProcedure(protectedProcedure, {
@@ -40,17 +40,17 @@ const toggleMessageReactionRoute = rateLimitedProcedure(protectedProcedure, {
     );
 
     if (!reaction) {
-      const emojiFileId = await getEmojiFileIdByEmojiName(input.emoji);
-
-      invariant(
-        emojiFileId !== null ||
-          EMOJI_CHARACTER_REGEX.test(input.emoji) ||
-          EMOJI_SHORTCODE_REGEX.test(input.emoji),
-        {
-          code: 'BAD_REQUEST',
-          message: 'Unknown emoji'
+      await runHook<TBeforeReactionPayload, never>({
+        entries: pluginManager.getHooks('beforeReaction'),
+        payload: {
+          messageId: input.messageId,
+          channelId: message.channelId,
+          userId: ctx.user.id,
+          emoji: input.emoji
         }
-      );
+      });
+
+      const emojiFileId = await resolveKnownEmojiFileId(input.emoji);
 
       await db.insert(messageReactions).values({
         messageId: input.messageId,

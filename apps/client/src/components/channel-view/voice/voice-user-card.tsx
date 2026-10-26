@@ -1,4 +1,5 @@
 import { useDevices } from '@/components/devices-provider/hooks/use-devices';
+import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { UserAvatar } from '@/components/user-avatar';
 import { useStreamVolumeControl } from '@/components/voice-provider/hooks/use-stream-volume-control';
 import { useWebRtcSimulcastEnabled } from '@/features/server/hooks';
@@ -11,9 +12,10 @@ import {
 } from '@/features/server/voice/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { cn } from '@/lib/utils';
-import { StreamKind } from '@sharkord/shared';
+import { PluginSlot, StreamKind } from '@sharkord/shared';
 import { HeadphoneOff, MicOff, Monitor, Video } from 'lucide-react';
 import { memo, useCallback, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CardTheme } from './card-theme';
 import { FullscreenButton } from './fullscreen-button';
 import {
@@ -28,10 +30,12 @@ import { useVoiceRefs } from './hooks/use-voice-refs';
 import { PictureInPictureButton } from './picture-in-picture-button';
 import { PinButton } from './pin-button';
 import { QualityButton } from './quality-button';
+import { VoiceReactions } from './voice-reactions';
 import { VolumeButton } from './volume-button';
 
 type TVoiceUserCardProps = {
   userId: number;
+  channelId: number;
   onPin: () => void;
   onUnpin: () => void;
   showPinControls?: boolean;
@@ -45,6 +49,7 @@ type TVoiceUserCardProps = {
 const VoiceUserCard = memo(
   ({
     userId,
+    channelId,
     onPin,
     onUnpin,
     className,
@@ -54,6 +59,7 @@ const VoiceUserCard = memo(
     isAnyCardPinned = false,
     showScreenShare = true
   }: TVoiceUserCardProps) => {
+    const { t } = useTranslation('common');
     const {
       videoRef,
       screenShareRef,
@@ -85,6 +91,9 @@ const VoiceUserCard = memo(
       useFullscreen(containerRef);
     const showQualityControl =
       !isOwnUser && webRtcSimulcastEnabled && hasVisualStream;
+    const micTitle = voiceUser.state.serverMuted
+      ? t('mutedByModerator')
+      : undefined;
 
     const handlePinToggle = useCallback(() => {
       if (isPinned) {
@@ -97,6 +106,11 @@ const VoiceUserCard = memo(
     const handleToggleFullscreen = useCallback(() => {
       void toggleFullscreen();
     }, [toggleFullscreen]);
+
+    const pluginSlotProps = useMemo(
+      () => ({ channelId, userId }),
+      [channelId, userId]
+    );
 
     const backgroundStyle = useMemo(
       () =>
@@ -171,6 +185,20 @@ const VoiceUserCard = memo(
           />
         )}
 
+        <VoiceReactions userId={userId} isCompact={isCompact} />
+
+        <div
+          className={cn(
+            'absolute top-0 left-0 z-10 flex items-center gap-1',
+            density.inset
+          )}
+        >
+          <PluginSlotRenderer
+            slotId={PluginSlot.VOICE_USER_CARD}
+            props={pluginSlotProps}
+          />
+        </div>
+
         <div
           className={cn(
             'absolute top-0 right-0 z-10 min-h-4 items-center',
@@ -236,10 +264,17 @@ const VoiceUserCard = memo(
             )}
           >
             {voiceUser.state.micMuted && !voiceUser.state.soundMuted && (
-              <MicOff
-                className="text-red-400/80 shrink-0 size-3"
-                fill="currentColor"
-              />
+              <span title={micTitle}>
+                <MicOff
+                  className={cn(
+                    'shrink-0 size-3',
+                    voiceUser.state.serverMuted
+                      ? 'text-orange-400/80'
+                      : 'text-red-400/80'
+                  )}
+                  fill="currentColor"
+                />
+              </span>
             )}
             {voiceUser.state.soundMuted && (
               <HeadphoneOff

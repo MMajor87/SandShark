@@ -38,7 +38,14 @@ export enum LocalStorageKey {
   SERVER_PROFILES = 'sandshark-server-profiles',
   ACTIVE_SERVER_PROFILE_ID = 'sandshark-active-server-profile-id',
   PUSH_TO_TALK_SETTINGS = 'sandshark-push-to-talk-settings',
-  MUTED_NOTIFICATION_CHANNELS = 'sandshark-muted-notification-channels'
+  MUTED_NOTIFICATION_CHANNELS = 'sandshark-muted-notification-channels',
+  NOTIFICATION_SOUNDS = 'sharkord-notification-sounds',
+  MESSAGE_SENT_SOUND = 'sharkord-message-sent-sound',
+  MUTED_CHANNEL_IDS = 'sharkord-muted-channel-ids',
+  HOTKEY_BINDINGS = 'sharkord-hotkey-bindings',
+  HOTKEY_BRIDGE_TOKEN = 'sharkord-hotkey-bridge-token',
+  MIC_MODE = 'sharkord-mic-mode',
+  HOTKEYS_ENABLED = 'sharkord-hotkeys-enabled'
 }
 
 export enum SessionStorageKey {

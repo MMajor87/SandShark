@@ -1,6 +1,9 @@
-import { openThreadSidebar } from '@/features/app/actions';
 import { useCan } from '@/features/server/hooks';
-import { useIsOwnUser, useOwnUserId } from '@/features/server/users/hooks';
+import {
+  useIsOwnUser,
+  useOwnUserId,
+  useOwnUserRoleIds
+} from '@/features/server/users/hooks';
 import { cn } from '@/lib/utils';
 import {
   hasMention,
@@ -8,12 +11,14 @@ import {
   TestId,
   type TJoinedMessage
 } from '@sharkord/shared';
-import { MessageSquareText } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { MessageActions } from './message-actions';
 import { MessageEditInline } from './message-edit-inline';
 import { MessageRenderer } from './renderer';
+import { ThreadRepliesButton } from './thread-replies-button';
+
+// to not trigger re-renders for messages without repliers
+const NO_REPLY_USER_IDS: number[] = [];
 
 type TMessageProps = {
   message: TJoinedMessage;
@@ -39,12 +44,12 @@ const Message = memo(
     editingMessageId,
     onEditComplete
   }: TMessageProps) => {
-    const { t } = useTranslation('common');
     const [isPencilEditing, setIsPencilEditing] = useState(false);
     const isEditing = isPencilEditing || editingMessageId === message.id;
     const isFromOwnUser = useIsOwnUser(message.userId);
     const can = useCan();
     const ownUserId = useOwnUserId();
+    const ownRoleIds = useOwnUserRoleIds();
 
     const canManage = useMemo(
       () => can(Permission.MANAGE_MESSAGES) || isFromOwnUser,
@@ -52,16 +57,13 @@ const Message = memo(
     );
 
     const isMentioned = useMemo(
-      () => hasMention(message.content, ownUserId),
-      [message.content, ownUserId]
+      () => hasMention(message.content, ownUserId, ownRoleIds),
+      [message.content, ownUserId, ownRoleIds]
     );
 
     const isThreadReply = !!message.parentMessageId;
     const replyCount = message.replyCount ?? 0;
 
-    const onThreadClick = useCallback(() => {
-      openThreadSidebar(message.id, message.channelId);
-    }, [message.id, message.channelId]);
     const handleEdit = useCallback(() => setIsPencilEditing(true), []);
 
     const handleReply = useCallback(
@@ -96,14 +98,12 @@ const Message = memo(
               disableReactions={disableReactions}
             />
             {!isThreadReply && replyCount > 0 && (
-              <button
-                type="button"
-                onClick={onThreadClick}
-                className="flex items-center gap-1 text-xs text-primary/70 hover:text-primary hover:underline mt-1 transition-colors"
-              >
-                <MessageSquareText className="h-3 w-3" />
-                <span>{t('reply', { count: replyCount })}</span>
-              </button>
+              <ThreadRepliesButton
+                messageId={message.id}
+                channelId={message.channelId}
+                replyCount={replyCount}
+                replyUserIds={message.replyUserIds ?? NO_REPLY_USER_IDS}
+              />
             )}
             {!disableActions && (
               <MessageActions

@@ -1,4 +1,5 @@
 import { ErrorBoundary } from '@/components/error-boundary';
+import { PluginMessageComponents } from '@/components/plugin-message-components';
 import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { RelativeTime } from '@/components/relative-time';
 import { requestConfirmation } from '@/features/dialogs/actions';
@@ -15,8 +16,14 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { FileCard } from '../file-card';
 import { MessageReactions } from '../message-reactions';
-import { getIsEmojiOnly, getParsedMessageHtml } from './content-cache';
-import { extractMessageOpenGraph } from './helpers';
+import { SocialMediaOverride } from '../overrides/social-media';
+import { YoutubeOverride } from '../overrides/youtube';
+import {
+  getIsEmojiOnly,
+  getParsedMessageHtml,
+  getYoutubeVideoIds
+} from './content-cache';
+import { extractMessageOpenGraph, extractSocialEmbeds } from './helpers';
 import { Media } from './media';
 import { extractMessageMedia } from './media-cache';
 import { MessageRenderFallback } from './message-render-fallback';
@@ -26,10 +33,16 @@ type TMessageRendererProps = {
   message: TJoinedMessage;
   disableFiles?: boolean;
   disableReactions?: boolean;
+  disablePluginComponents?: boolean;
 };
 
 const MessageRenderer = memo(
-  ({ message, disableFiles, disableReactions }: TMessageRendererProps) => {
+  ({
+    message,
+    disableFiles,
+    disableReactions,
+    disablePluginComponents
+  }: TMessageRendererProps) => {
     const { t } = useTranslation();
     const ownUserId = useOwnUserId();
     const editedByUser = useUserById(message.editedBy ?? -1);
@@ -75,6 +88,17 @@ const MessageRenderer = memo(
     );
 
     const allMedia = useMemo(() => extractMessageMedia(message), [message]);
+
+    const youtubeVideoIds = useMemo(
+      () => getYoutubeVideoIds(message),
+      [message]
+    );
+
+    const socialEmbeds = useMemo(
+      () => extractSocialEmbeds(message.content ?? ''),
+      [message.content]
+    );
+
     const openGraphPreviews = useMemo(
       () => extractMessageOpenGraph(message, allMedia),
       [message, allMedia]
@@ -120,6 +144,26 @@ const MessageRenderer = memo(
           )}
         </div>
 
+        {message.pluginId &&
+          message.pluginComponents &&
+          !disablePluginComponents && (
+            <PluginMessageComponents
+              pluginId={message.pluginId}
+              messageId={message.id}
+              channelId={message.channelId}
+              components={message.pluginComponents}
+            />
+          )}
+
+        {youtubeVideoIds.map((videoId) => (
+          <YoutubeOverride key={videoId} videoId={videoId} />
+        ))}
+        {socialEmbeds.map((embed) => (
+          <SocialMediaOverride
+            key={`${embed.provider}-${embed.postId}`}
+            {...embed}
+          />
+        ))}
         <Media media={allMedia} />
         <OpenGraph previews={openGraphPreviews} />
 

@@ -34,7 +34,10 @@ declare global {
           isDm: boolean;
         }) => void
       ) => () => void;
-      startOidcLogin: (serverUrl: string) => Promise<string | null>;
+      startOidcLogin: (
+        serverUrl: string,
+        invite?: string
+      ) => Promise<string | null>;
       openExternal: (url: string) => Promise<void>;
       getDesktopCaptureSources: () => Promise<
         Array<{

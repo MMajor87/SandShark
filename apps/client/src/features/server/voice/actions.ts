@@ -1,6 +1,7 @@
 import type { TPinnedCard } from '@/components/channel-view/voice/hooks/use-pin-card-controller';
+import { pushToTalkSelectedSelector } from '@/features/app/selectors';
 import { store } from '@/features/store';
-import { logVoice, logVoiceError } from '@/helpers/browser-logger';
+import { voiceLogger } from '@/helpers/browser-logger';
 import { playSound } from '@/helpers/sounds';
 import {
   LocalStorageKey,
@@ -28,6 +29,28 @@ import { serverSliceActions } from '../slice';
 import { SoundType } from '../types';
 import { ownUserIdSelector } from '../users/selectors';
 import { ownVoiceStateSelector } from './selectors';
+import { VOICE_REACTION_DURATION_MS } from './statics';
+
+const syncOwnServerMute = (
+  userId: number,
+  newState: Partial<TVoiceUserState>
+): void => {
+  const state = store.getState();
+  const ownUserId = ownUserIdSelector(state);
+  const ownVoiceState = ownVoiceStateSelector(state);
+
+  if (userId !== ownUserId) return;
+  if (newState.serverMuted === undefined) return;
+  if (newState.serverMuted === ownVoiceState.serverMuted) return;
+
+  if (newState.serverMuted) {
+    updateOwnVoiceState({ serverMuted: true, micMuted: true });
+
+    return;
+  }
+
+  updateOwnVoiceState({ serverMuted: false });
+};
 
 export const addUserToVoiceChannel = (
   userId: number,
@@ -46,6 +69,8 @@ export const addUserToVoiceChannel = (
     })
   );
 
+  syncOwnServerMute(userId, voiceState);
+
   if (userId !== ownUserId && channelId === currentChannelId) {
     playSound(SoundType.REMOTE_USER_JOINED_VOICE_CHANNEL);
   }
@@ -57,7 +82,7 @@ const clearLocalVoiceSession = (): void => {
   const selectedChannelId = selectedChannelIdSelector(state);
   const currentVoiceChannelId = currentVoiceChannelIdSelector(state);
 
-  logVoice('session: clearing local voice session', {
+  voiceLogger.info('session: clearing local voice session', {
     selectedChannelId,
     currentVoiceChannelId
   });
@@ -89,7 +114,9 @@ export const removeUserFromVoiceChannel = (
   // deleted, its category was, or the runtime was destroyed. without this the call ends but
   // the app goes on showing the user as connected to a channel that no longer exists
   if (userId === ownUserId) {
-    logVoice('session: removed from voice by the server', { channelId });
+    voiceLogger.info('session: removed from voice by the server', {
+      channelId
+    });
 
     clearLocalVoiceSession();
 
@@ -164,6 +191,26 @@ export const updateVoiceUserState = (
   store.dispatch(
     serverSliceActions.updateVoiceUserState({ userId, channelId, newState })
   );
+
+  if (channelId === currentChannelId) {
+    syncOwnServerMute(userId, newState);
+  }
+};
+
+let nextVoiceReactionId = 0;
+
+export const showVoiceReaction = (userId: number, emoji: string): void => {
+  const id = ++nextVoiceReactionId;
+
+  store.dispatch(
+    serverSliceActions.addVoiceReaction({ userId, reaction: { id, emoji } })
+  );
+
+  setTimeout(() => {
+    store.dispatch(
+      serverSliceActions.removeVoiceReaction({ userId, reactionId: id })
+    );
+  }, VOICE_REACTION_DURATION_MS);
 };
 
 export const updateOwnVoiceState = (
@@ -190,9 +237,20 @@ export const joinVoice = async (
 
   setCurrentVoiceChannelId(channelId);
 
-  const { micMuted, soundMuted } = ownVoiceStateSelector(state);
+  const { micMuted: storedMicMuted, soundMuted } = ownVoiceStateSelector(state);
+  const pushToTalkSelected = pushToTalkSelectedSelector(state);
 
-  logVoice('session: join requested', { channelId, micMuted, soundMuted });
+  const micMuted = storedMicMuted || pushToTalkSelected;
+
+  if (micMuted !== storedMicMuted) {
+    updateOwnVoiceState({ micMuted });
+  }
+
+  voiceLogger.info('session: join requested', {
+    channelId,
+    micMuted,
+    soundMuted
+  });
 
   try {
     const client = getTRPCClient();
@@ -202,11 +260,11 @@ export const joinVoice = async (
       state: { micMuted, soundMuted }
     });
 
-    logVoice('session: joined', { channelId });
+    voiceLogger.info('session: joined', { channelId });
 
     return routerRtpCapabilities;
   } catch (error) {
-    logVoiceError('session: join failed', error, { channelId });
+    voiceLogger.error('session: join failed', error, { channelId });
     clearLocalVoiceSession();
 
     toast.error(getTrpcError(error, i18n.t('common:failedJoinVoiceChannel')));
@@ -230,11 +288,13 @@ export const leaveVoice = async (options?: {
   const reason = options?.reason ?? 'unknown';
 
   if (!currentChannelId) {
-    logVoice('session: leave requested with no active channel', { reason });
+    voiceLogger.info('session: leave requested with no active channel', {
+      reason
+    });
     return;
   }
 
-  logVoice('session: leave requested', {
+  voiceLogger.info('session: leave requested', {
     reason,
     channelId: currentChannelId,
     selectedChannelId
@@ -248,7 +308,7 @@ export const leaveVoice = async (options?: {
     await client.voice.leave.mutate();
     playSound(SoundType.OWN_USER_LEFT_VOICE_CHANNEL);
   } catch (error) {
-    logVoiceError('session: leave failed', error, {
+    voiceLogger.error('session: leave failed', error, {
       channelId: currentChannelId
     });
     toast.error(getTrpcError(error, i18n.t('common:failedLeaveVoiceChannel')));

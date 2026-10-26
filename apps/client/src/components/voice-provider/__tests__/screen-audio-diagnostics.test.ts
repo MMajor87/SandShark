@@ -3,7 +3,8 @@ import type { Producer } from 'mediasoup-client/types';
 import { EventEmitter } from 'node:events';
 
 const logVoice = mock(() => undefined);
-mock.module('@/helpers/browser-logger', () => ({ logVoice }));
+const logger = await import('@/helpers/browser-logger');
+mock.module('@/helpers/browser-logger', () => ({ ...logger, logVoice }));
 const { monitorScreenAudio } = await import('../screen-audio-diagnostics');
 const originalWindow = globalThis.window;
 

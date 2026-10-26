@@ -15,7 +15,10 @@ export enum PluginSlot {
   CHANNEL_HEADER = 'channel_header',
   TOPBAR_RIGHT = 'topbar_right',
   FULL_SCREEN = 'full_screen',
-  USER_SETTINGS = 'user_settings'
+  USER_SETTINGS = 'user_settings',
+  VOICE_CONTROLS = 'voice_controls',
+  VOICE_USER_CARD = 'voice_user_card',
+  VOICE_USER_ROW = 'voice_user_row'
 }
 
 /**
@@ -45,6 +48,21 @@ export type TPluginSlotProps = {
   [PluginSlot.TOPBAR_RIGHT]: EmptyProps;
   [PluginSlot.FULL_SCREEN]: EmptyProps;
   [PluginSlot.USER_SETTINGS]: EmptyProps;
+  /**
+   * the voice channel the user is connected to. beside the camera and screen
+   * buttons, and only rendered while connected
+   */
+  [PluginSlot.VOICE_CONTROLS]: { channelId: number };
+  /**
+   * the user whose card it is, in the voice channel being viewed. renders in
+   * the top left corner of every card, so keep it small
+   */
+  [PluginSlot.VOICE_USER_CARD]: { channelId: number; userId: number };
+  /**
+   * the user of the row under a voice channel in the sidebar. renders once per
+   * user in every voice channel, so keep it cheap
+   */
+  [PluginSlot.VOICE_USER_ROW]: { channelId: number; userId: number };
 };
 
 type EmptyProps = Record<string, never>;
@@ -80,6 +98,41 @@ export type TPluginComponentsMapBySlotId = {
 
 export type TPluginComponentsMap = {
   [pluginId: string]: TPluginComponentsMapBySlotId;
+};
+
+/**
+ * One component a plugin attaches to its own message with `messages.send`.
+ * `name` is a key of the plugin's `messageComponents` export.
+ */
+export type TPluginMessageComponent = {
+  name: string;
+  props?: Record<string, unknown>;
+};
+
+/** What a message component receives: its message, and the props it was sent with. */
+export type TPluginMessageComponentProps = {
+  messageId: number;
+  channelId: number;
+  props: Record<string, unknown>;
+};
+
+/**
+ * What a plugin's `client/index.js` exports as `messageComponents`, keyed by
+ * the `name` its messages use. Only messages the plugin sent itself render
+ * them, so no other plugin's message ever reaches these.
+ *
+ * ```tsx
+ * export const messageComponents: TPluginMessageComponentsMap = {
+ *   poll: ({ messageId, props }) => <Poll messageId={messageId} {...props} />
+ * };
+ * ```
+ */
+export type TPluginMessageComponentsMap = {
+  [name: string]: TPluginReactComponent<TPluginMessageComponentProps>;
+};
+
+export type TPluginMessageComponentsByPlugin = {
+  [pluginId: string]: TPluginMessageComponentsMap;
 };
 
 /** One tab in the plugin's own view, beside Settings, Commands and Logs. */
@@ -140,4 +193,16 @@ export const parsePluginTabs = (value: unknown): TPluginTab[] => {
 
     return true;
   });
+};
+
+export const parseMessageComponentsExport = (
+  value: unknown
+): TPluginMessageComponentsMap => {
+  if (!value || typeof value !== 'object') return {};
+
+  return Object.fromEntries(
+    Object.entries(value).filter(([, component]) =>
+      isRenderableComponent(component)
+    )
+  );
 };

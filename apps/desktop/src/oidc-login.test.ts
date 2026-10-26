@@ -122,3 +122,18 @@ test.each([
     'Invalid authentication server URL.'
   );
 });
+
+
+test('carries the invite through the isolated desktop login window', async () => {
+  const pending = startOidcLogin(parent, 'https://server.example', 'invite&value');
+  const url = new URL(FakeWindow.latest.url);
+  expect(url.origin).toBe('https://server.example');
+  expect(url.pathname).toBe('/oidc/login');
+  expect(url.searchParams.get('invite')).toBe('invite&value');
+  FakeWindow.latest.destroy();
+  expect(await pending).toBeNull();
+});
+
+test('rejects oversized desktop invite codes', () => {
+  expect(() => startOidcLogin(parent, 'https://server.example', 'a'.repeat(257))).toThrow('Invalid invite code.');
+});

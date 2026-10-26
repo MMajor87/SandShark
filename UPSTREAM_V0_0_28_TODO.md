@@ -1,6 +1,6 @@
 # Sharkord v0.0.28 integration TODO
 
-Status: planned, October 26, 2026. No integration changes have been applied.
+Status: step 1 baseline established, October 26, 2026. No upstream integration changes have been applied.
 
 Starting point: SandShark 1.0.31 (`13636e06`), with Sharkord v0.0.25 (`b94d9a9e`) integrated by `1875f5e3`. Target the released v0.0.28 content, including v0.0.26 and v0.0.27. Verify the exact release commit before starting; do not assume the current development branch matches the release.
 
@@ -8,16 +8,16 @@ Keep the completed [v0.0.25 checklist](UPSTREAM_MERGE_CHECKLIST.md) as historica
 
 ## 1. Establish the baseline
 
-- [ ] Record the current branch, commit, tracked changes, untracked files and existing test failures.
-- [ ] Preserve the existing deletion of `Sharkord_Desktop_Fork_TODO.md` and modification of `apps/desktop/native/process-audio-capture/ProcessAudioCapture.csproj`. Inspect their current state before making a recoverable checkpoint.
-- [ ] Create an isolated integration branch/worktree with the intended local changes preserved. Keep the active checkout intact.
-- [ ] Fetch upstream refs without overwriting existing local tags. Pin and record the exact v0.0.28 commit and tree, checking the release notes against its contents.
-- [ ] Verify the common ancestry with the already integrated v0.0.25 baseline. Investigate any unexpected divergence before merging.
-- [ ] Generate a merge preview and record conflicting paths. Distinguish actual conflicts from files changed on both sides.
-- [ ] Inventory deployed server versions, installed plugins, authentication configuration and database migration state.
-- [ ] Make a consistent SQLite backup, accounting for WAL, and preserve uploads/configuration. Use a copy for upgrade testing.
+- [x] Record the current branch, commit, tracked changes, untracked files and existing test failures.
+- [x] Preserve the existing deletion of `Sharkord_Desktop_Fork_TODO.md` and modification of `apps/desktop/native/process-audio-capture/ProcessAudioCapture.csproj`. Inspect their current state before making a recoverable checkpoint.
+- [x] Create an isolated integration branch/worktree with the intended local changes preserved. Keep the active checkout intact.
+- [x] Fetch upstream refs without overwriting existing local tags. Pin and record the exact v0.0.28 commit and tree, checking the release notes against its contents.
+- [x] Verify the common ancestry with the already integrated v0.0.25 baseline. Investigate any unexpected divergence before merging.
+- [x] Generate a merge preview and record conflicting paths. Distinguish actual conflicts from files changed on both sides.
+- [x] Inventory the user-selected development data: source version, installed plugins, authentication configuration and database migration state. Remote deployment inventory is deferred outside this scope.
+- [x] Make a consistent SQLite backup, accounting for WAL, and preserve uploads/configuration. Use a copy for upgrade testing.
 
-Gate: code and data are recoverable, and the exact source and target are recorded.
+Gate: local code and development data are recoverable; source, target and merge conflicts are recorded in [the baseline report](UPSTREAM_V0_0_28_BASELINE.md). Baseline validation limitations are documented there.
 
 ## 2. Bring over security and reliability fixes first
 
@@ -108,3 +108,5 @@ Record each completed phase with its commit, checks run, results and remaining i
 | Date | Phase | Commit | Validation and outcome |
 | --- | --- | --- | --- |
 | 2026-10-26 | Planning | `13636e06` baseline | Checklist created from the upstream assessment; implementation has not started. |
+
+| 2026-10-26 | Step 1 | `692c3c85` checkpoint | Development backup and rehearsal copy verified; release pinned; 39 conflicts across 70 overlapping paths; 1,766 tests pass in workspace logs. Magic blocked by missing worktree dependencies. See baseline report. |

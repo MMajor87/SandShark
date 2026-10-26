@@ -1,3 +1,19 @@
+# SandShark 1.1.0
+
+- Integrates Sharkord v0.0.28 security fixes, role mentions, thread following, channel notification settings, voice reactions and plugin SDK extensions.
+- Adds configurable browser hotkeys while retaining native desktop push-to-talk and capture controls.
+- Preserves per-server notification preferences and supports invites in desktop SSO login.
+- Preserves calendars and upgrades existing databases through migration 0020.
+- Improves Windows file moves when antivirus or indexing temporarily locks a file.
+
+## Validation and upgrade
+
+Automated validation passed: 2,119 unit/integration tests, 53 browser E2E tests (one intentional skip), formatting, lint, types, builds and packaged Windows startup. A development backup passed upgrade, repeat migration and rollback rehearsals.
+
+Upgrade the server to the bundled v0.0.28 integration before using this client. Older server combinations have not been verified. Back up the database, uploads, configuration and plugin data first. Rollback requires the previous server build and its pre-upgrade backup.
+
+Live multi-participant voice, real identity-provider login, installed updater flows and third-party plugin compatibility remain release checks. This Windows installer is unsigned. See UPSTREAM_V0_0_28_REPORT.md for evidence and limitations.
+
 # SandShark 1.0.31
 
 - Shows minimized fullscreen applications in the stream source picker and restores the selected window for capture.

@@ -14,14 +14,24 @@ import { loadCrons } from '../../crons';
 import { cleanupFiles } from '../../crons/cleanup-files';
 import {
   channels,
+  channelUserPermissions,
   files,
   messageFiles,
   messages,
-  settings
+  settings,
+  users
 } from '../../db/schema';
 import { fileManager } from '../../helpers/file-manager';
 import { generateFileToken } from '../../helpers/files-crypto';
+import { createMediaAccessToken } from '../../helpers/media-access-token';
 import { PUBLIC_PATH } from '../../helpers/paths';
+
+// delivery tests authenticate; access-denial cases below use native fetch.
+const fetch = async (url: string, init?: RequestInit) => {
+  const headers = new Headers(init?.headers);
+  headers.set('Authorization', `Bearer ${createMediaAccessToken(1, 0)}`);
+  return globalThis.fetch(url, { ...init, headers });
+};
 
 const upload = async (file: File, token: string) => {
   const uploadResponse = await uploadFile(file, token);
@@ -147,6 +157,79 @@ describe('/public', () => {
 
     // third we save manually as orphan
     await fileManager.saveFile(filesToCreate[2]!.tempFile!.id, 1);
+  });
+
+  test('requires current channel and DM access even for signed URLs', async () => {
+    const file = (await getFileByMessageId(filesToCreate[0]!.messageId!))!;
+    const url = `${testsBaseUrl}/public/${encodeURIComponent(file.name)}`;
+    expect((await globalThis.fetch(url)).status).toBe(404);
+    const expires = Date.now() + 60000;
+    expect(
+      (
+        await globalThis.fetch(
+          `${url}?accessToken=${generateFileToken(file.id, expires)}&expires=${expires}`
+        )
+      ).status
+    ).toBe(404);
+    const mediaUrl = `${url}?mediaToken=${createMediaAccessToken(2, 0)}`;
+    const response = await globalThis.fetch(mediaUrl, {
+      headers: { Range: 'bytes=0-3' }
+    });
+    expect(response.status).toBe(206);
+    expect(await response.text()).toBe(filesToCreate[0]!.content.slice(0, 4));
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    await tdb
+      .update(messages)
+      .set({ channelId: 5 })
+      .where(eq(messages.id, filesToCreate[0]!.messageId!));
+    expect((await globalThis.fetch(mediaUrl)).status).toBe(404);
+    await tdb.update(channelUserPermissions).set({ allow: true });
+    expect((await globalThis.fetch(mediaUrl)).status).toBe(200);
+    await tdb.update(channelUserPermissions).set({ allow: false });
+    expect((await globalThis.fetch(mediaUrl)).status).toBe(404);
+    await tdb
+      .update(messages)
+      .set({ channelId: 3 })
+      .where(eq(messages.id, filesToCreate[0]!.messageId!));
+    expect((await globalThis.fetch(mediaUrl)).status).toBe(404);
+    expect(
+      (
+        await globalThis.fetch(
+          `${url}?mediaToken=${createMediaAccessToken(1, 0)}`
+        )
+      ).status
+    ).toBe(404);
+    expect(
+      (
+        await globalThis.fetch(
+          `${url}?mediaToken=${createMediaAccessToken(3, 0)}`
+        )
+      ).status
+    ).toBe(200);
+  });
+
+  test('invalidates media access for bans and revoked sessions', async () => {
+    const file = (await getFileByMessageId(filesToCreate[0]!.messageId!))!;
+    const url = `${testsBaseUrl}/public/${encodeURIComponent(file.name)}?mediaToken=${createMediaAccessToken(2, 0)}`;
+    await tdb.update(users).set({ banned: true }).where(eq(users.id, 2));
+    expect((await globalThis.fetch(url)).status).toBe(404);
+    await tdb
+      .update(users)
+      .set({ banned: false, tokenVersion: 1 })
+      .where(eq(users.id, 2));
+    expect((await globalThis.fetch(url)).status).toBe(404);
+  });
+
+  test('keeps the logo public when signing is enabled', async () => {
+    const file = (await getFileByMessageId(filesToCreate[0]!.messageId!))!;
+    await tdb
+      .update(settings)
+      .set({ logoId: file.id, storageSignedUrlsEnabled: true });
+    const response = await globalThis.fetch(
+      `${testsBaseUrl}/public/${encodeURIComponent(file.name)}`
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toContain('public');
   });
 
   test('files were created in public folder', async () => {
@@ -719,9 +802,7 @@ describe('/public', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('ETag')).toBeDefined();
     expect(response.headers.get('Last-Modified')).toBeDefined();
-    expect(response.headers.get('Cache-Control')).toBe(
-      'public, max-age=3600, must-revalidate'
-    );
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
     expect(response.headers.get('Vary')).toBe('Range');
   });
 
@@ -1018,12 +1099,7 @@ describe('/public', () => {
 
     expect(cacheControl).toBeDefined();
     expect(cacheControl).toInclude('private');
-    expect(cacheControl).toInclude('must-revalidate');
-
-    const maxAgeMatch = cacheControl!.match(/max-age=(\d+)/);
-
-    expect(maxAgeMatch).toBeDefined();
-    expect(Number(maxAgeMatch![1]!)).toBeLessThanOrEqual(300);
+    expect(cacheControl).toBe('private, no-store');
 
     const responseText = await response.text();
 

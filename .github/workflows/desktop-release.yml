@@ -15,38 +15,62 @@ permissions:
   contents: write
 
 jobs:
+  resolve-release:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.revision.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+      - name: Record release revision
+        id: revision
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          git rev-parse HEAD >> "$GITHUB_STEP_SUMMARY"
+
   repository-ci:
     name: Full repository checks
+    needs: resolve-release
     uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.resolve-release.outputs.sha }}
 
   release-windows:
     name: Validate and build Windows release
-    needs: repository-ci
+    needs: [resolve-release, repository-ci]
     runs-on: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref_name }}
+          ref: ${{ needs.resolve-release.outputs.sha }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: 1.3.14
 
+      - name: Setup Node for Electron Builder
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          global-json-file: global.json
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
       - name: Validate SandShark tag and package versions
         id: version
+        env:
+          SANDSHARK_RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         shell: pwsh
         run: |
-          $tag = '${{ inputs.tag || github.ref_name }}'
+          $tag = $env:SANDSHARK_RELEASE_TAG
           $clientVersion = (Get-Content apps/client/package.json -Raw | ConvertFrom-Json).version
           $desktopVersion = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
 
@@ -83,6 +107,7 @@ jobs:
         shell: pwsh
         run: |
           Copy-Item -LiteralPath RELEASE_NOTES.md -Destination release\RELEASE_NOTES.md
+          '${{ needs.resolve-release.outputs.sha }}' | Set-Content release\BUILD_COMMIT.txt
 
       - name: Publish GitHub release and update metadata
         uses: softprops/action-gh-release@v2
@@ -98,3 +123,4 @@ jobs:
             apps/desktop/release/latest.yml
             apps/desktop/release/*.blockmap
             apps/desktop/release/SHA256SUMS.txt
+            apps/desktop/release/BUILD_COMMIT.txt

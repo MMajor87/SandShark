@@ -737,9 +737,9 @@ describe('voice router', () => {
           soundMuted: true
         });
 
-        // sound muting is the user's own playback, so it is never gated
+        // stopping transmission and muting playback remain available after permission loss
         expect(runtime.getUserState(2)).toMatchObject({
-          micMuted: false,
+          micMuted: true,
           webcamEnabled: false,
           sharingScreen: false,
           soundMuted: true

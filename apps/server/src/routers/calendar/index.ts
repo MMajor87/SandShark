@@ -118,28 +118,34 @@ const createEventRoute = protectedProcedure
     }
 
     const now = Date.now();
-    const event = await db
-      .insert(calendarEvents)
-      .values({
-        title: input.title,
-        description: input.description || null,
-        startsAt: input.startsAt,
-        endsAt: input.endsAt || null,
-        creatorId: ctx.user.id,
-        createdAt: now,
-        updatedAt: now
-      })
-      .returning()
-      .get();
+    const event = db.transaction((tx) => {
+      const event = tx
+        .insert(calendarEvents)
+        .values({
+          title: input.title,
+          description: input.description || null,
+          startsAt: input.startsAt,
+          endsAt: input.endsAt || null,
+          creatorId: ctx.user.id,
+          createdAt: now,
+          updatedAt: now
+        })
+        .returning()
+        .get();
 
-    await db.insert(calendarEventInvitees).values(
-      uniqueTargets.map((target) => ({
-        eventId: event.id,
-        userId: target.type === 'user' ? target.id : null,
-        roleId: target.type === 'role' ? target.id : null,
-        createdAt: now
-      }))
-    );
+      tx.insert(calendarEventInvitees)
+        .values(
+          uniqueTargets.map((target) => ({
+            eventId: event.id,
+            userId: target.type === 'user' ? target.id : null,
+            roleId: target.type === 'role' ? target.id : null,
+            createdAt: now
+          }))
+        )
+        .run();
+
+      return event;
+    });
 
     return event;
   });

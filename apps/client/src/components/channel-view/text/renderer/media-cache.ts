@@ -51,7 +51,8 @@ const getStableMediaKey = (counts: Map<string, number>, baseKey: string) => {
 const buildMediaSignature = (message: TJoinedMessage) => {
   const fileSignature = message.files
     .map(
-      (file) => `${file.id}:${file.extension}:${file.size}:${file.updatedAt}`
+      (file) =>
+        `${getFileUrl(file, true)}:${file.id}:${file.extension}:${file.size}:${file.updatedAt}`
     )
     .join('|');
 
@@ -83,7 +84,7 @@ const extractMessageMedia = (message: TJoinedMessage): TFoundMedia[] => {
         return {
           key: getStableMediaKey(mediaKeyCounts, `file:${file.id}`),
           type: 'image',
-          url: getFileUrl(file)
+          url: getFileUrl(file, true)
         };
       }
 
@@ -91,7 +92,7 @@ const extractMessageMedia = (message: TJoinedMessage): TFoundMedia[] => {
         return {
           key: getStableMediaKey(mediaKeyCounts, `file:${file.id}`),
           type: 'video',
-          url: getFileUrl(file)
+          url: getFileUrl(file, true)
         };
       }
 
@@ -99,7 +100,7 @@ const extractMessageMedia = (message: TJoinedMessage): TFoundMedia[] => {
         return {
           key: getStableMediaKey(mediaKeyCounts, `file:${file.id}`),
           type: 'audio',
-          url: getFileUrl(file)
+          url: getFileUrl(file, true)
         };
       }
 

@@ -3,6 +3,8 @@
 ## Requirements
 
 - [Bun](https://bun.sh/)
+- Node.js 22 for Windows desktop packaging (use real Node, not Bun's Node shim).
+- .NET SDK selected by `global.json` for native Windows audio capture.
 - [Tmux](https://github.com/tmux/tmux) (optional)
 
 ## Setup

@@ -63,7 +63,7 @@ const Files = memo(() => {
             extension={file.extension}
             size={file.size}
             onRemove={() => onRemoveClick(file.id)}
-            href={getFileUrl(file)}
+            href={getFileUrl(file, true)}
             onDownload={() => void downloadFile(file)}
           />
         )}

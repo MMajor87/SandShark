@@ -27,6 +27,8 @@ import type { Database } from 'bun:sqlite';
  *                     1    the default role may view channel 5
  *   channelUserPermissions
  *                     1    user 2 is denied viewing channel 5, overriding that grant
+ *   calendarEvents    3    organizer-only, direct-invite and role-invite cases
+ *   calendarEventInvitees 2 user 2 invited to event 2; Member role to event 3
  *   logins            0    seeded only when seedTestDb is called with { e2e: true },
  *                          which only packages/e2e's seed-db.ts does
  *
@@ -60,6 +62,8 @@ import {
 import { randomUUIDv7 } from 'bun';
 import { type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import {
+  calendarEventInvitees,
+  calendarEvents,
   categories,
   channelRolePermissions,
   channels,
@@ -478,6 +482,39 @@ const seedTestDb = async (
       createdAt: firstStart
     }))
   );
+
+  if (!e2e) {
+    await db.insert(calendarEvents).values([
+      {
+        id: 1,
+        title: 'Organizer only',
+        startsAt: 100,
+        creatorId: 1,
+        createdAt: 1,
+        updatedAt: 1
+      },
+      {
+        id: 2,
+        title: 'Direct invite',
+        startsAt: 200,
+        creatorId: 1,
+        createdAt: 1,
+        updatedAt: 1
+      },
+      {
+        id: 3,
+        title: 'Role invite',
+        startsAt: 300,
+        creatorId: 1,
+        createdAt: 1,
+        updatedAt: 1
+      }
+    ]);
+    await db.insert(calendarEventInvitees).values([
+      { eventId: 2, userId: 2, createdAt: 1 },
+      { eventId: 3, roleId: 2, createdAt: 1 }
+    ]);
+  }
 
   if (e2e) {
     const allUsers = [

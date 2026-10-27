@@ -21,6 +21,7 @@ import { getPublicSettings, getSettings } from '../../db/queries/server';
 import { getFollowedThreadsForUser } from '../../db/queries/threads';
 import { getPublicUsers } from '../../db/queries/users';
 import { categories, users } from '../../db/schema';
+import { createMediaAccessToken } from '../../helpers/media-access-token';
 import { getCapabilityAccessRules } from '../../helpers/plugin-capability-access';
 import { safeCompare } from '../../helpers/safe-compare';
 import { shouldAskServerPassword } from '../../helpers/should-ask-server-password';
@@ -174,6 +175,10 @@ const joinServerRoute = rateLimitedProcedure(publicProcedure, {
       serverId: settings.serverId,
       serverName: settings.name,
       ownUserId: ctx.user.id,
+      mediaAccessToken: createMediaAccessToken(
+        ctx.user.id,
+        ctx.user.tokenVersion
+      ),
       ownUserPasswordSet: ctx.user.passwordSet,
       voiceMap,
       roles,

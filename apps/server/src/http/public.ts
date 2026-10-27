@@ -2,10 +2,12 @@ import { eq } from 'drizzle-orm';
 import http from 'http';
 import path from 'path';
 import { db } from '../db';
-import { isFileOrphaned } from '../db/queries/files';
+import { getChannelsForUser } from '../db/queries/channels';
+import { getFileAccess, isFileOrphaned } from '../db/queries/files';
 import { getSettings } from '../db/queries/server';
 import { files } from '../db/schema';
 import { verifyFileToken } from '../helpers/files-crypto';
+import { getMediaAccessUser } from '../helpers/media-access-token';
 import { PUBLIC_PATH } from '../helpers/paths';
 import { logger } from '../logger';
 import { buildCacheControl, sendFile, sendJsonError } from './helpers';
@@ -57,6 +59,20 @@ const publicRouteHandler = async (
   if (isOrphaned) {
     sendJsonError(res, 404, 'File not found');
     return;
+  }
+
+  const access = await getFileAccess(dbFile.id);
+  if (!access.publicAsset) {
+    const bearer = req.headers.authorization?.match(/^Bearer (.+)$/i)?.[1];
+    const user = await getMediaAccessUser(
+      bearer ?? url.searchParams.get('mediaToken')
+    );
+    const visibleChannels = user ? await getChannelsForUser(user.id) : [];
+    const visibleIds = new Set(visibleChannels.map((channel) => channel.id));
+    if (!access.channelIds.some((id) => visibleIds.has(id))) {
+      sendJsonError(res, 404, 'File not found');
+      return;
+    }
   }
 
   const { storageSignedUrlsEnabled, logoId } = await getSettings();
@@ -115,7 +131,9 @@ const publicRouteHandler = async (
   );
 
   await sendFile(req, res, filePath, {
-    cacheControl: buildCacheControl(isSignedUrlProtected, tokenExpiresAt),
+    cacheControl: access.publicAsset
+      ? buildCacheControl(isSignedUrlProtected, tokenExpiresAt)
+      : 'private, no-store',
     md5: dbFile.md5,
     contentType: dbFile.mimeType,
     contentDisposition: `${contentDisposition}; filename="${safeFileName}"; filename*=UTF-8''${encodedFileName}`,

@@ -1,5 +1,6 @@
 import { Dialog } from '@/components/dialogs/dialogs';
 import { logDebug } from '@/helpers/browser-logger';
+import { setMediaAccessToken } from '@/helpers/media-access-token';
 import { getMutedNotificationChannelIds } from '@/helpers/muted-notification-channels';
 import { getServerConnection } from '@/helpers/server-connection';
 import { clearCurrentServerAutoLogin } from '@/helpers/server-session';
@@ -117,7 +118,8 @@ export const joinServer = async (handshakeHash: string, password?: string) => {
     locale: i18n.resolvedLanguage as TLocale
   });
 
-  logDebug('joinServer', data);
+  setMediaAccessToken(data.mediaAccessToken);
+  logDebug('joinServer', { ...data, mediaAccessToken: '[redacted]' });
 
   const { initSubscriptions } = await import('./subscriptions');
 

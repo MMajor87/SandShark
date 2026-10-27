@@ -1,5 +1,6 @@
 import { i18n } from '@/i18n';
 import type { TFile } from '@sharkord/shared';
+import { getMediaAccessToken } from './media-access-token';
 import { getServerConnection } from './server-connection';
 
 const getHostFromServer = () => {
@@ -22,7 +23,7 @@ const getUrlFromServer = () => {
   return connection.httpUrl;
 };
 
-const getFileUrl = (file: TFile | undefined | null) => {
+const getFileUrl = (file: TFile | undefined | null, authenticated = false) => {
   if (!file) return '';
 
   const url = getUrlFromServer();
@@ -37,6 +38,11 @@ const getFileUrl = (file: TFile | undefined | null) => {
     }
   }
 
+  if (authenticated) {
+    const mediaToken = getMediaAccessToken();
+    if (mediaToken)
+      baseUrl += `${baseUrl.includes('?') ? '&' : '?'}mediaToken=${encodeURIComponent(mediaToken)}`;
+  }
   return baseUrl;
 };
 

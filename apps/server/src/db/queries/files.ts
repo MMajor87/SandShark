@@ -123,6 +123,27 @@ const getUsedFileQuota = async (): Promise<number> => {
   return Number(result?.usedSpace ?? 0);
 };
 
+const getFileAccess = async (fileId: number) => {
+  const publicAsset = await db.get<{ id: number }>(sql`
+    SELECT id FROM files WHERE id = ${fileId} AND (
+      EXISTS (SELECT 1 FROM users WHERE avatar_id = ${fileId} OR banner_id = ${fileId})
+      OR EXISTS (SELECT 1 FROM emojis WHERE file_id = ${fileId})
+      OR EXISTS (SELECT 1 FROM settings WHERE logo_id = ${fileId})
+    )
+  `);
+  const channelRows = await db.all<{ channelId: number }>(sql`
+    SELECT m.channel_id AS channelId FROM message_files mf
+    JOIN messages m ON m.id = mf.message_id WHERE mf.file_id = ${fileId}
+    UNION
+    SELECT m.channel_id AS channelId FROM message_reactions mr
+    JOIN messages m ON m.id = mr.message_id WHERE mr.file_id = ${fileId}
+  `);
+  return {
+    publicAsset: !!publicAsset,
+    channelIds: channelRows.map((row) => row.channelId)
+  };
+};
+
 const ORPHAN_GRACE_MS = 15 * 60 * 1000; // 15 minutes
 const ORPHAN_BATCH_SIZE = 500;
 
@@ -201,6 +222,7 @@ const isFileOrphaned = async (fileId: number): Promise<boolean> => {
 
 export {
   getExceedingOldFiles,
+  getFileAccess,
   getFileNameById,
   getFilesByMessageId,
   getFilesByUserId,

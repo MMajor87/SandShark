@@ -26,7 +26,7 @@ const SearchResultFileCard = memo(
         <div className="flex min-w-0 items-center gap-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
           <a
-            href={getFileUrl(result.file)}
+            href={getFileUrl(result.file, true)}
             target="_blank"
             rel="noreferrer"
             className="min-w-0 flex-1 truncate text-sm font-medium text-foreground hover:underline"

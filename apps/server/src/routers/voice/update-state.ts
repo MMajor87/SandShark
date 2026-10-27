@@ -25,15 +25,15 @@ const updateVoiceStateRoute = protectedProcedure
       ctx.hasChannelPermission(channelId, ChannelPermission.SHARE_SCREEN)
     ]);
 
-    if (!canSpeak) {
+    if (!canSpeak && validatedInput.micMuted === false) {
       delete validatedInput.micMuted;
     }
 
-    if (!canUseWebcam) {
+    if (!canUseWebcam && validatedInput.webcamEnabled === true) {
       delete validatedInput.webcamEnabled;
     }
 
-    if (!canShareScreen) {
+    if (!canShareScreen && validatedInput.sharingScreen === true) {
       delete validatedInput.sharingScreen;
     }
 

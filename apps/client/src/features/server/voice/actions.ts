@@ -194,6 +194,13 @@ export const updateVoiceUserState = (
 
   if (channelId === currentChannelId) {
     syncOwnServerMute(userId, newState);
+    if (userId === ownUserId) {
+      const captureState: Partial<TVoiceUserState> = {};
+      if (newState.webcamEnabled === false) captureState.webcamEnabled = false;
+      if (newState.sharingScreen === false) captureState.sharingScreen = false;
+      if (Object.keys(captureState).length > 0)
+        updateOwnVoiceState(captureState);
+    }
   }
 };
 

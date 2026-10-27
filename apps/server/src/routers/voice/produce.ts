@@ -76,6 +76,19 @@ const produceRoute = rateLimitedProcedure(protectedProcedure, {
       appData: { kind: input.kind, userId: ctx.user.id }
     });
 
+    try {
+      // permissions or membership can change while mediasoup creates the producer.
+      invariant(runtime.getUser(ctx.user.id), {
+        code: 'FORBIDDEN',
+        message: 'You are no longer in this voice channel.'
+      });
+      if (server) await ctx.needsPermission(server);
+      await ctx.needsChannelPermission(channelId, channel);
+    } catch (error) {
+      producer.close();
+      throw error;
+    }
+
     runtime.addProducer(ctx.user.id, input.kind, producer, input.qualityLayers);
 
     ctx.pubsub.publishForChannel(channelId, ServerEvents.VOICE_NEW_PRODUCER, {

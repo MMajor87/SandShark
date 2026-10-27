@@ -1,3 +1,14 @@
+# SandShark 1.1.1
+
+- Protects message attachments with current channel and DM access checks, including permission revocation. The paired Phase 1 server and client are required for authenticated attachment URLs.
+- Fixes voice controls remaining busy during reconnect and releases camera/screen capture after failed startup or permission revocation.
+- Makes calendar event/invitation creation atomic and adds route regression coverage.
+- Pins the native build SDK and validates/packages the same resolved release commit.
+
+Private attachment URLs now carry a read-only media credential. Treat them as credentials; do not publish them. File signatures alone no longer grant private attachment access. Logos, profile images and emoji retain their existing asset policy. Revoking a user session or banning the user invalidates their media credential.
+
+This installer remains unsigned. Live two-participant capture, real-provider SSO and installed updater validation remain release gates. See PHASE_ONE_REPORT.md for checks and compatibility details.
+
 # SandShark 1.1.0
 
 - Integrates Sharkord v0.0.28 security fixes, role mentions, thread following, channel notification settings, voice reactions and plugin SDK extensions.

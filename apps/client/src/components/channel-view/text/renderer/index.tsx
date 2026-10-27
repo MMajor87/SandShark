@@ -190,7 +190,7 @@ const MessageRenderer = memo(
                 onRemove={
                   isOwnMessage ? () => onRemoveFileClick(file.id) : undefined
                 }
-                href={getFileUrl(file)}
+                href={getFileUrl(file, true)}
                 onDownload={() => void downloadFile(file)}
               />
             ))}

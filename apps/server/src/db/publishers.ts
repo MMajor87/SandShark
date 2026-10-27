@@ -6,8 +6,10 @@ import {
 } from '@sharkord/shared';
 import { eq } from 'drizzle-orm';
 import { db } from '.';
+import { enforceVoicePermissions } from '../helpers/enforce-voice-permissions';
 import { getCapabilityAccessRules } from '../helpers/plugin-capability-access';
 import { logger } from '../logger';
+import { VoiceRuntime } from '../runtimes/voice';
 import { pubsub } from '../utils/pubsub';
 import {
   channelUserCan,
@@ -107,6 +109,13 @@ const publishRole = async (
 ) => {
   if (!roleId) return;
 
+  await Promise.all(
+    Object.values(VoiceRuntime.getVoiceMap()).flatMap((channel) =>
+      Object.keys(channel.users).map((id) =>
+        enforceVoicePermissions(Number(id))
+      )
+    )
+  );
   publishCapabilityAccess();
 
   if (type === 'delete') {
@@ -176,6 +185,12 @@ const publishChannel = async (
   pubsub.publishFor(affectedUserIds, targetEvent, channel);
 
   if (ensureUsersAccess) {
+    const runtime = VoiceRuntime.findById(channelId);
+    await Promise.all(
+      (runtime?.getState().users ?? []).map(({ userId }) =>
+        enforceVoicePermissions(userId)
+      )
+    );
     const allUserIds = await getAllUserIds();
     const affectedUserIdSet = new Set(affectedUserIds);
 
@@ -279,6 +294,7 @@ const publishCategory = async (
 };
 
 const publishChannelPermissions = async (affectedUserIds: number[]) => {
+  await Promise.all(affectedUserIds.map(enforceVoicePermissions));
   const permissionsMap = new Map<number, TChannelUserPermissionsMap>();
   const promises = affectedUserIds.map(async (userId) => {
     const updatedPermissions = await getAllChannelUserPermissions(userId);

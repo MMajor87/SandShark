@@ -41,7 +41,7 @@ const deleteRoleRoute = protectedProcedure
 
     deleteRoleAndFallbackUsers(role.id, defaultRole.id);
 
-    publishRole(role.id, 'delete');
+    await publishRole(role.id, 'delete');
 
     eventBus.emit('role:deleted', { roleId: role.id, name: role.name });
 

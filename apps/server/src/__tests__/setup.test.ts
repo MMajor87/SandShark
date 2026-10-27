@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  calendarEventInvitees,
+  calendarEvents,
   categories,
   channelRolePermissions,
   channels,
@@ -20,6 +22,10 @@ import { tdb } from './setup';
 // used to cover five of the ten tables, which meant a new category, role permission or dm
 // could be added with nothing noticing
 describe('tests setup', () => {
+  test('seeds calendar access cases', async () => {
+    expect(await tdb.select().from(calendarEvents)).toHaveLength(3);
+    expect(await tdb.select().from(calendarEventInvitees)).toHaveLength(2);
+  });
   test('should seed database with initial data', async () => {
     const [
       settingsResults,

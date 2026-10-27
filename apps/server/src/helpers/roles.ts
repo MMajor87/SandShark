@@ -120,7 +120,7 @@ const updateRole = async (
 
   const updatedRole = await loadRole(role.id);
 
-  publishRole(updatedRole.id, 'update');
+  await publishRole(updatedRole.id, 'update');
 
   eventBus.emit('role:updated', {
     roleId: updatedRole.id,

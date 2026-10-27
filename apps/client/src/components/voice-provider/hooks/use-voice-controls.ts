@@ -7,7 +7,7 @@ import { voiceLogger } from '@/helpers/browser-logger';
 import { playSound } from '@/helpers/sounds';
 import { getTRPCClient } from '@/lib/trpc';
 import { getTrpcError } from '@sharkord/shared';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -55,6 +55,14 @@ const useVoiceControls = ({
     null
   );
 
+  useEffect(() => {
+    if (!ownVoiceState.webcamEnabled) stopWebcamStream();
+  }, [ownVoiceState.webcamEnabled, stopWebcamStream]);
+
+  useEffect(() => {
+    if (!ownVoiceState.sharingScreen) stopScreenShareStream();
+  }, [ownVoiceState.sharingScreen, stopScreenShareStream]);
+
   const toggleMic = useCallback(async () => {
     if (isTogglingMic.current) return;
     const nextMicMuted = !ownVoiceState.micMuted;
@@ -94,9 +102,8 @@ const useVoiceControls = ({
       return;
     }
 
-    const trpc = getTRPCClient();
-
     try {
+      const trpc = getTRPCClient();
       await trpc.voice.updateState.mutate({
         micMuted: nextMicMuted
       });
@@ -131,7 +138,6 @@ const useVoiceControls = ({
     isTogglingSound.current = true;
 
     const nextSoundMuted = !ownVoiceState.soundMuted;
-    const trpc = getTRPCClient();
 
     voiceLogger.info('sound: toggle requested', { soundMuted: nextSoundMuted });
     const previousPendingMicRestoreState = pendingMicRestoreStateRef.current;
@@ -184,6 +190,7 @@ const useVoiceControls = ({
     }
 
     try {
+      const trpc = getTRPCClient();
       await trpc.voice.updateState.mutate(nextVoiceState);
 
       if (!localAudioStream && nextVoiceState.micMuted === false) {
@@ -215,7 +222,6 @@ const useVoiceControls = ({
     isTogglingWebcam.current = true;
 
     const newState = !ownVoiceState.webcamEnabled;
-    const trpc = getTRPCClient();
 
     voiceLogger.info('webcam: toggle requested', { enabled: newState });
 
@@ -228,6 +234,7 @@ const useVoiceControls = ({
     );
 
     try {
+      const trpc = getTRPCClient();
       if (newState) {
         await startWebcamStream();
       } else {
@@ -238,9 +245,11 @@ const useVoiceControls = ({
         webcamEnabled: newState
       });
     } catch (error) {
+      stopWebcamStream();
       updateOwnVoiceState({ webcamEnabled: false });
 
       try {
+        const trpc = getTRPCClient();
         await trpc.voice.updateState.mutate({ webcamEnabled: false });
       } catch {
         // ignore
@@ -266,7 +275,6 @@ const useVoiceControls = ({
     isTogglingScreenShare.current = true;
 
     const newState = !ownVoiceState.sharingScreen;
-    const trpc = getTRPCClient();
 
     voiceLogger.info('screen: toggle requested', { sharing: newState });
 
@@ -279,6 +287,7 @@ const useVoiceControls = ({
     );
 
     try {
+      const trpc = getTRPCClient();
       if (newState) {
         const video = await startScreenShareStream();
 
@@ -303,9 +312,11 @@ const useVoiceControls = ({
         sharingScreen: newState
       });
     } catch (error) {
+      stopScreenShareStream();
       updateOwnVoiceState({ sharingScreen: false });
 
       try {
+        const trpc = getTRPCClient();
         await trpc.voice.updateState.mutate({ sharingScreen: false });
       } catch {
         // ignore

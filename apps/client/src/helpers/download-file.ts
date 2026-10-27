@@ -3,7 +3,7 @@ import type { TFile } from '@sharkord/shared';
 import { getFileUrl } from './get-file-url';
 
 const downloadFile = async (file: TFile) => {
-  const fileUrl = getFileUrl(file);
+  const fileUrl = getFileUrl(file, true);
 
   if (!fileUrl) {
     console.error('Failed to get file URL.');

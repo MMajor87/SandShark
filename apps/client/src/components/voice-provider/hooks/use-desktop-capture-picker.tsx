@@ -1,3 +1,4 @@
+import { getDesktopBridge } from '@/platform/desktop';
 import { isDesktopClient } from '@/platform/environment';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -22,27 +23,30 @@ const useDesktopCapturePicker = () => {
   }, []);
 
   const chooseDesktopCaptureSource = useCallback(async () => {
-    const desktopApi = window.sandSharkDesktop;
+    const desktopApi = getDesktopBridge();
 
     if (!isDesktopClient() || !desktopApi) return undefined;
 
     return new Promise<TDesktopCaptureSource | undefined>((resolveSource) => {
+      resolveRef.current?.(undefined);
       resolveRef.current = resolveSource;
       setLoading(true);
       setError(undefined);
       setSources([]);
       setOpen(true);
 
-      void desktopApi
+      desktopApi
         .getDesktopCaptureSources()
         .then((availableSources) => {
-          setSources(availableSources);
+          if (resolveRef.current === resolveSource)
+            setSources(availableSources);
         })
         .catch(() => {
+          if (resolveRef.current !== resolveSource) return;
           setError('Unable to list displays and application windows.');
         })
         .finally(() => {
-          setLoading(false);
+          if (resolveRef.current === resolveSource) setLoading(false);
         });
     });
   }, []);
@@ -54,6 +58,8 @@ const useDesktopCapturePicker = () => {
     };
   }, []);
 
+  const cancel = useCallback(() => resolve(undefined), [resolve]);
+
   const picker = (
     <DesktopCapturePicker
       open={open}
@@ -61,11 +67,11 @@ const useDesktopCapturePicker = () => {
       sources={sources}
       error={error}
       onSelect={resolve}
-      onClose={() => resolve(undefined)}
+      onClose={cancel}
     />
   );
 
-  return { chooseDesktopCaptureSource, picker };
+  return { chooseDesktopCaptureSource, picker, cancel };
 };
 
 export { useDesktopCapturePicker };

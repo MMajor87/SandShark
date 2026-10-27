@@ -20,3 +20,8 @@ const getDesktopClientInfo = (): TDesktopClientInfo | undefined => {
 };
 
 export { getDesktopClientInfo };
+
+export const getDesktopBridge = () =>
+  typeof window === 'undefined' || !isDesktopClient()
+    ? undefined
+    : window.sandSharkDesktop;

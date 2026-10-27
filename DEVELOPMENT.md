@@ -93,3 +93,53 @@ Chromium's media log rotates only before startup because Chromium owns its activ
 file, so its size is not bounded during a single long session. Preferences and
 secrets use temporary files in the destination directory followed by replacement;
 failed writes retain the previous file. Encryption still uses Electron safeStorage.
+
+## Voice resource ownership and recovery
+
+`VoiceProvider` composes the owners below. No state-machine library or dependency
+was added. Session identity is the current voice channel plus the active tRPC
+client and connected state. Each acquisition also belongs to a cancellable local
+operation, so completion after leave, replacement or unmount releases its own
+resource instead of installing it into a newer call.
+
+| Owner | Resources and release |
+| --- | --- |
+| `hooks/use-voice-session.ts` | Initialization, transport recovery, connection status and the ordered teardown. Cancel pending work before stopping stats, microphone, webcam, screen, local/remote/external streams and transports. Clear capability refs last. Leave, disconnected/server change and unmount use the same cleanup. |
+| `hooks/use-microphone.ts` | Raw microphone stream, noise-gate context/node/output, suppression contexts/output and audio producer. Register resources as acquired. Release late streams/producers immediately. Worklet loaders close contexts if startup fails before returning ownership. |
+| Webcam in `index.tsx` | Camera stream and video producer. Cancel before clearing UI/ref state; a late producer is closed without replacing the current one. |
+| `hooks/use-screen-capture.ts` | Picker request, display stream, screen/audio producers and process-audio track. Cancel the picker and pending acquisition on stop. Recovery never reopens the picker. |
+| `process-audio-capture.ts` | Application-audio context, worklet, destination track, PCM subscription, diagnostics timer and native capture ID. Startup failure and idempotent stop release them. A capture-ID-scoped IPC stop cannot kill a replacement helper. The main process still owns helper spawn/exit and renderer-lifetime cleanup. |
+| `hooks/use-transports.ts` | Send/receive transports and consumer map. Increment generation before closing them. Old callbacks cannot clear replacement transports; late consumers close without publishing remote streams. Await the initial producer enumeration before declaring startup complete. |
+| `hooks/use-local-streams.ts` | React stream state and producer refs. Stable cleanup reads the latest rendered streams; capture owners also release resources acquired before another render. |
+| `hooks/use-voice-events.ts` | Four voice subscriptions, removed on effect cleanup. The existing cleanup flag rejects callbacks after unsubscribe; asynchronous consumers additionally check transport/session ownership. |
+| `hooks/use-transport-stats.ts`, `screen-audio-diagnostics.ts` | Stats polling. Session teardown stops transport monitoring; closing the screen-audio producer removes its timer/listeners and ignores pending stats results. |
+
+Recovery policy:
+
+- An ICE failure while the same server-side voice session is valid rebuilds
+  transports, receivers and microphone. Existing mute/deafen state and selected
+  devices remain. Camera and screen sharing turn off and require a new user action.
+- A lost WebSocket session clears local voice membership before server reconnect
+  backoff. Reconnecting the server does not automatically join voice. Select a
+  voice channel again. This handles the stale connected UI described in upstream
+  [#849](https://github.com/Sharkord/sharkord/issues/849).
+- Recovery validates server membership before rebuilding. A missing session,
+  revoked access or another recovery error clears local membership and stops.
+  There is no voice rejoin retry loop. Server kick/ban/removal follows teardown.
+- Microphone acquisition failure retains the existing listen-only behavior.
+  Camera/screen startup failures roll back their enable state. Stale responses
+  cannot roll back mute/deafen or capture state in a replacement session.
+
+Deterministic coverage is in `voice-lifecycle.test.ts`, `voice-operation.test.ts`,
+`process-audio-capture.test.ts`, the suppression worklet startup tests and desktop
+`application-audio.test.ts`. The hook harness uses server rendering to exercise
+callbacks and refs; it does not run React effects, native devices or actual WebRTC.
+It reproduces missing-session rejection with surviving transports, not the
+reporter's exact network/browser environment.
+
+Before release, run two actual participants through: transient ICE failure with
+WebSocket intact; WebSocket loss/server restart; sleep/resume; kick/ban and channel
+permission removal; selected-device removal; and repeated camera/screen/native
+audio start/stop, including leaving while a picker or permission prompt is open.
+Check audible send/receive, unchanged mute/deafen/device choice, no silent capture
+restart, no rejoin loops, and no leftover native helper, tracks or subscriptions.

@@ -10,6 +10,7 @@ import { getTrpcError } from '@sharkord/shared';
 import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { captureVoiceSession } from '../voice-session';
 
 type TPendingMicRestoreState = {
   previousMicMuted: boolean;
@@ -102,16 +103,20 @@ const useVoiceControls = ({
       return;
     }
 
+    let session: ReturnType<typeof captureVoiceSession> | undefined;
     try {
-      const trpc = getTRPCClient();
+      session = captureVoiceSession();
+      const trpc = session.client;
       await trpc.voice.updateState.mutate({
         micMuted: nextMicMuted
       });
 
+      if (!session.isCurrent()) return;
       if (!localAudioStream && !nextMicMuted) {
         await startMicStream();
       }
     } catch (error) {
+      if (session && !session.isCurrent()) return;
       pendingMicRestoreStateRef.current = previousPendingMicRestoreState;
 
       updateOwnVoiceState({ micMuted: !nextMicMuted });
@@ -189,14 +194,18 @@ const useVoiceControls = ({
       return;
     }
 
+    let session: ReturnType<typeof captureVoiceSession> | undefined;
     try {
-      const trpc = getTRPCClient();
+      session = captureVoiceSession();
+      const trpc = session.client;
       await trpc.voice.updateState.mutate(nextVoiceState);
 
+      if (!session.isCurrent()) return;
       if (!localAudioStream && nextVoiceState.micMuted === false) {
         await startMicStream();
       }
     } catch (error) {
+      if (session && !session.isCurrent()) return;
       pendingMicRestoreStateRef.current = previousPendingMicRestoreState;
       updateOwnVoiceState(rollbackVoiceState);
       voiceLogger.error('sound: toggle failed, rolled back', error, {
@@ -233,10 +242,13 @@ const useVoiceControls = ({
         : SoundType.OWN_USER_STOPPED_WEBCAM
     );
 
+    let session: ReturnType<typeof captureVoiceSession> | undefined;
     try {
-      const trpc = getTRPCClient();
+      session = captureVoiceSession();
+      const trpc = session.client;
       if (newState) {
         await startWebcamStream();
+        if (!session.isCurrent()) return;
       } else {
         stopWebcamStream();
       }
@@ -245,6 +257,7 @@ const useVoiceControls = ({
         webcamEnabled: newState
       });
     } catch (error) {
+      if (session && !session.isCurrent()) return;
       stopWebcamStream();
       updateOwnVoiceState({ webcamEnabled: false });
 
@@ -271,6 +284,7 @@ const useVoiceControls = ({
   ]);
 
   const toggleScreenShare = useCallback(async () => {
+    if (!currentVoiceChannelId) return;
     if (isTogglingScreenShare.current) return;
     isTogglingScreenShare.current = true;
 
@@ -286,13 +300,17 @@ const useVoiceControls = ({
         : SoundType.OWN_USER_STOPPED_SCREENSHARE
     );
 
+    let session: ReturnType<typeof captureVoiceSession> | undefined;
     try {
-      const trpc = getTRPCClient();
+      session = captureVoiceSession();
+      const trpc = session.client;
       if (newState) {
         const video = await startScreenShareStream();
+        if (!session.isCurrent()) return;
 
         // handle native screen share end
         video.onended = async () => {
+          if (!session?.isCurrent()) return;
           stopScreenShareStream();
           updateOwnVoiceState({ sharingScreen: false });
 
@@ -312,6 +330,7 @@ const useVoiceControls = ({
         sharingScreen: newState
       });
     } catch (error) {
+      if (session && !session.isCurrent()) return;
       stopScreenShareStream();
       updateOwnVoiceState({ sharingScreen: false });
 
@@ -334,6 +353,7 @@ const useVoiceControls = ({
     }
   }, [
     t,
+    currentVoiceChannelId,
     ownVoiceState.sharingScreen,
     startScreenShareStream,
     stopScreenShareStream

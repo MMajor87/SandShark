@@ -149,7 +149,7 @@ export type TSandSharkDesktopAPI = {
   startApplicationAudioCapture: (
     sourceId: string
   ) => Promise<TApplicationAudioCapture>;
-  stopApplicationAudioCapture: () => Promise<void>;
+  stopApplicationAudioCapture: (captureId?: string) => Promise<void>;
   onApplicationAudioData: (
     listener: (captureId: string, data: Uint8Array) => void
   ) => () => void;

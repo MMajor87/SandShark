@@ -27,7 +27,9 @@ const createApplicationAudio = ({
     stop: () => void;
   };
   let activeApplicationAudioCapture: TActiveApplicationAudioCapture | undefined;
-  const stopApplicationAudioCapture = () => {
+  const stopApplicationAudioCapture = (captureId?: string) => {
+    if (captureId && activeApplicationAudioCapture?.captureId !== captureId)
+      return;
     const capture = activeApplicationAudioCapture;
     activeApplicationAudioCapture = undefined;
 
@@ -248,10 +250,18 @@ const createApplicationAudio = ({
         return startApplicationAudioCapture(sourceId, senderWindow.webContents);
       }
     );
-    ipc.handle('sandshark:stop-application-audio-capture', (event) => {
-      getSenderWindow(event);
-      stopApplicationAudioCapture();
-    });
+    ipc.handle(
+      'sandshark:stop-application-audio-capture',
+      (event, captureId: unknown) => {
+        if (
+          captureId !== undefined &&
+          (typeof captureId !== 'string' || captureId.length > 128)
+        )
+          throw new Error('Invalid audio capture id.');
+        getSenderWindow(event);
+        stopApplicationAudioCapture(captureId);
+      }
+    );
   };
   return {
     startApplicationAudioCapture,

@@ -33,6 +33,7 @@ import {
 import { connectedSelector, infoSelector } from './selectors';
 import { serverSliceActions } from './slice';
 import { SoundType, type TDisconnectInfo } from './types';
+import { clearLocalVoiceSession } from './voice/actions';
 
 let unsubscribeFromServer: (() => void) | null = null;
 
@@ -187,6 +188,7 @@ const abandonReconnect = () => {
 // dropped connection means replaying the whole join, not just reopening the transport.
 export const reconnectToServer = (info: TDisconnectInfo) => {
   if (reconnectTimer) return;
+  clearLocalVoiceSession();
 
   const state = store.getState();
 

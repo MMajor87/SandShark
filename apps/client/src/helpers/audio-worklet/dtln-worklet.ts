@@ -48,28 +48,36 @@ const createDtlnChain = async (
   }
 
   const ctx = new AudioContext({ sampleRate: 16000 });
-  await ensureWorkletLoaded(ctx);
-  const workletNode = new AudioWorkletNode(ctx, DTLN_WORKLET_NAME);
+  let outputStream: MediaStream | undefined;
+  try {
+    await ensureWorkletLoaded(ctx);
+    const workletNode = new AudioWorkletNode(ctx, DTLN_WORKLET_NAME);
 
-  const source = ctx.createMediaStreamSource(inputStream);
-  const destination = ctx.createMediaStreamDestination();
+    const source = ctx.createMediaStreamSource(inputStream);
+    const destination = ctx.createMediaStreamDestination();
+    outputStream = destination.stream;
 
-  source.connect(workletNode);
-  workletNode.connect(destination);
+    source.connect(workletNode);
+    workletNode.connect(destination);
 
-  if (ctx.state === 'suspended') {
-    await ctx.resume();
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+
+    await waitForReady(workletNode);
+
+    const outputTrack = destination.stream.getAudioTracks()[0];
+
+    if (!outputTrack) {
+      throw new Error('DTLN chain produced no output track');
+    }
+
+    return { outputTrack, contexts: [ctx] };
+  } catch (error) {
+    outputStream?.getTracks().forEach((track) => track.stop());
+    if (ctx.state !== 'closed') await ctx.close();
+    throw error;
   }
-
-  await waitForReady(workletNode);
-
-  const outputTrack = destination.stream.getAudioTracks()[0];
-
-  if (!outputTrack) {
-    throw new Error('DTLN chain produced no output track');
-  }
-
-  return { outputTrack, contexts: [ctx] };
 };
 
 export { createDtlnChain };

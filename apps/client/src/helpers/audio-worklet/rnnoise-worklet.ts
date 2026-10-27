@@ -58,33 +58,41 @@ const createRnnoiseChain = async (
   }
 
   const ctx = new AudioContext({ sampleRate: nativeSampleRate });
-  await ensureWorkletLoaded(ctx);
+  let outputStream: MediaStream | undefined;
+  try {
+    await ensureWorkletLoaded(ctx);
 
-  // outputChannelCount: [2] allocates a second output channel buffer so the
-  // processor can copy ch0 â†’ ch1 and produce centred stereo
-  const workletNode = new AudioWorkletNode(ctx, RNNOISE_WORKLET_NAME, {
-    outputChannelCount: [2]
-  });
+    // outputChannelCount: [2] allocates a second output channel buffer so the
+    // processor can copy ch0 â†’ ch1 and produce centred stereo
+    const workletNode = new AudioWorkletNode(ctx, RNNOISE_WORKLET_NAME, {
+      outputChannelCount: [2]
+    });
 
-  if (ctx.state === 'suspended') {
-    await ctx.resume();
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+
+    await waitForReady(workletNode);
+
+    const source = ctx.createMediaStreamSource(inputStream);
+    const destination = ctx.createMediaStreamDestination();
+    outputStream = destination.stream;
+
+    source.connect(workletNode);
+    workletNode.connect(destination);
+
+    const outputTrack = destination.stream.getAudioTracks()[0];
+
+    if (!outputTrack) {
+      throw new Error('RNNoise chain produced no output track');
+    }
+
+    return { outputTrack, contexts: [ctx] };
+  } catch (error) {
+    outputStream?.getTracks().forEach((track) => track.stop());
+    if (ctx.state !== 'closed') await ctx.close();
+    throw error;
   }
-
-  await waitForReady(workletNode);
-
-  const source = ctx.createMediaStreamSource(inputStream);
-  const destination = ctx.createMediaStreamDestination();
-
-  source.connect(workletNode);
-  workletNode.connect(destination);
-
-  const outputTrack = destination.stream.getAudioTracks()[0];
-
-  if (!outputTrack) {
-    throw new Error('RNNoise chain produced no output track');
-  }
-
-  return { outputTrack, contexts: [ctx] };
 };
 
 export { createRnnoiseChain };

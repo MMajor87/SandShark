@@ -24,11 +24,26 @@ const useLocalStreams = () => {
     undefined
   );
 
+  const latestStreams = useRef([
+    localVideoStream,
+    localAudioStream,
+    localScreenShareStream,
+    localScreenShareAudioStream
+  ]);
+  latestStreams.current = [
+    localVideoStream,
+    localAudioStream,
+    localScreenShareStream,
+    localScreenShareAudioStream
+  ];
   const clearLocalStreams = useCallback(() => {
-    localVideoStream?.getTracks().forEach((track) => track.stop());
-    localAudioStream?.getTracks().forEach((track) => track.stop());
-    localScreenShareStream?.getTracks().forEach((track) => track.stop());
-    localScreenShareAudioStream?.getTracks().forEach((track) => track.stop());
+    for (const stream of latestStreams.current) {
+      stream?.getTracks().forEach((track) => {
+        track.onended = null;
+        track.stop();
+      });
+    }
+    latestStreams.current = [];
 
     setLocalVideoStream(undefined);
     setLocalAudioStream(undefined);
@@ -44,12 +59,7 @@ const useLocalStreams = () => {
     localAudioProducer.current = undefined;
     localScreenShareProducer.current = undefined;
     localScreenShareAudioProducer.current = undefined;
-  }, [
-    localAudioStream,
-    localScreenShareStream,
-    localVideoStream,
-    localScreenShareAudioStream
-  ]);
+  }, []);
 
   return {
     localVideoStream,

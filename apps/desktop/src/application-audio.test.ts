@@ -88,3 +88,19 @@ test('invalid headers, process errors and early exit settle startup and clean up
     expect(sender.listenerCount('destroyed')).toBe(0);
   }
 });
+
+test('late cleanup for an old capture cannot stop its replacement', async () => {
+  const { audio, children, start } = setup();
+  const first = start();
+  children[0].stdout.emit('data', header);
+  const old = await first;
+  const second = start('screen:0');
+  children[1].stdout.emit('data', header);
+  const current = await second;
+  audio.stopApplicationAudioCapture(old.captureId);
+  expect(children[1].killed).toBe(false);
+  expect(audio.isCapturingSource('screen:0')).toBe(true);
+  audio.stopApplicationAudioCapture(current.captureId);
+  audio.stopApplicationAudioCapture(current.captureId);
+  expect(children[1].killed).toBe(true);
+});

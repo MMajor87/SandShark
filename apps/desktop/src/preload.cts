@@ -1,22 +1,22 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type {
-  TSandSharkDesktopAPI,
+  TApplicationAudioCapture,
+  TDesktopCaptureDiagnostic,
   TDesktopDownloadProgress,
   TDesktopDownloadRequest,
-  TDesktopCaptureDiagnostic,
-  TApplicationAudioCapture,
   TDesktopLogDiagnostic,
-  THardwareAccelerationSettings,
-  TDesktopUpdateSettings,
-  TDesktopUpdateStatus,
-  TDesktopSecretRequest,
   TDesktopNotification,
   TDesktopNotificationTarget,
+  TDesktopSecretRequest,
+  TDesktopUpdateSettings,
+  TDesktopUpdateStatus,
+  THardwareAccelerationSettings,
   TPushToTalkConfig,
-  TTrayStatus,
-  TWindowBehavior,
+  TSandSharkDesktopAPI,
   TStartAtLoginSettings,
-  TTaskbarStatus
+  TTaskbarStatus,
+  TTrayStatus,
+  TWindowBehavior
 } from './desktop-api.js';
 
 const invoke = <T,>(channel: string, payload?: unknown): Promise<T> =>
@@ -28,7 +28,8 @@ const invoke = <T,>(channel: string, payload?: unknown): Promise<T> =>
   });
 
 const desktopApi: TSandSharkDesktopAPI = {
-  startOidcLogin: (serverUrl, invite) => invoke<string | null>('sandshark:start-oidc-login', { serverUrl, invite }),
+  startOidcLogin: (serverUrl, invite) =>
+    invoke<string | null>('sandshark:start-oidc-login', { serverUrl, invite }),
   getVersion: () => invoke<string>('sandshark:get-version'),
   minimize: () => invoke<void>('sandshark:minimize'),
   maximize: () => invoke<void>('sandshark:maximize'),
@@ -57,15 +58,16 @@ const desktopApi: TSandSharkDesktopAPI = {
       'sandshark:start-application-audio-capture',
       sourceId
     ),
-  stopApplicationAudioCapture: () =>
-    invoke<void>('sandshark:stop-application-audio-capture'),
+  stopApplicationAudioCapture: (captureId) =>
+    invoke<void>('sandshark:stop-application-audio-capture', captureId),
   onApplicationAudioData: (listener) => {
     const handler = (
       _event: Electron.IpcRendererEvent,
       captureId: unknown,
       data: unknown
     ) => {
-      if (typeof captureId !== 'string' || !(data instanceof Uint8Array)) return;
+      if (typeof captureId !== 'string' || !(data instanceof Uint8Array))
+        return;
 
       listener(captureId, data);
     };

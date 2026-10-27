@@ -1,6 +1,6 @@
 # SandShark refactor and improvement plan
 
-Reviewed October 26, 2026. Status: Phase 1 code implemented on `fix/phase-one` at `1f2274a5`; release verification remains open. See [PHASE_ONE_REPORT.md](PHASE_ONE_REPORT.md).
+Reviewed October 26, 2026. Status: Phase 1 and Phase 2 code implemented. Phase 2 is on `refactor/phase-two` at `375320d2`; live release verification remains open. See [PHASE_ONE_REPORT.md](PHASE_ONE_REPORT.md) and [PHASE_TWO_REPORT.md](PHASE_TWO_REPORT.md).
 
 ## Baseline and scope
 
@@ -46,11 +46,13 @@ Exit criteria: relevant tests reproduce each old failure and pass with the fix; 
 
 `apps/desktop/src/main.ts` is roughly 2,300 lines and owns persistence, logging, updates, downloads, tray/window state, global input, capture, permissions and IPC. The reason to split it is independent responsibilities and testability, not a line-count target.
 
-- [ ] R6: Extract diagnostic logging/retention and preference persistence first. Keep startup order and failure handling unchanged; use atomic replacement for preference/secret files where appropriate.
-- [ ] R7: Extract updater lifecycle and download handling separately, with explicit registration/disposal functions. Test repeated initialization, window closure, cancellation and duplicate events.
-- [ ] R8: Extract native input/PTT and application-audio child-process ownership. Each module owns its listeners/processes and releases them on quit, reload and failure.
-- [ ] R9: Keep main as startup orchestration; group IPC registration by the module that owns the operation, retaining explicit sender and payload checks. Update security tests alongside extraction so the current source-text checker does not become misleading.
-- [ ] R10: Consolidate the desktop bridge type contract, then typecheck client/preload/main together.
+- [x] R6: Extract diagnostic logging/retention and preference persistence first. Keep startup order and failure handling unchanged; use atomic replacement for preference/secret files where appropriate.
+- [x] R7: Extract updater lifecycle and download handling separately, with explicit registration/disposal functions. Test repeated initialization, window closure, cancellation and duplicate events.
+- [x] R8: Extract native input/PTT and application-audio child-process ownership. Each module owns its listeners/processes and releases them on quit, reload and failure.
+- [x] R9: Keep main as startup orchestration; group IPC registration by the module that owns the operation, retaining explicit sender and payload checks. Update security tests alongside extraction so the current source-text checker does not become misleading.
+- [x] R10: Consolidate the desktop bridge type contract, then typecheck client/preload/main together.
+
+Implementation status: R6-R10 are implemented in focused local commits. All 2,164 repository tests, static IPC checks, Windows packaging, and real packaged preload/IPC smoke checks passed. Background PTT, audible capture and installed-update acceptance remain manual release checks; Phase 1 browser reliability and hosted Windows CI gates remain open.
 
 Exit criteria: packaged startup and desktop security checks pass; no duplicate IPC handlers/listeners; background PTT, capture stop and update/download behavior remain unchanged. Land one responsibility at a time with no new behavior mixed into extraction.
 

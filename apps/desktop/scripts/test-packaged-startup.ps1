@@ -39,11 +39,21 @@ try {
     throw "SandShark exited during packaged startup smoke test with code $($process.ExitCode)."
   }
 
+  $bridgeResultPath = Join-Path $userDataDir 'smoke-ready.json'
+  if (-not (Test-Path -LiteralPath $bridgeResultPath)) {
+    throw 'The packaged renderer did not complete its preload/IPC smoke checks.'
+  }
+  $bridgeResult = Get-Content -LiteralPath $bridgeResultPath -Raw | ConvertFrom-Json
+  if (-not $bridgeResult.version -or $null -eq $bridgeResult.hardware.enabled -or $null -eq $bridgeResult.updates.automaticallyCheck -or $null -eq $bridgeResult.behavior.closeToTray) {
+    throw 'The packaged desktop bridge returned an incomplete smoke result.'
+  }
+
   [PSCustomObject]@{
     Path = $resolvedExecutable.Path
     ProcessId = $process.Id
     StartupSeconds = $StartupSeconds
-    Status = "Running"
+    Status = "Running; preload and guarded IPC verified"
+    Version = $bridgeResult.version
   } | Format-List
 } finally {
   $env:ELECTRON_RUN_AS_NODE = $previousElectronRunAsNode

@@ -55,3 +55,41 @@ bun run test
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.
+
+## Desktop ownership
+
+`apps/desktop/src/main.ts` configures the app before readiness, creates the services,
+registers IPC, and disposes services on quit. Keep that startup order explicit.
+
+| Module | Owns |
+| --- | --- |
+| `preferences.ts`, `atomic-json.ts` | Settings, encrypted secret persistence, atomic JSON replacement |
+| `diagnostics.ts`, `log-retention.ts`, `log-details.ts` | Diagnostic output, rotation, redaction |
+| `desktop-updater.ts` | Lazy updater initialization, status and listener disposal |
+| `desktop-downloads.ts` | Pending/active downloads, save dialogs, completed-file lookup |
+| `push-to-talk.ts` | Native input listeners and held-key state |
+| `application-audio.ts` | Native helper from spawn through startup, streaming and shutdown |
+| `desktop-capture.ts` | Capture selection and Electron permission handlers |
+| `desktop-window.ts` | Window/tray behavior, navigation, deep links and crash recovery |
+| `desktop-ipc.ts`, `trusted-renderer.ts` | Owned IPC registration and trusted main-frame validation |
+
+Each operation's owner registers its IPC and validates its payload. All registration
+goes through `createDesktopIpc`, which validates the sender before dispatch. Dispose
+native resources on renderer reload/crash/closure as well as app quit. Do not stop
+capture for subframe navigation. Repeated registration and cleanup must be safe.
+
+The browser-safe bridge contract is declared once in
+`packages/shared/desktop-api.d.ts`; both client and desktop import it as types only.
+Do not add Electron or Node runtime imports to that contract.
+
+Run desktop lifecycle tests and the static security inventory with
+`bun run --cwd apps/desktop test` and `bun run --cwd apps/desktop check:security`.
+The packaged startup script uses an isolated profile and now verifies real
+renderer/preload/IPC round trips. It does not verify audible capture, background
+hotkeys, or an installed update; those remain live acceptance checks.
+
+Application and capture diagnostic logs rotate at 5 MiB and retain two archives.
+Chromium's media log rotates only before startup because Chromium owns its active
+file, so its size is not bounded during a single long session. Preferences and
+secrets use temporary files in the destination directory followed by replacement;
+failed writes retain the previous file. Encryption still uses Electron safeStorage.

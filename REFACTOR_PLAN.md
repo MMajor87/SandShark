@@ -1,6 +1,6 @@
 # SandShark refactor and improvement plan
 
-Reviewed October 26, 2026. Status: Phase 1 and Phase 2 code implemented. Phase 2 is on `refactor/phase-two` at `375320d2`; live release verification remains open. See [PHASE_ONE_REPORT.md](PHASE_ONE_REPORT.md) and [PHASE_TWO_REPORT.md](PHASE_TWO_REPORT.md).
+Reviewed October 26, 2026; Phase 3 implementation updated October 27. Status: Phases 1 through 3 code implemented in `.integration/sharkord-v0.0.28`, now on `refactor/phase-three`. Live release verification remains open. See [PHASE_ONE_REPORT.md](PHASE_ONE_REPORT.md), [PHASE_TWO_REPORT.md](PHASE_TWO_REPORT.md) and [PHASE_THREE_REPORT.md](PHASE_THREE_REPORT.md).
 
 ## Baseline and scope
 
@@ -60,13 +60,15 @@ Exit criteria: packaged startup and desktop security checks pass; no duplicate I
 
 The roughly 1,850-line `components/voice-provider/index.tsx` already has useful hooks. Extend those seams. Upstream has the same concern in [#642](https://github.com/Sharkord/sharkord/issues/642).
 
-- [ ] R11: Document ownership of tracks, producers, consumers, audio contexts/worklets, native capture processes and subscriptions. Add tests for partial startup failure, repeated cleanup and late async completion after leaving/switching servers.
-- [ ] R12: Extract microphone processing and desktop screen-capture orchestration into focused local hooks. Keep mediasoup transport ownership in `use-transports` and browser-safe desktop access in `platform`.
-- [ ] R13: Consolidate session teardown/recovery around existing connection status and cleanup hooks. Introduce a session-generation guard only where tests demonstrate stale async completions; do not add a state-machine library by default.
-- [ ] R14: Reproduce [#849](https://github.com/Sharkord/sharkord/issues/849) with a lost WebSocket session and surviving/stale transport state. Existing SandShark transport recovery rebuilds transports, so [#552](https://github.com/Sharkord/sharkord/issues/552)'s older claim of no reconnect logic is not accurate for this branch. Distinguish transport recovery from rejoining a server-side voice session that no longer exists.
-- [ ] R15: Define what recovery restores. Preserve mute/deafen and device choice; do not silently restart screen capture without an explicit policy. Verify permission loss and kick/ban cannot trigger rejoin loops.
+- [x] R11: Document ownership of tracks, producers, consumers, audio contexts/worklets, native capture processes and subscriptions. Add tests for partial startup failure, repeated cleanup and late async completion after leaving/switching servers.
+- [x] R12: Extract microphone processing and desktop screen-capture orchestration into focused local hooks. Keep mediasoup transport ownership in `use-transports` and browser-safe desktop access in `platform`.
+- [x] R13: Consolidate session teardown/recovery around existing connection status and cleanup hooks. Introduce a session-generation guard only where tests demonstrate stale async completions; do not add a state-machine library by default.
+- [x] R14: Reproduce [#849](https://github.com/Sharkord/sharkord/issues/849) with a lost WebSocket session and surviving/stale transport state. Existing SandShark transport recovery rebuilds transports, so [#552](https://github.com/Sharkord/sharkord/issues/552)'s older claim of no reconnect logic is not accurate for this branch. Distinguish transport recovery from rejoining a server-side voice session that no longer exists.
+- [x] R15: Define what recovery restores. Preserve mute/deafen and device choice; do not silently restart screen capture without an explicit policy. Verify permission loss and kick/ban cannot trigger rejoin loops.
 
-Exit criteria: deterministic cleanup/recovery tests plus real two-participant tests under disconnect/reconnect, sleep/resume, permission loss, device removal and repeated capture start/stop. Browser mocks cannot establish audible correctness.
+Implementation: ownership and recovery policy are documented in [DEVELOPMENT.md](DEVELOPMENT.md#voice-resource-ownership-and-recovery). Regression tests reproduce missing server membership with stale transports and reject late capture/transport completions. R14 is a deterministic reproduction of the failure class, not confirmation of the reporter's exact live network/browser conditions. R15 policy and automated rejection/no-rejoin cases are implemented.
+
+- [ ] Phase 3 live exit gate: real two-participant tests under disconnect/reconnect, sleep/resume, permission loss, device removal and repeated capture start/stop. Confirm audible send/receive, mute/deafen and device preservation, no automatic screen restart and no rejoin loops. Browser mocks cannot establish audible correctness. See [PHASE_THREE_REPORT.md](PHASE_THREE_REPORT.md).
 
 ### Phase 4: calendar and client maintenance
 

@@ -41,38 +41,77 @@ Avoid formatting-only changes and large renames while syncing upstream. Keep
 each desktop adaptation focused and document a new integration here when it
 changes browser-visible behavior.
 
-## Upstream Merge Procedure
+## Pinned release integration and branch policy
 
-Run this from a clean working tree on the desktop development branch. Keep
-local desktop work committed or stashed before starting the merge.
+SandShark integrates reviewed Sharkord release commits. Do not merge the moving
+`upstream/development` branch as an upgrade shortcut. Record both the release tag
+and its resolved commit in the integration notes before merging. Tags may not be
+present locally; fetch the selected tag explicitly and verify its target.
 
-```bash
-git fetch upstream
-git checkout development
-git merge upstream/development
-```
+The current baseline is Sharkord 0.0.28, integrated by merge `00063c66` and validated
+at `b355c87a`. Phase branches extend that integrated history: `refactor/phase-one`,
+`refactor/phase-two`, `refactor/phase-three` and `refactor/phase-four`. They are local
+review branches in `.integration/sharkord-v0.0.28`; the older root checkout is not
+the source of the latest candidate. Do not replace its uncommitted changes.
 
-If conflicts occur:
+For the next upgrade:
 
-1. Resolve only the affected files, preserving the platform boundary above.
-2. Run `git diff --check` and inspect the complete merge diff.
-3. Confirm no upstream server address, credentials, local paths, or runtime
-   logs were added to tracked files.
-4. Commit the merge, then merge or rebase the updated development branch into
-   the desktop branch according to the repository's normal branch policy.
+1. Select a released upstream version and inspect its release notes, diff and
+   migrations against the last pinned commit. Resolve the tag to a commit and
+   retain that value in the review notes. This document does not claim a latest
+   upstream release.
+2. Start a clean integration branch/worktree from the current integrated SandShark
+   branch, not the older root `main` and not an upstream-only checkout.
+3. Back up the intended deployment baseline and verify hashes. Preserve development
+   data, desktop preferences/secrets, calendar data and existing migration history.
+4. Merge the reviewed release commit with upstream ancestry intact. Resolve each
+   conflict at its existing platform/domain seam; do not blindly prefer one side.
+5. Review the complete diff and test both the client/server contract and desktop
+   adaptations. Generate any new migration with Drizzle; never edit committed
+   migrations, including SandShark's 0018-0020.
+6. Run the checks below and record the exact source commit, package hash, failures
+   and live acceptance gaps. A packaged smoke test does not prove audible media.
+7. Follow CONTRIBUTING.md: create/reference the required issue before opening a PR,
+   and target `development`. Publishing, installation and deployment are separate
+   actions; local integration work does not perform them automatically.
 
-## Regression Checks
+Do not place deployment addresses, credentials, secrets or runtime logs in tracked
+documentation. Read the phase reports for the current release gates.
 
-Run these checks after an upstream merge:
+## SandShark calendar contract
 
-```bash
-bun install --frozen-lockfile
-bun run --cwd packages/shared check-types
-bun run --cwd apps/client check-types
-bun run --cwd apps/desktop check-types
-git diff --check
-```
+The calendar is a SandShark extension. Phase 4 changes `calendar.getAll` to accept
+`{ limit?, cursor?: { startsAt, id } }` and return `{ events, nextCursor }`, with at
+most 50 events per page. Deploy the updated calendar client and compatible server
+together. An older array-returning calendar endpoint is not compatible with this
+client contract. Upstream-only servers do not gain calendar support from installing
+the desktop client.
 
-For connection, routing, or media validation, use the authorized development
-server supplied out-of-band. Do not write its address into this repository or
-its documentation.
+Visibility is evaluated in SQL for the organizer, direct invitees and current role
+members. No new global calendar permission or organizer override is introduced.
+An invisible event now produces the same deletion response as a missing event.
+The list preserves chronological history as well as future invitations; pagination
+does not silently remove past events.
+
+The existing `calendar_events_starts_at_idx` orders by start time with SQLite's
+integer-primary-key rowid as the tie breaker. Existing `(event_id, user_id)` and
+`(event_id, role_id)` unique indexes support correlated invitation checks, and the
+`user_roles(user_id, role_id)` primary key supports membership lookup. No additional
+index or migration is needed for this query shape. A SQLite EXPLAIN QUERY PLAN
+check against the committed schema confirmed an indexed start-time search, indexed
+invitation and membership lookups, and no temporary sorting tree. Reassess against
+production data before adding indexes or caches.
+
+## Regression checks
+
+Run `bun run magic`, `bun run test`, `bun run --cwd apps/server db:check`, and
+`bun run --cwd apps/desktop check:security`. Run Playwright separately from the
+server suite: both start mediasoup on UDP 40000 by default. Use isolated E2E fixture
+data, never development data. Build the native helper, desktop main and renderer,
+then verify the packaged application through the isolated-profile startup script.
+
+For release readiness, also test two real voice participants, disconnect/reconnect,
+sleep/resume, permission loss, device removal, camera/screen capture, application
+audio, background PTT, downloads and installed updating. Keep final validation
+evidence protected until those gates are verified; see the test-artifact workflow
+in DEVELOPMENT.md.

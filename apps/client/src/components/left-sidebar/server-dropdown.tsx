@@ -154,6 +154,10 @@ const ServerSwitcher = memo(
 
 const ServerDropdownMenu = memo(() => {
   const { t } = useTranslation('sidebar');
+  const openCalendar = useCallback(
+    () => openServerScreen(ServerScreen.CALENDAR),
+    []
+  );
   const serverSettingsPermissions = useMemo(
     () => [
       Permission.MANAGE_SETTINGS,
@@ -193,11 +197,9 @@ const ServerDropdownMenu = memo(() => {
       <DropdownMenuContent>
         <DropdownMenuLabel>{t('server')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => openServerScreen(ServerScreen.CALENDAR)}
-        >
+        <DropdownMenuItem onClick={openCalendar}>
           <CalendarDays className="mr-2 h-4 w-4" />
-          Calendar
+          {t('calendar:calendar')}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <Protect permission={Permission.MANAGE_CATEGORIES}>

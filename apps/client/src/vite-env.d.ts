@@ -39,6 +39,7 @@ declare module 'i18next' {
   interface CustomTypeOptions {
     defaultNS: 'common';
     resources: {
+      calendar: typeof import('./i18n/locales/en/calendar.json');
       common: typeof import('./locales/en/common.json');
       connect: typeof import('./locales/en/connect.json');
       disconnected: typeof import('./locales/en/disconnected.json');

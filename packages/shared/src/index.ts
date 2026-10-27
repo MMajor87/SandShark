@@ -1,3 +1,4 @@
+export * from './calendar';
 export * from './events';
 export * from './extensions';
 export * from './helpers';

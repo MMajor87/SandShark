@@ -143,3 +143,30 @@ permission removal; selected-device removal; and repeated camera/screen/native
 audio start/stop, including leaving while a picker or permission prompt is open.
 Check audible send/receive, unchanged mute/deafen/device choice, no silent capture
 restart, no rejoin loops, and no leftover native helper, tracks or subscriptions.
+
+## Test-artifact retention workflow
+
+Keep disposable test runs under `.artifacts/test-runs/<run-name>/`, with a `run.json`
+manifest containing an ISO `createdAt` and `releaseVerification` set to
+`not-required`, `pending` or `complete`. Mark final candidate evidence `pending`
+until its release checks are verified. A `.keep` marker also protects a run.
+Only a maintainer completing those checks should change `pending` to `complete`.
+
+From `packages/scripts`, run `bun run artifacts:prune` to print the dry-run JSON
+plan. Review the paths, then use `bun run artifacts:prune --apply` to apply it.
+The command retains at least five eligible runs and all runs newer than 14 days;
+it removes no more than 20 old runs per invocation. It does not collect or move
+artifacts automatically. Redirect ordinary test output into a named run directory
+and write its manifest when the run finishes; use `pending` for release evidence.
+
+Only that managed root is scanned. Missing/invalid manifests, pending release
+verification, `.keep`, directory links/junctions, databases, installers and data/
+backup directories are preserved. The command rejects linked artifact roots and
+rechecks absolute targets before deletion. `.integration`, development data,
+development backups, earlier installers and existing phase validation logs are
+outside its deletion scope. Current Playwright output directories are also outside
+scope; copy desired disposable reports into a managed run after testing ends.
+No existing validation evidence is deleted when introducing this workflow.
+
+Do not run server integration tests concurrently with Playwright: both normally
+bind mediasoup UDP 40000. Use sequential suites or separately configured ports.

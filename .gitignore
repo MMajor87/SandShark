@@ -32,3 +32,6 @@ Thumbs.db
 /experiments
 .capture-runtime-profile/
 .direnv/
+
+# managed disposable test runs; integration evidence is retained separately
+.artifacts/

@@ -27,29 +27,4 @@ const setMutedNotificationChannelIds = (channelIds: number[]) => {
   );
 };
 
-const isChannelNotificationsMuted = (channelId: number) =>
-  getMutedChannels()[getProfileKey()]?.includes(channelId) ?? false;
-
-const toggleChannelNotificationsMuted = (channelId: number) => {
-  const mutedChannels = getMutedChannels();
-  const profileKey = getProfileKey();
-  const channelIds = new Set(mutedChannels[profileKey] ?? []);
-
-  if (channelIds.has(channelId)) channelIds.delete(channelId);
-  else channelIds.add(channelId);
-
-  mutedChannels[profileKey] = [...channelIds];
-  setLocalStorageItemAsJSON(
-    LocalStorageKey.MUTED_NOTIFICATION_CHANNELS,
-    mutedChannels
-  );
-
-  return channelIds.has(channelId);
-};
-
-export {
-  getMutedNotificationChannelIds,
-  isChannelNotificationsMuted,
-  setMutedNotificationChannelIds,
-  toggleChannelNotificationsMuted
-};
+export { getMutedNotificationChannelIds, setMutedNotificationChannelIds };

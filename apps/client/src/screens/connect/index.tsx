@@ -7,6 +7,7 @@ import {
   clearCurrentServerAutoLogin,
   getCurrentServerAutoLoginToken,
   getCurrentServerIdentity,
+  getServerSessionKey,
   saveServerLogin
 } from '@/helpers/server-session';
 import {
@@ -46,6 +47,7 @@ import { useOidcLogin } from './hooks/use-oidc-login';
 
 const Connect = memo(() => {
   const { t } = useTranslation('connect');
+  const serverSessionKey = getServerSessionKey();
   const { values, errors, r, setErrors, onChange } = useForm<{
     identity: string;
     password: string;
@@ -78,20 +80,27 @@ const Connect = memo(() => {
   }, []);
 
   useEffect(() => {
-    void getCurrentServerAutoLoginToken().then((token) => {
-      if (token) onChange('autoLogin', true);
-    });
+    let active = true;
+    getCurrentServerAutoLoginToken()
+      .then((token) => {
+        if (active && token) onChange('autoLogin', true);
+      })
+      .catch(console.error);
+    return () => {
+      active = false;
+    };
   }, [onChange]);
   const startSession = useCallback(
     async (token: string) => {
       await saveServerLogin({
         identity: values.identity,
         token,
-        autoLogin: values.autoLogin
+        autoLogin: values.autoLogin,
+        serverSessionKey
       });
       await connect();
     },
-    [values.identity, values.autoLogin]
+    [values.identity, values.autoLogin, serverSessionKey]
   );
   const oidc = useOidcLogin({ onToken: startSession });
 
@@ -128,6 +137,7 @@ const Connect = memo(() => {
 
       await startSession(data.token);
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
       const errorMessage =
         error instanceof Error ? error.message : String(error);
 

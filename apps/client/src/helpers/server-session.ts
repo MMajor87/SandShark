@@ -17,7 +17,7 @@ import {
 
 type TServerSession = {
   identity?: string;
-  // Legacy browser-only storage field. Desktop sessions are migrated to safeStorage.
+  // legacy browser-only storage field. Desktop sessions are migrated to safeStorage.
   autoLoginToken?: string;
 };
 
@@ -104,12 +104,19 @@ const getDesktopAutoLoginSecretKey = () => {
 const saveServerLogin = async ({
   identity,
   token,
-  autoLogin
+  autoLogin,
+  serverSessionKey = getServerSessionKey()
 }: {
   identity: string;
   token: string;
   autoLogin: boolean;
+  serverSessionKey?: string;
 }) => {
+  const assertCurrent = () => {
+    if (!serverSessionKey || getServerSessionKey() !== serverSessionKey)
+      throw new DOMException('Server profile changed.', 'AbortError');
+  };
+  assertCurrent();
   updateCurrentServerSession((session) => {
     const { autoLoginToken: _legacyToken, ...rest } = session;
     return { ...rest, identity };
@@ -133,6 +140,7 @@ const saveServerLogin = async ({
       else await window.sandSharkDesktop.removeSecret(secretKey);
     }
   }
+  assertCurrent();
   setCurrentSessionToken(token);
 };
 
@@ -141,7 +149,7 @@ const getCurrentServerIdentity = () => {
 
   if (session?.identity) return session.identity;
 
-  // Browser storage is origin-scoped, so this migration cannot cross servers.
+  // browser storage is origin-scoped, so this migration cannot cross servers.
   if (isBrowserClient()) {
     return getLocalStorageItem(LocalStorageKey.IDENTITY) ?? undefined;
   }
@@ -150,6 +158,7 @@ const getCurrentServerIdentity = () => {
 };
 
 const getCurrentServerAutoLoginToken = async () => {
+  const serverSessionKey = getServerSessionKey();
   if (!isBrowserClient()) {
     const secretKey = getDesktopAutoLoginSecretKey();
     if (!secretKey || !window.sandSharkDesktop) return undefined;
@@ -167,18 +176,21 @@ const getCurrentServerAutoLoginToken = async () => {
           value: legacyToken
         })
       ) {
-        return legacyToken;
+        return getServerSessionKey() === serverSessionKey
+          ? legacyToken
+          : undefined;
       }
     }
 
-    return window.sandSharkDesktop.getSecret(secretKey);
+    const token = await window.sandSharkDesktop.getSecret(secretKey);
+    return getServerSessionKey() === serverSessionKey ? token : undefined;
   }
 
   const token = getCurrentServerSession()?.autoLoginToken;
 
   if (token) return token;
 
-  // Browser storage is origin-scoped, so legacy auto-login data is safe to migrate.
+  // browser storage is origin-scoped, so legacy auto-login data is safe to migrate.
   if (
     isBrowserClient() &&
     getLocalStorageItemBool(LocalStorageKey.AUTO_LOGIN)
@@ -199,7 +211,7 @@ const clearCurrentServerAutoLogin = () => {
 
   const secretKey = getDesktopAutoLoginSecretKey();
   if (secretKey && window.sandSharkDesktop) {
-    void window.sandSharkDesktop.removeSecret(secretKey);
+    window.sandSharkDesktop.removeSecret(secretKey).catch(console.error);
   }
 
   if (isBrowserClient()) {
@@ -214,7 +226,7 @@ const clearCurrentServerSession = () => {
   clearCurrentSessionToken();
 
   if (secretKey && window.sandSharkDesktop) {
-    void window.sandSharkDesktop.removeSecret(secretKey);
+    window.sandSharkDesktop.removeSecret(secretKey).catch(console.error);
   }
 
   if (isBrowserClient()) {
@@ -234,7 +246,9 @@ const clearServerSessionByKey = (key: string) => {
   saveServerSessions(sessions);
 
   if (window.sandSharkDesktop) {
-    void window.sandSharkDesktop.removeSecret(`auto-login:${key}`);
+    window.sandSharkDesktop
+      .removeSecret(`auto-login:${key}`)
+      .catch(console.error);
   }
 
   if (getServerSessionKey() === key) {
@@ -250,6 +264,7 @@ export {
   getCurrentServerAutoLoginToken,
   getCurrentServerIdentity,
   getCurrentSessionToken,
+  getServerSessionKey,
   saveServerLogin,
   setCurrentSessionToken
 };

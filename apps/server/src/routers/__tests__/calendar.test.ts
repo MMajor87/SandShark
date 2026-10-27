@@ -1,8 +1,14 @@
+import { CALENDAR_PAGE_SIZE, MAX_CALENDAR_TIMESTAMP } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
 import { eq, sql } from 'drizzle-orm';
 import { getCaller, initTest } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
-import { calendarEventInvitees, calendarEvents } from '../../db/schema';
+import { config } from '../../config';
+import {
+  calendarEventInvitees,
+  calendarEvents,
+  userRoles
+} from '../../db/schema';
 
 const input = {
   title: 'Planning',
@@ -21,19 +27,25 @@ describe('calendar', () => {
     const member = await initTest(2);
     const stranger = await initTest(5);
     expect(
-      (await owner.caller.calendar.getAll()).map((e) => [e.id, e.canDelete])
+      (await owner.caller.calendar.getAll()).events.map((e) => [
+        e.id,
+        e.canDelete
+      ])
     ).toEqual([
       [1, true],
       [2, true],
       [3, true]
     ]);
     expect(
-      (await member.caller.calendar.getAll()).map((e) => [e.id, e.canDelete])
+      (await member.caller.calendar.getAll()).events.map((e) => [
+        e.id,
+        e.canDelete
+      ])
     ).toEqual([
       [2, false],
       [3, false]
     ]);
-    expect(await stranger.caller.calendar.getAll()).toEqual([]);
+    expect((await stranger.caller.calendar.getAll()).events).toEqual([]);
   });
 
   test('requires authentication for every operation', async () => {
@@ -165,5 +177,101 @@ describe('calendar', () => {
         .from(calendarEventInvitees)
         .where(eq(calendarEventInvitees.eventId, 2))
     ).toHaveLength(0);
+  });
+});
+
+describe('calendar pagination and access', () => {
+  test('paginates tied start times without duplicates or hidden events', async () => {
+    const { caller } = await initTest(2);
+    const first = await caller.calendar.getAll({ limit: 1 });
+    expect(first.events.map((event) => event.id)).toEqual([2]);
+    expect(first.nextCursor).toEqual({ startsAt: 200, id: 2 });
+    const second = await caller.calendar.getAll({
+      limit: 1,
+      cursor: first.nextCursor
+    });
+    expect(second.events.map((event) => event.id)).toEqual([3]);
+    expect(second.nextCursor).toBeUndefined();
+    expect(
+      (await caller.calendar.getAll({ cursor: { startsAt: 200, id: 3 } }))
+        .events
+    ).toEqual([]);
+  });
+  test('a cursor does not grant visibility and removed role membership revokes invitations', async () => {
+    const stranger = await initTest(5);
+    expect(
+      (
+        await stranger.caller.calendar.getAll({
+          cursor: { startsAt: 1, id: 1 }
+        })
+      ).events
+    ).toEqual([]);
+    const { caller } = await initTest(2);
+    await tdb.delete(userRoles).where(eq(userRoles.userId, 2));
+    expect(
+      (await caller.calendar.getAll()).events.map((event) => event.id)
+    ).toEqual([2]);
+  });
+  test('does not reveal hidden events to a delete probe', async () => {
+    const { caller } = await initTest(5);
+    await expect(caller.calendar.delete({ eventId: 1 })).rejects.toThrow(
+      'Event not found.'
+    );
+    expect(await tdb.select().from(calendarEvents)).toHaveLength(3);
+  });
+  test('bounds page size, cursor fields and timestamps', async () => {
+    const { caller } = await initTest();
+    for (const limit of [0, -1, 1.5, CALENDAR_PAGE_SIZE + 1]) {
+      await expect(caller.calendar.getAll({ limit })).rejects.toMatchObject({
+        code: 'BAD_REQUEST'
+      });
+    }
+    for (const cursor of [
+      { startsAt: 0, id: 1 },
+      { startsAt: 1, id: 0 },
+      { startsAt: 1.5, id: 1 },
+      { startsAt: 1, id: 1.5 },
+      { startsAt: MAX_CALENDAR_TIMESTAMP + 1, id: 1 }
+    ]) {
+      await expect(caller.calendar.getAll({ cursor })).rejects.toMatchObject({
+        code: 'BAD_REQUEST'
+      });
+    }
+    await expect(
+      caller.calendar.create({ ...input, startsAt: MAX_CALENDAR_TIMESTAMP + 1 })
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    const page = await caller.calendar.getAll({ limit: 2 });
+    expect(page.events).toHaveLength(2);
+    expect(page.nextCursor).toBeDefined();
+  });
+  test('rate limits reads without changing event visibility', async () => {
+    const { caller } = await initTest(5);
+    for (let i = 0; i < config.rateLimiters.calendarRead.maxRequests; i++)
+      await caller.calendar.getAll();
+    await expect(caller.calendar.getAll()).rejects.toThrow(
+      'Too many requests. Please try again shortly.'
+    );
+  });
+  test('rate limits writes before inserting another event', async () => {
+    const { caller } = await initTest();
+    for (let i = 0; i < config.rateLimiters.calendarWrite.maxRequests; i++)
+      await caller.calendar.create(input);
+    await expect(caller.calendar.create(input)).rejects.toThrow(
+      'Too many requests. Please try again shortly.'
+    );
+    expect(await tdb.select().from(calendarEvents)).toHaveLength(
+      3 + config.rateLimiters.calendarWrite.maxRequests
+    );
+  });
+  test('rate limits repeated delete probes', async () => {
+    const { caller } = await initTest(5);
+    for (let i = 0; i < config.rateLimiters.calendarWrite.maxRequests; i++) {
+      await expect(caller.calendar.delete({ eventId: 1 })).rejects.toThrow(
+        'Event not found.'
+      );
+    }
+    await expect(caller.calendar.delete({ eventId: 1 })).rejects.toThrow(
+      'Too many requests. Please try again shortly.'
+    );
   });
 });

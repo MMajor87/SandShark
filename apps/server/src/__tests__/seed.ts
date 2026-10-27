@@ -504,7 +504,7 @@ const seedTestDb = async (
       {
         id: 3,
         title: 'Role invite',
-        startsAt: 300,
+        startsAt: 200,
         creatorId: 1,
         createdAt: 1,
         updatedAt: 1
@@ -517,6 +517,16 @@ const seedTestDb = async (
   }
 
   if (e2e) {
+    // calendar pagination fixtures are separate from the three unit-test events.
+    await db.insert(calendarEvents).values(
+      Array.from({ length: 51 }, (_, index) => ({
+        title: `Calendar page event ${String(index + 1).padStart(2, '0')}`,
+        startsAt: 1000 + index,
+        creatorId: 1,
+        createdAt: 1,
+        updatedAt: 1
+      }))
+    );
     const allUsers = [
       insertedOwner!,
       insertedUser!,

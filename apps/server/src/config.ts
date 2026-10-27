@@ -84,6 +84,8 @@ const zConfig = z.object({
     joinServer: zRateLimiter,
     upload: zRateLimiter,
     search: zRateLimiter,
+    calendarRead: zRateLimiter,
+    calendarWrite: zRateLimiter,
     signalTyping: zRateLimiter,
     getMessages: zRateLimiter,
     markAsRead: zRateLimiter,
@@ -170,6 +172,8 @@ const defaultConfig: TConfig = {
       maxRequests: 30,
       windowMs: 60_000
     },
+    calendarRead: { maxRequests: 60, windowMs: 60_000 },
+    calendarWrite: { maxRequests: 20, windowMs: 60_000 },
     search: {
       maxRequests: 15,
       windowMs: 60_000

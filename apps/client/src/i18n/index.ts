@@ -63,6 +63,7 @@ export const i18nReady = i18n
     fallbackLng: 'en',
     ns: [
       'common',
+      'calendar',
       'connect',
       'disconnected',
       'sidebar',

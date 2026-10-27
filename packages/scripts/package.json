@@ -12,7 +12,9 @@
     "lint:fix": "eslint ./src/**/*.ts --ext ts --report-unused-disable-directives --fix",
     "check-types": "tsc --noEmit",
     "magic": "bun --bun run lint:fix && bun --bun run format && bun --bun run check-types",
-    "synci18n": "bun ./src/sync-i18n.ts"
+    "synci18n": "bun ./src/sync-i18n.ts",
+    "artifacts:prune": "bun ./src/test-artifact-retention.ts",
+    "test": "bun test src"
   },
   "devDependencies": {
     "@types/bun": "latest"

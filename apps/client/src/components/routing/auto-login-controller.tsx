@@ -5,6 +5,7 @@ import { useDisconnectInfo, useIsConnected } from '@/features/server/hooks';
 import {
   clearCurrentServerAutoLogin,
   getCurrentServerAutoLoginToken,
+  getServerSessionKey,
   setCurrentSessionToken
 } from '@/helpers/server-session';
 import { memo, useEffect, useRef } from 'react';
@@ -30,28 +31,36 @@ const AutoLoginController = memo(() => {
 
     autoLoginAttempted.current = true;
 
-    void getCurrentServerAutoLoginToken().then((savedToken) => {
-      if (!savedToken) {
-        autoLoginAttempted.current = false;
-        return;
-      }
-
-      setIsAutoConnecting(true);
-      setCurrentSessionToken(savedToken);
-
-      return connect()
-        .catch(() => {
-          // token expired or invalid clear auto-login state so the user
-          // sees the connect screen and can log in manually
-          clearCurrentServerAutoLogin();
-          setDisconnectInfo(undefined);
-        })
-        .finally(() => {
-          // reset auto-login attempt state so if the user logs out and back in they can try auto-login again
+    const serverSessionKey = getServerSessionKey();
+    getCurrentServerAutoLoginToken()
+      .then((savedToken) => {
+        if (!savedToken || getServerSessionKey() !== serverSessionKey) {
           autoLoginAttempted.current = false;
-          setIsAutoConnecting(false);
-        });
-    });
+          return;
+        }
+
+        setIsAutoConnecting(true);
+        setCurrentSessionToken(savedToken);
+
+        return connect()
+          .catch(() => {
+            // token expired or invalid clear auto-login state so the user
+            // sees the connect screen and can log in manually
+            if (getServerSessionKey() !== serverSessionKey) return;
+            clearCurrentServerAutoLogin();
+            setDisconnectInfo(undefined);
+          })
+          .finally(() => {
+            // reset auto-login attempt state so if the user logs out and back in they can try auto-login again
+            autoLoginAttempted.current = false;
+            if (getServerSessionKey() === serverSessionKey)
+              setIsAutoConnecting(false);
+          });
+      })
+      .catch((error) => {
+        autoLoginAttempted.current = false;
+        console.error(error);
+      });
   }, [isAppLoading, isPluginsLoading, isConnected, disconnectInfo]);
 
   return null;

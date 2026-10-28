@@ -72,11 +72,13 @@ Implementation: ownership and recovery policy are documented in [DEVELOPMENT.md]
 
 ### Phase 4: calendar and client maintenance
 
-- [ ] R16: Split calendar routes into `get-events.ts`, `create-event.ts`, `delete-event.ts`; compose only in `index.ts`. Move reusable reads to `db/queries`; keep domain writes and their required side effects together. Preserve existing organizer/invite semantics unless explicitly changed.
-- [ ] R17: Add SQL visibility filtering and bounded pagination, then update the calendar client. Assess existing indexes before generating a new migration. Never rewrite migrations 0018-0020.
-- [ ] R18: Remove confirmed dead notification helpers, resolve touched hook dependency/lint warnings and add server-profile-switch regression cases. Run Knip as an audit; review its findings before deleting exports or dependencies.
-- [ ] R19: Update `docs/upstream-compatibility.md` to describe pinned release integration and actual branch policy. Its current `merge upstream/development` instructions differ from the release-pinned approach just used. Replace the generic roadmap placeholders with this prioritized backlog.
-- [ ] R20: Add a bounded test-artifact retention workflow with dry-run output and explicit exclusions for development data/backups. Preserve final validation evidence until release verification.
+- [x] R16: Split calendar routes into `get-events.ts`, `create-event.ts`, `delete-event.ts`; compose only in `index.ts`. Move reusable reads to `db/queries`; keep domain writes and their required side effects together. Preserve existing organizer/invite semantics unless explicitly changed.
+- [x] R17: Add SQL visibility filtering and bounded pagination, then update the calendar client. Assess existing indexes before generating a new migration. Never rewrite migrations 0018-0020.
+- [x] R18: Remove confirmed dead notification helpers, resolve touched hook dependency/lint warnings and add server-profile-switch regression cases. Run Knip as an audit; review its findings before deleting exports or dependencies.
+- [x] R19: Update `docs/upstream-compatibility.md` to describe pinned release integration and actual branch policy. Its current `merge upstream/development` instructions differ from the release-pinned approach just used. Replace the generic roadmap placeholders with this prioritized backlog.
+- [x] R20: Add a bounded test-artifact retention workflow with dry-run output and explicit exclusions for development data/backups. Preserve final validation evidence until release verification.
+
+Implementation status: R16-R20 are complete on `refactor/phase-four`, implementation commit `338d1c25`. All 2,212 repository tests and 54 browser tests passed (one browser test skipped); formatting, types, lint, translations, migration consistency and the production desktop build passed. The prior media-scroll failure did not reproduce, but no fix for it is claimed. Development backup hashes remain intact. Calendar client and server must be upgraded together because the list response is now paginated. See [PHASE_FOUR_REPORT.md](PHASE_FOUR_REPORT.md) for compatibility, retention safeguards and remaining release gates.
 
 ## Upstream issue shortlist
 

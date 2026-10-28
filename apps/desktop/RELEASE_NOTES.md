@@ -1,3 +1,21 @@
+# SandShark 1.1.2
+
+- Separates desktop logging, persistence, updates, downloads, native input and capture ownership, with bounded diagnostic logs and behavioral IPC tests.
+- Improves voice teardown and recovery, rejecting stale capture/transport completion after leaving or switching servers. Recovery preserves mute/deafen and device preferences without automatically restarting screen sharing.
+- Adds SQL-filtered calendar pagination, translated calendar controls in all eight languages, and organizer/invitation access regression coverage.
+- Prevents delayed saved-login operations from installing a token into another selected server profile.
+- Adds safe, dry-run-first test-artifact retention and updates the integration roadmap.
+
+## Upgrade notes
+
+Upgrade the paired SandShark server and client together. Calendar listing now returns paginated results and is incompatible with the older array-returning endpoint. The source tag includes the compatible server; this Windows installer does not deploy a server. Back up server data before upgrading. Existing migrations are preserved, with no new migration in phase four.
+
+## Validation and limitations
+
+The implementation passed 2,212 repository tests, 54 browser tests (one skipped), formatting, lint, type checks, translation synchronization, database consistency checks and production builds. The previously intermittent media-scroll test passed this run; no media-scroll fix is claimed.
+
+This Windows installer is unsigned. Real-provider SSO, live two-participant audio/capture, sleep/resume, background PTT and installed updating still require manual acceptance. See the phase reports for detailed validation and compatibility.
+
 # SandShark 1.1.1
 
 - Protects message attachments with current channel and DM access checks, including permission revocation. The paired Phase 1 server and client are required for authenticated attachment URLs.

@@ -10,8 +10,7 @@ and the SandShark phase-four changes.
 
 ## Compatibility and upgrade
 
-Use SandShark Desktop 1.1.2 from the phase-four branch or a subsequent compatible
-release. The calendar API returns `{ events, nextCursor }`; older clients expecting
+Use SandShark Desktop 1.1.2 or a subsequent compatible release. The calendar API returns `{ events, nextCursor }`; older clients expecting
 an array must be upgraded with the server. The bundled web client is built from the
 same commit as the server.
 
@@ -31,10 +30,28 @@ filenames and configuration identifiers are retained for compatibility.
 The versioned container image is `ghcr.io/mmajor87/sandshark-server:0.1.0`.
 The release workflow publishes this image but does not move a `latest` image tag.
 
-## Publication checks
+## Release verification
 
-The workflow builds a draft after repository checks and E2E tests succeed. Before
-publishing it, verify the paired desktop/server calendar, a real two-user voice
-session, reconnect and capture, and backup/upgrade on the intended deployment.
-Keep the GitHub release's **Set as latest release** option disabled so older desktop
-updaters continue to find the desktop installer. Windows binaries are unsigned.
+- Full local suite: 2,228 passed. Hosted CI, Windows desktop CI and server release
+  workflow passed. Hosted browser tests: 54 passed, one existing mocked test skipped.
+- The exact downloadable Windows binary passed its SHA-256 check and reported
+  server version 0.1.0 after startup.
+- Two isolated Chromium users passed calendar pagination, two-way audio with
+  nonzero decoded audio energy, mute/unmute, repeated screen sharing, camera video,
+  capture track teardown, server restart, explicit voice rejoin and disconnect.
+  Remote video frames were decoded through the real mediasoup SFU.
+- A disposable 0.0.25 database upgraded successfully. Users, messages and calendar
+  entries were preserved; SQLite integrity and foreign-key checks passed. Migration
+  0020 applied once, and restarting did not change the migrated data. Restoring the
+  full backup allowed the 0.0.25 binary to boot with the original data and schema.
+- Uploaded binary sizes and SHA-256 digests match release.json. Anonymous GHCR
+  manifest access confirms Linux amd64 and arm64 images for tag 0.1.0.
+
+Media checks used synthetic microphone/camera input and a generated screen stream
+on Windows loopback. Physical device capture, application/system audio capture,
+WAN traversal, sleep/resume and Linux/macOS runtime behavior were not exercised in
+this release check. No existing deployment or user data was used. Windows binaries
+are unsigned. Back up your own deployment before upgrading.
+
+The desktop release remains GitHub's Latest release for compatibility with older
+installed desktop updaters.

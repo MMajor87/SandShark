@@ -58,7 +58,7 @@ Once your issue has been discussed and validated, you may submit a PR.
 ### Requirements
 
 - Must reference an existing issue
-- Must target the `development` branch
+- Must target the `main` branch
 - One feature or fix per PR
 - Large architectural changes must be discussed and approved before implementation
 - All CI checks must pass before review

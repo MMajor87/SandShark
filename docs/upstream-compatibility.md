@@ -72,7 +72,7 @@ For the next upgrade:
 6. Run the checks below and record the exact source commit, package hash, failures
    and live acceptance gaps. A packaged smoke test does not prove audible media.
 7. Follow CONTRIBUTING.md: create/reference the required issue before opening a PR,
-   and target `development`. Publishing, installation and deployment are separate
+   and target `main`. Publishing, installation and deployment are separate
    actions; local integration work does not perform them automatically.
 
 Do not place deployment addresses, credentials, secrets or runtime logs in tracked

@@ -114,6 +114,7 @@ jobs:
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
           name: SandShark ${{ steps.version.outputs.version }}
+          make_latest: true
           draft: false
           prerelease: false
           generate_release_notes: true

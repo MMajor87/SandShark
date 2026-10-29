@@ -1,94 +1,104 @@
-name: Manual Release
+name: Release SandShark Server
 
 on:
+  push:
+    tags:
+      - 'sandshark-server-v*'
   workflow_dispatch:
     inputs:
-      bump:
-        description: "Version bump"
+      tag:
+        description: 'Existing SandShark server tag to build'
         required: true
-        type: choice
-        options:
-          - none
-          - patch
-          - minor
-          - major
-        default: "none"
+        type: string
 
 permissions:
   contents: write
-  pull-requests: write
+  packages: write
+
+concurrency:
+  group: server-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
+  resolve-release:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.revision.outputs.sha }}
+      version: ${{ steps.revision.outputs.version }}
+      image: ${{ steps.revision.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+      - name: Validate server tag and record revision
+        id: revision
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          version=$(jq -r .version apps/server/package.json)
+          [[ "$RELEASE_TAG" =~ ^sandshark-server-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$RELEASE_TAG" = "sandshark-server-v$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}-server" >> "$GITHUB_OUTPUT"
+          git rev-parse HEAD >> "$GITHUB_STEP_SUMMARY"
+
   ci:
+    needs: resolve-release
     uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.resolve-release.outputs.sha }}
 
   e2e:
+    needs: resolve-release
     uses: ./.github/workflows/e2e.yml
+    with:
+      ref: ${{ needs.resolve-release.outputs.sha }}
 
   build-and-publish:
-    needs: [ci, e2e]
+    needs: [resolve-release, ci, e2e]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Build project artifacts
-        uses: ./.github/actions/build-sharkord
+      - uses: actions/checkout@v4
         with:
-          bump: ${{ inputs.bump }}
-
-      - name: Get new version
-        id: get_version
-        run: echo "version=$(jq -r .version package.json)" >> "$GITHUB_OUTPUT"
-
-      - name: Identify user
+          ref: ${{ needs.resolve-release.outputs.sha }}
+      - name: Build server artifacts
+        uses: ./.github/actions/build-sharkord
+      - name: Generate provenance and checksums
+        working-directory: apps/server/build/out
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.sha }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Build and publish Docker image
+          printf '%s\n' "$RELEASE_SHA" > BUILD_COMMIT.txt
+          sha256sum sharkord-* release.json BUILD_COMMIT.txt > SHA256SUMS.txt
+      - name: Publish versioned server image
         uses: ./.github/actions/docker-build-publish
         with:
-          docker_username: ${{ secrets.DOCKER_USERNAME }}
-          docker_password: ${{ secrets.DOCKER_PASSWORD }}
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/sharkord:latest
-            ${{ secrets.DOCKER_USERNAME }}/sharkord:v${{ steps.get_version.outputs.version }}
+          registry: ghcr.io
+          docker_username: ${{ github.actor }}
+          docker_password: ${{ secrets.GITHUB_TOKEN }}
+          tags: ${{ needs.resolve-release.outputs.image }}:${{ needs.resolve-release.outputs.version }}
           labels: |
-            org.opencontainers.image.title=Sharkord
-            org.opencontainers.image.description=Sharkord Server
-            org.opencontainers.image.version=${{ steps.get_version.outputs.version }}
-            org.opencontainers.image.source=https://github.com/Sharkord/sharkord
-
-      - name: Create GitHub release
+            org.opencontainers.image.title=SandShark Server
+            org.opencontainers.image.description=Self-hosted SandShark server
+            org.opencontainers.image.version=${{ needs.resolve-release.outputs.version }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ needs.resolve-release.outputs.sha }}
+      - name: Create server release draft
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.get_version.outputs.version }}
-          name: v${{ steps.get_version.outputs.version }}
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          name: SandShark Server ${{ needs.resolve-release.outputs.version }}
           draft: true
+          prerelease: false
+          make_latest: false
+          fail_on_unmatched_files: true
+          body_path: apps/server/RELEASE_NOTES.md
           files: |
             apps/server/build/out/sharkord-linux-x64
             apps/server/build/out/sharkord-linux-arm64
             apps/server/build/out/sharkord-windows-x64.exe
-            apps/server/build/out/sharkord-macos-x64
             apps/server/build/out/sharkord-macos-arm64
             apps/server/build/out/release.json
-          body: |
-            ## Changes
-            (TODO)
-
-            ## Docker Image
-            ```bash
-            docker pull ${{ secrets.DOCKER_USERNAME }}/sharkord:v${{ steps.get_version.outputs.version }}
-            ```
-      - name: Commit version bump
-        if: ${{ inputs.bump != 'none' }}
-        run: |
-          git add .
-          git commit -m "chore: bump version to ${{ steps.get_version.outputs.version }}"
-
-      - name: Create Git tag
-        run: git tag -a "v${{ steps.get_version.outputs.version }}" -m "Release v${{ steps.get_version.outputs.version }}"
-
-      - name: Push commit and tag
-        run: git push --follow-tags
+            apps/server/build/out/SHA256SUMS.txt
+            apps/server/build/out/BUILD_COMMIT.txt

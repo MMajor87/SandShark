@@ -1,64 +1,90 @@
 # SandShark versioning
 
-SandShark releases are versioned independently of the Sharkord workspace and server. The desktop package and bundled client always share the same SandShark version.
+Desktop and server releases share this repository but have independent versions.
 
-The first independent SandShark release is `1.0.0`. Use Semantic Versioning for subsequent releases:
+| Product | Version source | Tag | Update metadata |
+| --- | --- | --- | --- |
+| Desktop | `apps/desktop/package.json` and `apps/client/package.json` | `sandshark-v<version>` | `latest.yml` |
+| Server | `apps/server/package.json` | `sandshark-server-v<version>` | `release.json` |
 
-- Patch releases (`1.0.1`) for fixes and small compatibility changes.
-- Minor releases (`1.1.0`) for backward-compatible features.
-- Major releases (`2.0.0`) for intentionally breaking desktop-client changes.
-
-The root workspace version remains the Sharkord baseline version and is not changed for SandShark-only releases.
+Use semantic versions for each product. The root workspace version records the
+upstream Sharkord baseline; shared packages and the plugin SDK keep their own
+versions. A server version bump changes only the server package.
 
 ## Update sources
 
-Both the desktop updater and the bundled server updater target `MMajor87/SandShark`.
-They use different metadata: desktop updates use `latest.yml` and the Windows
-installer, while server updates require `release.json` and matching server binaries.
-The server version comes from that manifest, not the desktop release tag.
+Both products use `MMajor87/SandShark`. New desktop builds select the most recent
+published stable `sandshark-v*` release and pass its download directory to Electron
+Updater. Server builds select stable `sandshark-server-v*` releases and verify that
+the manifest version matches the tag. Both searches paginate, ignore drafts and
+prereleases, and stop after 1,000 releases with an error rather than selecting the
+other product. A selected release with missing metadata fails instead of silently
+falling back to an older build.
 
-The server updater currently reads GitHub's latest release endpoint. A desktop-only
-latest release cannot supply a server update, even if an older server release exists.
-Before enabling server updates for this fork, provide compatible server metadata and
-artifacts on the latest release or implement separate release selection for the server.
-The existing server release workflow produces these assets; the desktop workflow does not.
-On September 16, 2026, the latest published release (`sandshark-v1.0.30`) contained
-desktop assets only. No release assets were published or changed as part of switching
-the update source.
+Server release selection uses a small committed Bun patch to
+`bun-sfe-autoupdater@0.0.4`. Its existing architecture checks, SHA-256 verification
+and binary installer are retained. Revalidate the patch and updater tests when
+upgrading that dependency; `bun install --frozen-lockfile` applies the patch in CI.
 
-### Generate server release metadata
+Desktop releases explicitly set GitHub's Latest flag. Server releases explicitly
+leave it unset, including when a maintainer publishes a draft. This also protects
+older installed desktop clients that still use the repository-wide latest endpoint.
+Previously installed servers using that endpoint require a one-time manual upgrade.
+The new desktop selection code takes effect when the next desktop build is shipped.
 
-Run `bun run --cwd apps/server build` from the repository root. This builds the
-client and four server binaries, then writes `apps/server/build/out/release.json`
-with the root package version, build timestamp, artifact names, targets, byte sizes,
-and SHA-256 checksums. The generated manifest is validated by the updater library.
-Do not hand-edit checksums or use the desktop version for this manifest.
+## Server releases
 
-Upload the manifest and all four binaries from that output directory together to
-the intended GitHub release. Keep their filenames identical to the manifest entries.
-The binaries currently retain their `sharkord-*` filenames for compatibility with
-the existing server build and release workflow. Generated output is not committed.
+The first independent server version is `0.1.0`, based on Sharkord `0.0.28`.
+Prepare a new server version from the repository root:
 
-On September 16, 2026, a local server build generated version `0.0.25` metadata for
-Linux x64/arm64, Windows x64, and macOS arm64. All four file sizes and SHA-256 hashes
-were independently verified against the manifest. These assets have not been published.
-Servers already running `0.0.25` will need a higher server version before an update
-is offered.
+```powershell
+bun apps/server/build/set-version.ts --version <version>
+bun install --lockfile-only
+bun run magic
+bun run test
+```
+
+Update `apps/server/RELEASE_NOTES.md`, commit the server package, lockfile and notes,
+then tag the reviewed commit:
+
+```powershell
+git tag sandshark-server-v<version>
+git push origin sandshark-server-v<version>
+```
+
+The server release workflow resolves the tag to a commit once, runs repository and
+E2E checks against that commit, and builds all four server binaries plus the bundled
+web client. It generates `release.json`, `SHA256SUMS.txt` and `BUILD_COMMIT.txt`.
+It publishes a versioned Linux x64/arm64 image to
+`ghcr.io/mmajor87/sandshark-server:<version>` using GitHub Actions credentials, then
+creates a GitHub release draft. No Docker Hub credentials are required. Configure
+the GHCR package visibility as public if anonymous container pulls are intended.
+
+Review the draft's compatibility notes and complete its deployment checks before
+publishing. Leave **Set as latest release** disabled. The workflow does not push a
+container `latest` tag. The manually dispatched development image workflow publishes
+`ghcr.io/mmajor87/sandshark-server:dev` separately.
+
+For a local build, run `bun run --cwd apps/server build`. Outputs live in
+`apps/server/build/out`; generated binaries are not committed. The server manifest
+uses the server package version, never the desktop or root workspace version.
+The retained `sharkord-*` filenames support existing installation scripts.
 
 ## Desktop releases
 
-To prepare a SandShark release, update the matching `version` fields in `apps/client/package.json` and `apps/desktop/package.json`, then create and push a matching tag:
+Update matching versions in `apps/client/package.json` and
+`apps/desktop/package.json`, refresh the lockfile, and update desktop release notes.
+Commit before tagging:
 
 ```powershell
 git tag sandshark-v<version>
 git push origin sandshark-v<version>
 ```
 
-The tag release workflow validates the package versions, runs the full repository
-checks and desktop security checks, builds the Windows installer, generates
-checksums, and publishes a stable GitHub release with `latest.yml` for the updater.
-The current workflow publishes unsigned installers and does not run the packaged
-startup or signature-verification scripts.
+The desktop workflow checks the resolved commit, validates package versions, builds
+the Windows installer, generates checksums, and publishes a stable desktop release
+with `latest.yml`. It currently publishes unsigned installers; deployment checks
+remain documented in the roadmap.
 
 For local packaging without publishing:
 
@@ -67,4 +93,10 @@ bun run --cwd apps/desktop package
 bun run --cwd apps/desktop test:packaged-startup
 ```
 
-The local output is `apps/desktop/release/SandShark-<version>-Setup-x64.exe`.
+## Client/server compatibility
+
+Server 0.1.0 pairs with Desktop 1.1.2 from phase four or a subsequent compatible
+release. Calendar pagination changes `calendar.getAll` from an array to
+`{ events, nextCursor }`, so update older clients and servers together. Future
+release notes must state supported client/server versions and migration requirements.
+Independent version numbers do not imply protocol compatibility.

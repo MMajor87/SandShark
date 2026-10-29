@@ -1,5 +1,5 @@
 import { parseArgs } from 'util';
-import { patchPackageJsons } from './helpers';
+import { patchServerVersion } from './helpers';
 
 const { values } = parseArgs({
   args: Bun.argv,
@@ -17,4 +17,4 @@ if (!values.version) {
 
 console.log(`Setting version to ${values.version}...`);
 
-await patchPackageJsons(values.version);
+await patchServerVersion(values.version);

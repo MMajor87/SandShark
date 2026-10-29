@@ -18,6 +18,7 @@ class Updater {
     this.bunUpdater = new BunUpdater({
       repoOwner: 'MMajor87',
       repoName: 'SandShark',
+      releaseTagPrefix: 'sandshark-server-v',
       currentVersion: SERVER_VERSION
     });
 

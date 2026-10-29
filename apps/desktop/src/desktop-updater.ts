@@ -2,6 +2,7 @@ import type { BrowserWindow } from 'electron';
 import type { autoUpdater as ElectronAutoUpdater } from 'electron-updater';
 import type { TDesktopUpdateStatus } from './desktop-api.js';
 import type { TDesktopIpc } from './desktop-ipc.js';
+import { getDesktopReleaseUrl } from './desktop-release.js';
 import type { writeDesktopLog as TWriteDesktopLog } from './diagnostics.js';
 import {
   isDesktopUpdateSettings,
@@ -156,10 +157,20 @@ const createDesktopUpdater = ({
     if (!configuredAutoUpdater) return updateStatus;
 
     try {
+      const url = await getDesktopReleaseUrl();
+      configuredAutoUpdater.setFeedURL({
+        provider: 'generic',
+        url,
+        useMultipleRangeRequest: false
+      });
       await configuredAutoUpdater.checkForUpdates();
     } catch (error) {
       writeDesktopLog('updates', 'Electron updater check failed', {
         error: error instanceof Error ? error.message : String(error)
+      });
+      publishUpdateStatus({
+        state: 'error',
+        message: 'Could not check for SandShark updates.'
       });
     }
 

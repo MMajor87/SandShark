@@ -40,3 +40,10 @@ Report SandShark-specific problems in this repository's issue tracker, including
 SandShark builds on [Sharkord](https://github.com/Sharkord/sharkord). Upstream attribution is retained in [LICENSE](LICENSE), and server/plugin compatibility identifiers are preserved where needed. Desktop releases are versioned independently of the upstream server.
 
 The [SandShark repository](https://github.com/MMajor87/SandShark) and [issue tracker](https://github.com/MMajor87/SandShark/issues) are public. Keep private server details and credentials out of reports.
+
+## SandShark server releases
+
+The server is released separately in this repository using `sandshark-server-v*`
+tags. See [versioning and deployment](docs/sandshark-versioning.md) and
+[server compatibility notes](apps/server/RELEASE_NOTES.md). Desktop and server
+versions are independent; check their compatibility before upgrading.

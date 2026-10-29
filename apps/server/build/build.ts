@@ -7,7 +7,7 @@ import {
   compile,
   getCurrentVersion,
   getVersionInfo,
-  patchPackageJsons,
+  patchServerVersion,
   rmIfExists,
   type TTarget
 } from './helpers';
@@ -35,7 +35,7 @@ if (values.bump && values.bump !== 'none') {
     process.exit(1);
   }
 
-  await patchPackageJsons(newVersion);
+  await patchServerVersion(newVersion);
 }
 
 const clientCwd = path.resolve(process.cwd(), '..', 'client');

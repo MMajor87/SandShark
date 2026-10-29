@@ -1,0 +1,81 @@
+diff --git a/dist/index.js b/dist/index.js
+index 457fa0353f0cc6871e459c853fe8a153013f1ff8..204f96c7220c613fcb842d4a237e55f477c0914a 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -16116,6 +16116,7 @@ class BunUpdater {
+   owner;
+   repo;
+   channel;
++  releaseTagPrefix;
+   currentVersion;
+   isUpdating = false;
+   autoStart = false;
+@@ -16124,6 +16125,7 @@ class BunUpdater {
+     this.owner = options.repoOwner;
+     this.repo = options.repoName;
+     this.channel = options.channel;
++    this.releaseTagPrefix = options.releaseTagPrefix;
+     this.currentVersion = options.currentVersion || process.env.CURRENT_VERSION;
+     this.autoStart = options.autoStart ?? false;
+     this.ignoreChecksum = options.ignoreChecksum ?? false;
+@@ -16133,16 +16135,29 @@ class BunUpdater {
+     }
+   }
+   getLatestRelease = async () => {
+-    const url2 = `https://api.github.com/repos/${this.owner}/${this.repo}/releases/latest`;
+-    import_debug2.default("updater")(`Fetching latest release info... ${url2}`);
+-    const response = await fetch(url2, {
+-      headers: getGithubHeaders()
+-    });
+-    import_debug2.default("updater")(`Response status: ${response.status} ${response.statusText}`);
+-    if (!response.ok) {
+-      throw new Error(`Error fetching releases: ${response.status} ${response.statusText}`);
++    const baseUrl = `https://api.github.com/repos/${this.owner}/${this.repo}/releases`;
++    let release;
++    for (let page = 1; page <= 10; page++) {
++      const url = this.releaseTagPrefix ? `${baseUrl}?per_page=100&page=${page}` : `${baseUrl}/latest`;
++      const response = await fetch(url, { headers: getGithubHeaders() });
++      if (!response.ok) {
++        throw new Error(`Error fetching releases: ${response.status} ${response.statusText}`);
++      }
++      const data = await response.json();
++      if (!this.releaseTagPrefix) {
++        release = data;
++        break;
++      }
++      if (!Array.isArray(data)) throw new Error("Invalid GitHub releases response.");
++      release = data.find((candidate) => {
++        if (candidate.draft || candidate.prerelease || typeof candidate.tag_name !== "string") return false;
++        if (!candidate.tag_name.startsWith(this.releaseTagPrefix)) return false;
++        const version = candidate.tag_name.slice(this.releaseTagPrefix.length);
++        return import_semver2.default.valid(version) === version && import_semver2.default.prerelease(version) === null;
++      });
++      if (release || data.length < 100) break;
+     }
+-    const release = await response.json();
++    if (!release) throw new Error("No stable release found for the configured product.");
+     const releaseFileName = this.channel ? `release-${this.channel}.json` : "release.json";
+     import_debug2.default("updater")(`Latest release version: ${release.tag_name}`);
+     const releaseArtifact = release.assets.find((asset) => asset.name === releaseFileName);
+@@ -16152,6 +16167,9 @@ class BunUpdater {
+     const releaseJsonResponse = await downloadAsset(releaseArtifact);
+     import_debug2.default("updater")(`Downloaded ${releaseFileName}: ${releaseJsonResponse.url}`);
+     const updaterMetadata = zRelease.parse(await releaseJsonResponse.json());
++    if (this.releaseTagPrefix && release.tag_name !== `${this.releaseTagPrefix}${updaterMetadata.version}`) {
++      throw new Error("Release tag does not match the server manifest version.");
++    }
+     return { release, updaterMetadata };
+   };
+   getLatestVersion = async () => {
+diff --git a/dist/types.d.ts b/dist/types.d.ts
+index fb3474f757ff502bc675d56e3232ddb2f320a8ab..88f56a3d04c9dc53d0e6a6d8796514d055674cbc 100644
+--- a/dist/types.d.ts
++++ b/dist/types.d.ts
+@@ -28,6 +28,7 @@ type TOptions = {
+     repoOwner: string;
+     repoName: string;
+     channel?: string;
++    releaseTagPrefix?: string;
+     currentVersion?: string;
+     autoStart?: boolean;
+     ignoreChecksum?: boolean;

@@ -1,4 +1,4 @@
-name: Build Sharkord
+name: Build SandShark Server
 description: Install Bun dependencies and build server artifacts. Requires checkout before use.
 
 inputs:
@@ -21,7 +21,7 @@ runs:
 
     - name: Install dependencies
       shell: bash
-      run: bun install
+      run: bun install --frozen-lockfile
 
     - name: Build app
       shell: bash

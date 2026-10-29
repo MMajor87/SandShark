@@ -5,30 +5,12 @@ import {
 } from 'bun-sfe-autoupdater';
 import fs from 'fs/promises';
 import path from 'path';
+import semver from 'semver';
 
 const buildScriptDir = import.meta.dir;
 const serverCwd = path.resolve(buildScriptDir, '..');
-const rootCwd = path.resolve(serverCwd, '..', '..');
 
-const rootPckJson = path.join(rootCwd, 'package.json');
-const serverPckJson = path.join(rootCwd, 'apps', 'server', 'package.json');
-const clientPckJson = path.join(rootCwd, 'apps', 'client', 'package.json');
-
-const sharedPckJson = path.join(rootCwd, 'packages', 'shared', 'package.json');
-const e2ePckJson = path.join(rootCwd, 'packages', 'e2e', 'package.json');
-const pluginSdkPckJson = path.join(
-  rootCwd,
-  'packages',
-  'plugin-sdk',
-  'package.json'
-);
-const uiPckJson = path.join(rootCwd, 'packages', 'ui', 'package.json');
-const scriptsPckJson = path.join(
-  rootCwd,
-  'packages',
-  'scripts',
-  'package.json'
-);
+const serverPckJson = path.join(serverCwd, 'package.json');
 
 const unpack = async (tgzPath: string, outDir: string) => {
   const tarProc = Bun.spawn(['tar', '-xzf', tgzPath, '-C', outDir], {
@@ -45,7 +27,7 @@ const unpack = async (tgzPath: string, outDir: string) => {
 
 const downloadMediasoupBinary = async (
   version: string,
-  target: Bun.Build.Target
+  target: Bun.Build.CompileTarget
 ) => {
   let url = `https://github.com/versatica/mediasoup/releases/download/${version}/`;
   let fileName = '';
@@ -97,7 +79,7 @@ const downloadMediasoupBinary = async (
 };
 
 const getCurrentVersion = async () => {
-  const pkg = JSON.parse(await fs.readFile(rootPckJson, 'utf8'));
+  const pkg = JSON.parse(await fs.readFile(serverPckJson, 'utf8'));
 
   return pkg.version;
 };
@@ -108,30 +90,22 @@ const getMediasoupVersion = async () => {
   return serverPkg.dependencies['mediasoup'].replace('^', '');
 };
 
-const patchPackageJsons = async (newVersion: string) => {
-  const packageJsonPaths = [
-    rootPckJson,
-    serverPckJson,
-    clientPckJson,
-    sharedPckJson,
-    e2ePckJson,
-    pluginSdkPckJson,
-    scriptsPckJson,
-    uiPckJson
-  ];
-
-  for (const pckPath of packageJsonPaths) {
-    const pkg = JSON.parse(await fs.readFile(pckPath, 'utf8'));
-
-    pkg.version = newVersion;
-
-    await fs.writeFile(pckPath, JSON.stringify(pkg, null, 2), 'utf8');
+const patchServerVersion = async (newVersion: string) => {
+  if (semver.valid(newVersion) !== newVersion) {
+    throw new Error('Server version must be a valid semantic version.');
   }
+  const pkg = JSON.parse(await fs.readFile(serverPckJson, 'utf8'));
+  pkg.version = newVersion;
+  await fs.writeFile(
+    serverPckJson,
+    `${JSON.stringify(pkg, null, 2)}\n`,
+    'utf8'
+  );
 };
 
 type TTarget = {
   out: string;
-  target: Bun.Build.Target;
+  target: Bun.Build.CompileTarget;
 };
 
 const compile = async ({ out, target }: TTarget) => {
@@ -218,7 +192,7 @@ export {
   downloadMediasoupBinary,
   getCurrentVersion,
   getVersionInfo,
-  patchPackageJsons,
+  patchServerVersion,
   rmIfExists
 };
 export type { TTarget };

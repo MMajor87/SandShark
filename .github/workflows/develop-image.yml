@@ -3,6 +3,10 @@ name: Publish Development Image
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 concurrency:
   group: docker-dev
   cancel-in-progress: true
@@ -22,14 +26,19 @@ jobs:
       - name: Build project artifacts
         uses: ./.github/actions/build-sharkord
 
+      - name: Resolve image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}-server" >> "$GITHUB_OUTPUT"
+
       - name: Build and publish Docker image
         uses: ./.github/actions/docker-build-publish
         with:
-          docker_username: ${{ secrets.DOCKER_USERNAME }}
-          docker_password: ${{ secrets.DOCKER_PASSWORD }}
-          tags: ${{ secrets.DOCKER_USERNAME }}/sharkord:dev
+          registry: ghcr.io
+          docker_username: ${{ github.actor }}
+          docker_password: ${{ secrets.GITHUB_TOKEN }}
+          tags: ${{ steps.image.outputs.name }}:dev
           labels: |
-            org.opencontainers.image.title=Sharkord
-            org.opencontainers.image.description=Sharkord Server (dev)
-            org.opencontainers.image.source=https://github.com/Sharkord/sharkord
+            org.opencontainers.image.title=SandShark Server
+            org.opencontainers.image.description=SandShark Server (dev)
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}

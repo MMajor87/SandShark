@@ -35,3 +35,6 @@ Thumbs.db
 
 # managed disposable test runs; integration evidence is retained separately
 .artifacts/
+
+# local validation reports
+*_REPORT.md

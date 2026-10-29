@@ -76,7 +76,7 @@ For the next upgrade:
    actions; local integration work does not perform them automatically.
 
 Do not place deployment addresses, credentials, secrets or runtime logs in tracked
-documentation. Read the phase reports for the current release gates.
+documentation. Read the release notes for the current release gates.
 
 ## SandShark calendar contract
 

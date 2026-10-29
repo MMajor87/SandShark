@@ -1,10 +1,10 @@
 # Sharkord v0.0.28 integration TODO
 
-Status: local integration implemented and committed as `00063c66`, October 26, 2026. Automated validation passes. Live desktop, external-provider and release gates remain pending; see [integration report](UPSTREAM_V0_0_28_REPORT.md).
+Status: local integration implemented and committed as `00063c66`, October 26, 2026. Automated validation passed at that point. See the current [server release verification](docs/server-0.1.0-validation.md) and [desktop release notes](apps/desktop/RELEASE_NOTES.md) for later checks and remaining limits.
 
 Starting point: SandShark 1.0.31 (`13636e06`), with Sharkord v0.0.25 (`b94d9a9e`) integrated by `1875f5e3`. Target the released v0.0.28 content, including v0.0.26 and v0.0.27. Verify the exact release commit before starting; do not assume the current development branch matches the release.
 
-Keep the completed [v0.0.25 checklist](UPSTREAM_MERGE_CHECKLIST.md) as historical evidence. Follow [upstream compatibility](docs/upstream-compatibility.md), [AGENTS.md](AGENTS.md), and [CONTRIBUTING.md](CONTRIBUTING.md). Check tasks only when results are recorded. This checklist does not authorize publishing or deployment.
+Follow [upstream compatibility](docs/upstream-compatibility.md), [AGENTS.md](AGENTS.md), and [CONTRIBUTING.md](CONTRIBUTING.md). Check tasks only when results are recorded.
 
 ## 1. Establish the baseline
 

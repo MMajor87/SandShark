@@ -1,6 +1,6 @@
 # SandShark refactor and improvement plan
 
-Reviewed October 26, 2026; Phase 3 implementation updated October 27. Status: Phases 1 through 3 code implemented in `.integration/sharkord-v0.0.28`, now on `refactor/phase-three`. Live release verification remains open. See [PHASE_ONE_REPORT.md](PHASE_ONE_REPORT.md), [PHASE_TWO_REPORT.md](PHASE_TWO_REPORT.md) and [PHASE_THREE_REPORT.md](PHASE_THREE_REPORT.md).
+Reviewed October 26, 2026; Phase 3 implementation updated October 27. Status: Phases 1 through 3 code implemented in `.integration/sharkord-v0.0.28`, now on `refactor/phase-three`. See the [desktop release notes](apps/desktop/RELEASE_NOTES.md) and [server release verification](docs/server-0.1.0-validation.md) for current release status.
 
 ## Baseline and scope
 
@@ -8,7 +8,7 @@ This review targets the completed v0.0.28 integration at `b355c87a`, in `.integr
 
 The review used source inspection, existing validation records, 53 open Sharkord issues and five open PRs returned by GitHub. No new runtime reproduction or security exploit testing was performed. The prior 2,119 passing tests and 53 passing E2E tests establish a useful baseline, but do not cover the gaps below. The external write-up linked from issue #889 was inaccessible; that finding relies on the public issue and local source, not an assumed reading of the report.
 
-Keep changes small and independently reviewable. Preserve upstream ancestry, existing platform adapters, native audio behavior, calendar data and migration history. Avoid a framework replacement, a generic service container, broad renames or dependency upgrades bundled with refactors. Create/reference an issue before a PR, and target `development`, as required by CONTRIBUTING.md.
+Keep changes small and independently reviewable. Preserve upstream ancestry, existing platform adapters, native audio behavior, calendar data and migration history. Avoid a framework replacement, a generic service container, broad renames or dependency upgrades bundled with refactors. Create/reference an issue before a PR, and target `main`, as required by CONTRIBUTING.md.
 
 ## Findings needing attention
 
@@ -68,7 +68,7 @@ The roughly 1,850-line `components/voice-provider/index.tsx` already has useful 
 
 Implementation: ownership and recovery policy are documented in [DEVELOPMENT.md](DEVELOPMENT.md#voice-resource-ownership-and-recovery). Regression tests reproduce missing server membership with stale transports and reject late capture/transport completions. R14 is a deterministic reproduction of the failure class, not confirmation of the reporter's exact live network/browser conditions. R15 policy and automated rejection/no-rejoin cases are implemented.
 
-- [ ] Phase 3 live exit gate: real two-participant tests under disconnect/reconnect, sleep/resume, permission loss, device removal and repeated capture start/stop. Confirm audible send/receive, mute/deafen and device preservation, no automatic screen restart and no rejoin loops. Browser mocks cannot establish audible correctness. See [PHASE_THREE_REPORT.md](PHASE_THREE_REPORT.md).
+- [ ] Phase 3 live exit gate: real two-participant tests under disconnect/reconnect, sleep/resume, permission loss, device removal and repeated capture start/stop. Confirm audible send/receive, mute/deafen and device preservation, no automatic screen restart and no rejoin loops. Browser mocks cannot establish audible correctness. See the [server release verification](docs/server-0.1.0-validation.md) for checks completed so far.
 
 ### Phase 4: calendar and client maintenance
 
@@ -78,7 +78,7 @@ Implementation: ownership and recovery policy are documented in [DEVELOPMENT.md]
 - [x] R19: Update `docs/upstream-compatibility.md` to describe pinned release integration and actual branch policy. Its current `merge upstream/development` instructions differ from the release-pinned approach just used. Replace the generic roadmap placeholders with this prioritized backlog.
 - [x] R20: Add a bounded test-artifact retention workflow with dry-run output and explicit exclusions for development data/backups. Preserve final validation evidence until release verification.
 
-Implementation status: R16-R20 are complete on `refactor/phase-four`, implementation commit `338d1c25`. All 2,212 repository tests and 54 browser tests passed (one browser test skipped); formatting, types, lint, translations, migration consistency and the production desktop build passed. The prior media-scroll failure did not reproduce, but no fix for it is claimed. Development backup hashes remain intact. Calendar client and server must be upgraded together because the list response is now paginated. See [PHASE_FOUR_REPORT.md](PHASE_FOUR_REPORT.md) for compatibility, retention safeguards and remaining release gates.
+Implementation status: R16-R20 are complete on `refactor/phase-four`, implementation commit `338d1c25`. All 2,212 repository tests and 54 browser tests passed (one browser test skipped); formatting, types, lint, translations, migration consistency and the production desktop build passed. The prior media-scroll failure did not reproduce, but no fix for it is claimed. Development backup hashes remain intact. Calendar client and server must be upgraded together because the list response is now paginated. See the [desktop release notes](apps/desktop/RELEASE_NOTES.md) for compatibility and remaining release gates.
 
 ## Upstream issue shortlist
 

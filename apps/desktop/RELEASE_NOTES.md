@@ -14,7 +14,7 @@ Upgrade the paired SandShark server and client together. Calendar listing now re
 
 The implementation passed 2,212 repository tests, 54 browser tests (one skipped), formatting, lint, type checks, translation synchronization, database consistency checks and production builds. The previously intermittent media-scroll test passed this run; no media-scroll fix is claimed.
 
-This Windows installer is unsigned. Real-provider SSO, live two-participant audio/capture, sleep/resume, background PTT and installed updating still require manual acceptance. See the phase reports for detailed validation and compatibility.
+This Windows installer is unsigned. Real-provider SSO, live two-participant audio/capture, sleep/resume, background PTT and installed updating still require manual acceptance.
 
 # SandShark 1.1.1
 
@@ -25,7 +25,7 @@ This Windows installer is unsigned. Real-provider SSO, live two-participant audi
 
 Private attachment URLs now carry a read-only media credential. Treat them as credentials; do not publish them. File signatures alone no longer grant private attachment access. Logos, profile images and emoji retain their existing asset policy. Revoking a user session or banning the user invalidates their media credential.
 
-This installer remains unsigned. Live two-participant capture, real-provider SSO and installed updater validation remain release gates. See PHASE_ONE_REPORT.md for checks and compatibility details.
+This installer remains unsigned. Live two-participant capture, real-provider SSO and installed updater validation remain release gates.
 
 # SandShark 1.1.0
 
@@ -41,7 +41,7 @@ Automated validation passed: 2,119 unit/integration tests, 53 browser E2E tests 
 
 Upgrade the server to the bundled v0.0.28 integration before using this client. Older server combinations have not been verified. Back up the database, uploads, configuration and plugin data first. Rollback requires the previous server build and its pre-upgrade backup.
 
-Live multi-participant voice, real identity-provider login, installed updater flows and third-party plugin compatibility remain release checks. This Windows installer is unsigned. See UPSTREAM_V0_0_28_REPORT.md for evidence and limitations.
+Live multi-participant voice, real identity-provider login, installed updater flows and third-party plugin compatibility remain release checks. This Windows installer is unsigned.
 
 # SandShark 1.0.31
 

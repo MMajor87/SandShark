@@ -1,6 +1,6 @@
 import { uploadImage } from '@/helpers/upload-file';
 import { useFilePicker } from '@/hooks/use-file-picker';
-import { getTrpcError } from '@sharkord/shared';
+import { getTrpcError, UploadPurpose } from '@sharkord/shared';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -11,7 +11,7 @@ export type TPickedImage = {
 };
 
 // uploads to the temporary store only, the settings form commits the id when it saves
-const usePickImage = () => {
+const usePickImage = (purpose: UploadPurpose = UploadPurpose.MESSAGE) => {
   const { t } = useTranslation('common');
   const openFilePicker = useFilePicker();
 
@@ -21,7 +21,7 @@ const usePickImage = () => {
 
       if (!file) return;
 
-      const temporaryFile = await uploadImage(file);
+      const temporaryFile = await uploadImage(file, purpose);
 
       if (!temporaryFile) return;
 
@@ -32,7 +32,7 @@ const usePickImage = () => {
     } catch (error) {
       toast.error(getTrpcError(error, t('failedUploadImage')));
     }
-  }, [openFilePicker, t]);
+  }, [openFilePicker, purpose, t]);
 };
 
 export { usePickImage };

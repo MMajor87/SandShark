@@ -279,7 +279,21 @@ body {
   a {
     text-decoration: underline;
     text-underline-offset: 2px;
+    unicode-bidi: isolate;
   }
+}
+
+.tiptap .ProseMirror > p,
+.msg-content > p {
+  text-align: start;
+}
+
+.tiptap .ProseMirror pre,
+.msg-content pre,
+.tiptap .ProseMirror code,
+.msg-content code {
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .msg-content.emoji-only {

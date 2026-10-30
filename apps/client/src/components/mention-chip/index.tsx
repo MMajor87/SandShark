@@ -19,6 +19,7 @@ const MentionChip = memo(({ userId, label: labelProp }: TMentionChipProps) => {
   return (
     <UserPopover userId={userId}>
       <span
+        dir="auto"
         className={cn(
           'mention rounded px-0.5 cursor-pointer transition-colors',
           isOwnMention

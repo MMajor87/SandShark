@@ -23,6 +23,7 @@ const RoleMentionChip = memo(
 
     return (
       <span
+        dir="auto"
         style={style}
         className={cn(
           'role-mention rounded px-0.5 bg-primary/10',

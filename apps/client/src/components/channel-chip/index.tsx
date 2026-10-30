@@ -36,11 +36,12 @@ const ChannelChip = memo(({ channelId }: TChannelChipProps) => {
   );
 
   if (!channel || !channelCan(ChannelPermission.VIEW_CHANNEL)) {
-    return <span>#{t('unknownChannel')}</span>;
+    return <span dir="auto">#{t('unknownChannel')}</span>;
   }
 
   return (
     <span
+      dir="auto"
       role="link"
       tabIndex={0}
       onClick={handleClick}

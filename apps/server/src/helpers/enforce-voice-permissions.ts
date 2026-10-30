@@ -23,13 +23,17 @@ const enforceVoicePermissions = async (userId: number) => {
   const state = runtime.getUserState(userId);
   const update: { webcamEnabled?: false; sharingScreen?: false } = {};
   if (!webcam || !enableWebcam) {
+    const hadProducer = !!runtime.getProducer(StreamKind.VIDEO, userId);
     runtime.removeProducer(userId, StreamKind.VIDEO);
-    if (state.webcamEnabled) update.webcamEnabled = false;
+    if (state.webcamEnabled || hadProducer) update.webcamEnabled = false;
   }
   if (!screen || !shareScreen) {
+    const hadProducer =
+      !!runtime.getProducer(StreamKind.SCREEN, userId) ||
+      !!runtime.getProducer(StreamKind.SCREEN_AUDIO, userId);
     runtime.removeProducer(userId, StreamKind.SCREEN);
     runtime.removeProducer(userId, StreamKind.SCREEN_AUDIO);
-    if (state.sharingScreen) update.sharingScreen = false;
+    if (state.sharingScreen || hadProducer) update.sharingScreen = false;
   }
   if (Object.keys(update).length === 0) return;
   runtime.updateUserState(userId, update);

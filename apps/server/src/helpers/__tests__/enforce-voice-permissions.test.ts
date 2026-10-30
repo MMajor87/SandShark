@@ -1,6 +1,7 @@
 import { Permission, ServerEvents, StreamKind } from '@sharkord/shared';
 import { expect, mock, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
+import type { Producer } from 'mediasoup/types';
 import { initTest } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
 import { publishChannelPermissions, publishRole } from '../../db/publishers';
@@ -82,6 +83,107 @@ test('a client can always report capture off and mute after losing permissions',
       micMuted: true
     });
   } finally {
+    await runtime.destroy();
+  }
+});
+
+test('global permission loss cannot restore capture state in a public channel', async () => {
+  const runtime = new VoiceRuntime(2);
+  runtime.addUser(2, { micMuted: false, soundMuted: false });
+  runtime.updateUserState(2, { webcamEnabled: true, sharingScreen: true });
+  try {
+    const { caller } = await initTest(2, undefined, {
+      currentVoiceChannelId: 2
+    });
+    await tdb
+      .delete(rolePermissions)
+      .where(
+        and(
+          eq(rolePermissions.roleId, 2),
+          eq(rolePermissions.permission, Permission.ENABLE_WEBCAM)
+        )
+      );
+    await tdb
+      .delete(rolePermissions)
+      .where(
+        and(
+          eq(rolePermissions.roleId, 2),
+          eq(rolePermissions.permission, Permission.SHARE_SCREEN)
+        )
+      );
+
+    await caller.voice.updateState({
+      webcamEnabled: false,
+      sharingScreen: false
+    });
+    await caller.voice.updateState({
+      webcamEnabled: true,
+      sharingScreen: true
+    });
+
+    expect(runtime.getUserState(2)).toMatchObject({
+      webcamEnabled: false,
+      sharingScreen: false
+    });
+  } finally {
+    await runtime.destroy();
+  }
+});
+
+test('revocation publishes capture off when producers exist before state is on', async () => {
+  const runtime = new VoiceRuntime(4);
+  runtime.addUser(2, { micMuted: false, soundMuted: false });
+  const closed: StreamKind[] = [];
+
+  for (const kind of [
+    StreamKind.VIDEO,
+    StreamKind.SCREEN,
+    StreamKind.SCREEN_AUDIO
+  ]) {
+    const closeHandlers: (() => void)[] = [];
+    const producer = {
+      id: kind,
+      kind: kind === StreamKind.SCREEN_AUDIO ? 'audio' : 'video',
+      type: 'simple',
+      observer: {
+        on: (event: string, handler: () => void) => {
+          if (event === 'close') closeHandlers.push(handler);
+        }
+      },
+      close: () => {
+        closed.push(kind);
+        closeHandlers.forEach((handler) => handler());
+      }
+    };
+
+    runtime.addProducer(2, kind, producer as unknown as Producer);
+  }
+
+  const updates: unknown[] = [];
+  const sub = pubsub
+    .subscribe(ServerEvents.USER_VOICE_STATE_UPDATE)
+    .subscribe({ next: (data) => updates.push(data) });
+
+  try {
+    await publishChannelPermissions([2]);
+    expect(closed).toEqual([
+      StreamKind.VIDEO,
+      StreamKind.SCREEN,
+      StreamKind.SCREEN_AUDIO
+    ]);
+    expect(runtime.getProducer(StreamKind.VIDEO, 2)).toBeUndefined();
+    expect(runtime.getProducer(StreamKind.SCREEN, 2)).toBeUndefined();
+    expect(runtime.getProducer(StreamKind.SCREEN_AUDIO, 2)).toBeUndefined();
+    expect(updates).toContainEqual({
+      channelId: 4,
+      userId: 2,
+      state: expect.objectContaining({
+        webcamEnabled: false,
+        sharingScreen: false
+      })
+    });
+  } finally {
+    sub.unsubscribe();
     await runtime.destroy();
   }
 });

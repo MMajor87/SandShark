@@ -1,4 +1,4 @@
-import { ChannelPermission, ServerEvents } from '@sharkord/shared';
+import { ChannelPermission, Permission, ServerEvents } from '@sharkord/shared';
 import { z } from 'zod';
 import { getCurrentVoiceRuntime } from '../../helpers/get-current-voice-runtime';
 import { VoiceRuntime } from '../../runtimes/voice';
@@ -19,6 +19,11 @@ const updateVoiceStateRoute = protectedProcedure
 
     const validatedInput = { ...input };
 
+    const [canEnableWebcam, canShareScreenGlobally] = await Promise.all([
+      ctx.hasPermission(Permission.ENABLE_WEBCAM),
+      ctx.hasPermission(Permission.SHARE_SCREEN)
+    ]);
+
     const [canSpeak, canUseWebcam, canShareScreen] = await Promise.all([
       ctx.hasChannelPermission(channelId, ChannelPermission.SPEAK),
       ctx.hasChannelPermission(channelId, ChannelPermission.WEBCAM),
@@ -29,12 +34,18 @@ const updateVoiceStateRoute = protectedProcedure
       delete validatedInput.micMuted;
     }
 
-    if (!canUseWebcam && validatedInput.webcamEnabled === true) {
-      delete validatedInput.webcamEnabled;
+    if (
+      (!canEnableWebcam || !canUseWebcam) &&
+      validatedInput.webcamEnabled === true
+    ) {
+      validatedInput.webcamEnabled = false;
     }
 
-    if (!canShareScreen && validatedInput.sharingScreen === true) {
-      delete validatedInput.sharingScreen;
+    if (
+      (!canShareScreenGlobally || !canShareScreen) &&
+      validatedInput.sharingScreen === true
+    ) {
+      validatedInput.sharingScreen = false;
     }
 
     invariant(

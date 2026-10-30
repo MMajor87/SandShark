@@ -390,6 +390,7 @@ const renderMicrophone = (
   const producer = {
     id: 'microphone',
     close: mock(() => undefined),
+    replaceTrack: mock(async (_options: unknown) => undefined),
     observer: new EventEmitter()
   };
   const produce = mock(async (_options: unknown) => producer);
@@ -500,6 +501,79 @@ test('microphone rebuild preserves the selected device and mute while cleanup is
   microphone.cleanupMicProcessingResources();
   expect(track.stop).toHaveBeenCalledTimes(1);
   expect(producer.close).toHaveBeenCalledTimes(1);
+});
+test('microphone switch keeps its producer and mute state while releasing the old track', async () => {
+  disconnected = false;
+  const first = fakeMicrophone();
+  const second = fakeMicrophone();
+  const getUserMedia = mock(async () => first.stream);
+  getUserMedia.mockImplementationOnce(async () => first.stream);
+  getUserMedia.mockImplementationOnce(async () => second.stream);
+  const { microphone, producer, produce } = renderMicrophone(
+    getUserMedia,
+    true
+  );
+  await microphone.startMicStream();
+  await microphone.switchMicStream({
+    microphoneId: 'replacement-mic',
+    noiseGateEnabled: false
+  } as Parameters<typeof useMicrophone>[0]['devices']);
+  expect(getUserMedia).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      audio: expect.objectContaining({ deviceId: { exact: 'replacement-mic' } })
+    })
+  );
+  expect(producer.replaceTrack).toHaveBeenCalledWith({ track: second.track });
+  expect(produce).toHaveBeenCalledTimes(1);
+  expect(producer.close).not.toHaveBeenCalled();
+  expect(first.track.stop).toHaveBeenCalledTimes(1);
+  expect(second.track.enabled).toBe(false);
+  microphone.cleanupMicProcessingResources();
+  expect(second.track.stop).toHaveBeenCalledTimes(1);
+});
+test('failed microphone switch leaves the old track and producer active', async () => {
+  disconnected = false;
+  const first = fakeMicrophone();
+  const getUserMedia = mock(async () => first.stream);
+  getUserMedia.mockImplementationOnce(async () => first.stream);
+  getUserMedia.mockImplementationOnce(async () => {
+    throw new Error('device unavailable');
+  });
+  const { microphone, producer } = renderMicrophone(getUserMedia);
+  await microphone.startMicStream();
+  await expect(
+    microphone.switchMicStream({
+      microphoneId: 'missing-mic',
+      noiseGateEnabled: false
+    } as Parameters<typeof useMicrophone>[0]['devices'])
+  ).rejects.toThrow('device unavailable');
+  expect(first.track.stop).not.toHaveBeenCalled();
+  expect(producer.replaceTrack).not.toHaveBeenCalled();
+  expect(producer.close).not.toHaveBeenCalled();
+  microphone.cleanupMicProcessingResources();
+});
+test('rejected microphone track replacement releases the new capture only', async () => {
+  disconnected = false;
+  const first = fakeMicrophone();
+  const second = fakeMicrophone();
+  const getUserMedia = mock(async () => first.stream);
+  getUserMedia.mockImplementationOnce(async () => first.stream);
+  getUserMedia.mockImplementationOnce(async () => second.stream);
+  const { microphone, producer } = renderMicrophone(getUserMedia);
+  await microphone.startMicStream();
+  producer.replaceTrack.mockImplementationOnce(async () => {
+    throw new Error('replacement failed');
+  });
+  await expect(
+    microphone.switchMicStream({
+      microphoneId: 'replacement-mic',
+      noiseGateEnabled: false
+    } as Parameters<typeof useMicrophone>[0]['devices'])
+  ).rejects.toThrow('replacement failed');
+  expect(first.track.stop).not.toHaveBeenCalled();
+  expect(second.track.stop).toHaveBeenCalledTimes(1);
+  expect(producer.close).not.toHaveBeenCalled();
+  microphone.cleanupMicProcessingResources();
 });
 for (const [description, muted, options, expectedEnabled] of [
   [

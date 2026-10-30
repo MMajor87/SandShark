@@ -13,7 +13,7 @@ import { createNsChain } from '@/helpers/audio-worklet/ns-worklet';
 
 import { voiceLogger } from '@/helpers/browser-logger';
 import { getPushToTalkSettings } from '@/helpers/push-to-talk';
-import { NoiseSuppression } from '@/types';
+import { NoiseSuppression, type TDeviceSettings } from '@/types';
 import { StreamKind, type TVoiceUserState } from '@sharkord/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDevices } from '../../devices-provider/hooks/use-devices';
@@ -58,36 +58,47 @@ const useMicrophone = ({
     pushToTalkRegistered ? pushToTalkSettings.mode : undefined
   );
 
-  const syncTransmitMicrophoneTrackState = useCallback(() => {
-    const track = transmitMicrophoneTrackRef.current;
+  const syncTransmitMicrophoneTrackState = useCallback(
+    (targetTrack?: MediaStreamTrack) => {
+      const track = targetTrack ?? transmitMicrophoneTrackRef.current;
 
-    if (!track) return;
+      if (!track) return;
 
-    // the held key gates transmission without changing the user's manual mute state
-    const pushToTalkMode = pushToTalkModeRef.current;
-    const shouldEnable =
-      !micMutedRef.current &&
-      !soundMutedRef.current &&
-      !serverMutedRef.current &&
-      (pushToTalkMode === undefined ||
-        (pushToTalkMode === 'talk'
-          ? pushToTalkActiveRef.current
-          : !pushToTalkActiveRef.current));
+      // the held key gates transmission without changing the user's manual mute state
+      const pushToTalkMode = pushToTalkModeRef.current;
+      const shouldEnable =
+        !micMutedRef.current &&
+        !soundMutedRef.current &&
+        !serverMutedRef.current &&
+        (pushToTalkMode === undefined ||
+          (pushToTalkMode === 'talk'
+            ? pushToTalkActiveRef.current
+            : !pushToTalkActiveRef.current));
 
-    if (track.enabled !== shouldEnable) {
-      track.enabled = shouldEnable;
-    }
-  }, []);
+      if (track.enabled !== shouldEnable) {
+        track.enabled = shouldEnable;
+      }
+    },
+    []
+  );
 
   const [microphoneOwner] = useState(createVoiceOperationOwner);
+  const activeMicrophoneOwner = useRef(microphoneOwner);
+  const pendingMicrophoneOwner = useRef<
+    ReturnType<typeof createVoiceOperationOwner> | undefined
+  >(undefined);
   const cleanupMicProcessingResources = useCallback(() => {
-    microphoneOwner.cancel();
+    pendingMicrophoneOwner.current?.cancel();
+    pendingMicrophoneOwner.current = undefined;
+    activeMicrophoneOwner.current.cancel();
+    localAudioProducer.current?.close();
+    localAudioProducer.current = undefined;
     rawMicrophoneStreamRef.current = null;
     transmitMicrophoneTrackRef.current = null;
     microphoneNoiseGateAudioContextRef.current = null;
     microphoneNoiseGateWorkletNodeRef.current = null;
     nsAudioContextsRef.current = [];
-  }, [microphoneOwner]);
+  }, [localAudioProducer]);
 
   useEffect(() => {
     micMutedRef.current = ownVoiceState.micMuted;
@@ -120,255 +131,301 @@ const useMicrophone = ({
     });
   }, [devices.noiseGateThresholdDb]);
 
-  const startMicStream = useCallback(async () => {
-    cleanupMicProcessingResources();
-    const session = captureVoiceSession();
-    const transport = producerTransport.current;
-    const operation = microphoneOwner.begin(
-      () =>
-        session.isCurrent() &&
-        producerTransport.current === transport &&
-        !!transport &&
-        !transport.closed
-    );
-    const trpc = session.client;
-    try {
-      voiceLogger.info('mic: starting');
-      operation.assertCurrent();
-
-      const useNsChain =
-        devices.noiseSuppression === NoiseSuppression.DTLN ||
-        devices.noiseSuppression === NoiseSuppression.RNNOISE;
-      const useStandardNs =
-        devices.noiseSuppression === NoiseSuppression.STANDARD;
-      const useDtln = devices.noiseSuppression === NoiseSuppression.DTLN;
-
-      const hasSpecificMic =
-        !!devices.microphoneId && devices.microphoneId !== 'default';
-
-      const micStreamConstraints: MediaStreamConstraints = {
-        audio: {
-          deviceId: hasSpecificMic
-            ? { exact: devices.microphoneId }
-            : undefined,
-          autoGainControl: devices.autoGainControl,
-          echoCancellation: devices.echoCancellation,
-          noiseSuppression: useStandardNs,
-          sampleRate: useDtln ? 16000 : undefined,
-          channelCount: 1
-        },
-        video: false
-      };
-
-      voiceLogger.info('mic: requesting stream', {
-        constraints: micStreamConstraints
-      });
-
-      const rawStream = await operation.wait(
-        navigator.mediaDevices.getUserMedia(micStreamConstraints),
-        stopMediaStream
+  const prepareMicStream = useCallback(
+    async (nextDevices: TDeviceSettings, replacing: boolean) => {
+      if (!replacing) cleanupMicProcessingResources();
+      const session = captureVoiceSession();
+      const transport = producerTransport.current;
+      const owner = replacing
+        ? createVoiceOperationOwner()
+        : activeMicrophoneOwner.current;
+      if (replacing) {
+        pendingMicrophoneOwner.current?.cancel();
+        pendingMicrophoneOwner.current = owner;
+      }
+      const operation = owner.begin(
+        () =>
+          session.isCurrent() &&
+          producerTransport.current === transport &&
+          !!transport &&
+          !transport.closed
       );
+      const trpc = session.client;
+      try {
+        voiceLogger.info('mic: starting');
+        operation.assertCurrent();
 
-      voiceLogger.info('mic: stream obtained', {
-        trackId: rawStream.getAudioTracks()[0]?.id,
-        label: rawStream.getAudioTracks()[0]?.label
-      });
+        const useNsChain =
+          nextDevices.noiseSuppression === NoiseSuppression.DTLN ||
+          nextDevices.noiseSuppression === NoiseSuppression.RNNOISE;
+        const useStandardNs =
+          nextDevices.noiseSuppression === NoiseSuppression.STANDARD;
+        const useDtln = nextDevices.noiseSuppression === NoiseSuppression.DTLN;
 
-      rawMicrophoneStreamRef.current = rawStream;
+        const hasSpecificMic =
+          !!nextDevices.microphoneId && nextDevices.microphoneId !== 'default';
 
-      const rawAudioTrack = rawStream.getAudioTracks()[0];
+        const micStreamConstraints: MediaStreamConstraints = {
+          audio: {
+            deviceId: hasSpecificMic
+              ? { exact: nextDevices.microphoneId }
+              : undefined,
+            autoGainControl: nextDevices.autoGainControl,
+            echoCancellation: nextDevices.echoCancellation,
+            noiseSuppression: useStandardNs,
+            sampleRate: useDtln ? 16000 : undefined,
+            channelCount: 1
+          },
+          video: false
+        };
 
-      if (rawAudioTrack) {
-        const shouldUseNoiseGate = !!devices.noiseGateEnabled;
-        const noiseGateAvailability = getNoiseGateWorkletAvailabilitySnapshot();
-        let transmitTrack: MediaStreamTrack = rawAudioTrack;
-        let transmitStream: MediaStream = rawStream;
-
-        if (shouldUseNoiseGate && noiseGateAvailability.available) {
-          let audioContext: AudioContext | null = null;
-
-          try {
-            audioContext = operation.own(
-              new window.AudioContext(),
-              (context) => {
-                if (context.state !== 'closed') return context.close();
-              }
-            );
-            const source = audioContext.createMediaStreamSource(rawStream);
-            const noiseGateNode = await operation.wait(
-              createNoiseGateWorkletNode(audioContext, {
-                enabled: true,
-                thresholdDb: clampMicrophoneDecibels(
-                  devices.noiseGateThresholdDb ??
-                    MICROPHONE_GATE_DEFAULT_THRESHOLD_DB
-                ),
-                holdMs: MICROPHONE_GATE_CLOSE_HOLD_MS
-              }),
-              (node) => node.disconnect()
-            );
-            const destination = audioContext.createMediaStreamDestination();
-            operation.own(destination.stream, stopMediaStream);
-
-            source.connect(noiseGateNode);
-            noiseGateNode.connect(destination);
-
-            const processedTrack = destination.stream.getAudioTracks()[0];
-
-            if (processedTrack) {
-              microphoneNoiseGateAudioContextRef.current = audioContext;
-              microphoneNoiseGateWorkletNodeRef.current = noiseGateNode;
-              transmitTrack = processedTrack;
-              transmitStream = destination.stream;
-            } else {
-              noiseGateNode.disconnect();
-              audioContext.close();
-              audioContext = null;
-              voiceLogger.warn(
-                'mic: noise gate produced no track, using ungated stream'
-              );
-            }
-          } catch (error) {
-            operation.assertCurrent();
-            if (audioContext) {
-              audioContext.close();
-            }
-
-            voiceLogger.error(
-              'mic: noise gate worklet failed, using ungated stream',
-              error
-            );
-            markNoiseGateWorkletUnavailable(
-              'Failed to initialize the noise gate audio processor.'
-            );
-          }
-        } else if (shouldUseNoiseGate && !noiseGateAvailability.available) {
-          voiceLogger.warn(
-            'mic: noise gate unavailable, using ungated stream',
-            {
-              reason: noiseGateAvailability.reason
-            }
-          );
-        }
-
-        if (useNsChain) {
-          voiceLogger.info('mic: setting up noise suppression', {
-            type: devices.noiseSuppression
-          });
-
-          try {
-            const chain = await operation.wait(
-              createNsChain(devices.noiseSuppression, transmitStream),
-              async (chain) => {
-                chain.outputTrack.stop();
-                await Promise.all(
-                  chain.contexts.map((context) => context.close())
-                );
-              }
-            );
-            nsAudioContextsRef.current = chain.contexts;
-            transmitTrack = chain.outputTrack;
-            transmitStream = new MediaStream([chain.outputTrack]);
-            voiceLogger.info('mic: noise suppression ready');
-          } catch (nsError) {
-            operation.assertCurrent();
-            voiceLogger.warn('mic: noise suppression setup failed', {
-              error: nsError
-            });
-          }
-        }
-
-        transmitMicrophoneTrackRef.current = transmitTrack;
-        setLocalAudioStream(transmitStream);
-        syncTransmitMicrophoneTrackState();
-
-        voiceLogger.info('mic: audio track obtained', {
-          trackId: rawAudioTrack.id,
-          readyState: rawAudioTrack.readyState,
-          settings: rawAudioTrack.getSettings()
+        voiceLogger.info('mic: requesting stream', {
+          constraints: micStreamConstraints
         });
 
-        if (!producerTransport.current) {
-          throw new Error('Producer transport is not available');
-        }
-
-        localAudioProducer.current = await operation.wait(
-          transport!.produce({
-            track: transmitTrack,
-            codecOptions: {
-              // all audio producers share one bundled Opus payload type. keep
-              // this aligned with screen-audio and the router capability to
-              // avoid an SDP codec collision when a screen share starts.
-              opusStereo: true,
-              opusFec: true,
-              opusDtx: false,
-              opusMaxPlaybackRate: 48000,
-              opusMaxAverageBitrate: 128000
-            },
-            appData: { kind: StreamKind.AUDIO }
-          }),
-          (producer) => producer.close()
+        const rawStream = await operation.wait(
+          navigator.mediaDevices.getUserMedia(micStreamConstraints),
+          stopMediaStream
         );
 
-        voiceLogger.info('mic: producer created', {
-          producerId: localAudioProducer.current.id
+        voiceLogger.info('mic: stream obtained', {
+          trackId: rawStream.getAudioTracks()[0]?.id,
+          label: rawStream.getAudioTracks()[0]?.label
         });
 
-        localAudioProducer.current?.observer.on('close', async () => {
-          voiceLogger.info('mic: producer closed');
+        const rawAudioTrack = rawStream.getAudioTracks()[0];
 
-          if (!session.isCurrent() || producerTransport.current !== transport)
-            return;
+        if (rawAudioTrack) {
+          const shouldUseNoiseGate = !!nextDevices.noiseGateEnabled;
+          const noiseGateAvailability =
+            getNoiseGateWorkletAvailabilitySnapshot();
+          let transmitTrack: MediaStreamTrack = rawAudioTrack;
+          let transmitStream: MediaStream = rawStream;
+          let noiseGateContext: AudioContext | null = null;
+          let preparedNoiseGateNode: AudioWorkletNode | null = null;
+          let nsContexts: AudioContext[] = [];
 
-          try {
-            await trpc.voice.closeProducer.mutate({
-              kind: StreamKind.AUDIO
-            });
-          } catch (error) {
-            voiceLogger.error(
-              'mic: closing producer on the server failed',
-              error
+          if (shouldUseNoiseGate && noiseGateAvailability.available) {
+            let audioContext: AudioContext | null = null;
+
+            try {
+              audioContext = operation.own(
+                new window.AudioContext(),
+                (context) => {
+                  if (context.state !== 'closed') return context.close();
+                }
+              );
+              const source = audioContext.createMediaStreamSource(rawStream);
+              const noiseGateNode = await operation.wait(
+                createNoiseGateWorkletNode(audioContext, {
+                  enabled: true,
+                  thresholdDb: clampMicrophoneDecibels(
+                    nextDevices.noiseGateThresholdDb ??
+                      MICROPHONE_GATE_DEFAULT_THRESHOLD_DB
+                  ),
+                  holdMs: MICROPHONE_GATE_CLOSE_HOLD_MS
+                }),
+                (node) => node.disconnect()
+              );
+              const destination = audioContext.createMediaStreamDestination();
+              operation.own(destination.stream, stopMediaStream);
+
+              source.connect(noiseGateNode);
+              noiseGateNode.connect(destination);
+
+              const processedTrack = destination.stream.getAudioTracks()[0];
+
+              if (processedTrack) {
+                noiseGateContext = audioContext;
+                preparedNoiseGateNode = noiseGateNode;
+                transmitTrack = processedTrack;
+                transmitStream = destination.stream;
+              } else {
+                noiseGateNode.disconnect();
+                audioContext.close();
+                audioContext = null;
+                voiceLogger.warn(
+                  'mic: noise gate produced no track, using ungated stream'
+                );
+              }
+            } catch (error) {
+              operation.assertCurrent();
+              if (audioContext) {
+                audioContext.close();
+              }
+
+              voiceLogger.error(
+                'mic: noise gate worklet failed, using ungated stream',
+                error
+              );
+              markNoiseGateWorkletUnavailable(
+                'Failed to initialize the noise gate audio processor.'
+              );
+            }
+          } else if (shouldUseNoiseGate && !noiseGateAvailability.available) {
+            voiceLogger.warn(
+              'mic: noise gate unavailable, using ungated stream',
+              {
+                reason: noiseGateAvailability.reason
+              }
             );
           }
-        });
 
-        rawAudioTrack.onended = () => {
-          if (!operation.isCurrent()) return;
-          voiceLogger.warn('mic: track ended, cleaning up');
+          if (useNsChain) {
+            voiceLogger.info('mic: setting up noise suppression', {
+              type: nextDevices.noiseSuppression
+            });
 
-          transmitStream.getAudioTracks().forEach((track) => {
-            track.stop();
+            try {
+              const chain = await operation.wait(
+                createNsChain(nextDevices.noiseSuppression, transmitStream),
+                async (chain) => {
+                  chain.outputTrack.stop();
+                  await Promise.all(
+                    chain.contexts.map((context) => context.close())
+                  );
+                }
+              );
+              nsContexts = chain.contexts;
+              transmitTrack = chain.outputTrack;
+              transmitStream = new MediaStream([chain.outputTrack]);
+              voiceLogger.info('mic: noise suppression ready');
+            } catch (nsError) {
+              operation.assertCurrent();
+              voiceLogger.warn('mic: noise suppression setup failed', {
+                error: nsError
+              });
+            }
+          }
+
+          syncTransmitMicrophoneTrackState(transmitTrack);
+
+          voiceLogger.info('mic: audio track obtained', {
+            trackId: rawAudioTrack.id,
+            readyState: rawAudioTrack.readyState,
+            settings: rawAudioTrack.getSettings()
           });
-          cleanupMicProcessingResources();
-          localAudioProducer.current?.close();
 
-          setLocalAudioStream(undefined);
-        };
-      } else {
-        rawStream.getTracks().forEach((track) => track.stop());
-        throw new Error('Failed to obtain audio track from microphone');
+          if (!producerTransport.current) {
+            throw new Error('Producer transport is not available');
+          }
+
+          if (replacing) {
+            const producer = localAudioProducer.current;
+            if (!producer || producer.closed)
+              throw new Error('Microphone producer is not available');
+            await operation.wait(
+              producer.replaceTrack({ track: transmitTrack })
+            );
+            const previousOwner = activeMicrophoneOwner.current;
+            activeMicrophoneOwner.current = owner;
+            pendingMicrophoneOwner.current = undefined;
+            previousOwner.cancel();
+          } else {
+            const producer = await transport!.produce({
+              track: transmitTrack,
+              codecOptions: {
+                // all audio producers share one bundled Opus payload type. keep
+                // this aligned with screen-audio and the router capability to
+                // avoid an SDP codec collision when a screen share starts.
+                opusStereo: true,
+                opusFec: true,
+                opusDtx: false,
+                opusMaxPlaybackRate: 48000,
+                opusMaxAverageBitrate: 128000
+              },
+              appData: { kind: StreamKind.AUDIO }
+            });
+            if (!operation.isCurrent()) {
+              producer.close();
+              operation.assertCurrent();
+            }
+            localAudioProducer.current = producer;
+          }
+
+          rawMicrophoneStreamRef.current = rawStream;
+          transmitMicrophoneTrackRef.current = transmitTrack;
+          microphoneNoiseGateAudioContextRef.current = noiseGateContext;
+          microphoneNoiseGateWorkletNodeRef.current = preparedNoiseGateNode;
+          nsAudioContextsRef.current = nsContexts;
+          setLocalAudioStream(transmitStream);
+
+          const activeProducer = localAudioProducer.current;
+          if (!activeProducer)
+            throw new Error('Microphone producer is not available');
+          voiceLogger.info('mic: producer created', {
+            producerId: activeProducer.id
+          });
+
+          if (!replacing)
+            activeProducer.observer.on('close', async () => {
+              voiceLogger.info('mic: producer closed');
+
+              if (
+                !session.isCurrent() ||
+                producerTransport.current !== transport
+              )
+                return;
+
+              try {
+                await trpc.voice.closeProducer.mutate({
+                  kind: StreamKind.AUDIO
+                });
+              } catch (error) {
+                voiceLogger.error(
+                  'mic: closing producer on the server failed',
+                  error
+                );
+              }
+            });
+
+          rawAudioTrack.onended = () => {
+            if (!operation.isCurrent()) return;
+            voiceLogger.warn('mic: track ended, cleaning up');
+
+            transmitStream.getAudioTracks().forEach((track) => {
+              track.stop();
+            });
+            cleanupMicProcessingResources();
+
+            setLocalAudioStream(undefined);
+          };
+        } else {
+          rawStream.getTracks().forEach((track) => track.stop());
+          throw new Error('Failed to obtain audio track from microphone');
+        }
+      } catch (error) {
+        const current = operation.isCurrent();
+        operation.dispose();
+        if (!current) throw error;
+        if (replacing) {
+          if (pendingMicrophoneOwner.current === owner)
+            pendingMicrophoneOwner.current = undefined;
+          voiceLogger.error('mic: device switch failed', error);
+          throw error;
+        }
+        cleanupMicProcessingResources();
+        setLocalAudioStream(undefined);
+        voiceLogger.error('mic: start failed', error);
       }
-    } catch (error) {
-      const current = operation.isCurrent();
-      operation.dispose();
-      if (!current) throw error;
-      cleanupMicProcessingResources();
-      setLocalAudioStream(undefined);
-      voiceLogger.error('mic: start failed', error);
-    }
-  }, [
-    microphoneOwner,
-    cleanupMicProcessingResources,
-    producerTransport,
-    setLocalAudioStream,
-    localAudioProducer,
-    syncTransmitMicrophoneTrackState,
-    devices.microphoneId,
-    devices.autoGainControl,
-    devices.echoCancellation,
-    devices.noiseSuppression,
-    devices.noiseGateEnabled,
-    devices.noiseGateThresholdDb
-  ]);
+    },
+    [
+      cleanupMicProcessingResources,
+      producerTransport,
+      setLocalAudioStream,
+      localAudioProducer,
+      syncTransmitMicrophoneTrackState
+    ]
+  );
+
+  const startMicStream = useCallback(
+    () => prepareMicStream(devices, false),
+    [prepareMicStream, devices]
+  );
+  const switchMicStream = useCallback(
+    (nextDevices: TDeviceSettings) => prepareMicStream(nextDevices, true),
+    [prepareMicStream]
+  );
 
   useEffect(() => {
     pushToTalkActiveRef.current = pushToTalkActive;
@@ -383,6 +440,6 @@ const useMicrophone = ({
     syncTransmitMicrophoneTrackState
   ]);
 
-  return { startMicStream, cleanupMicProcessingResources };
+  return { startMicStream, switchMicStream, cleanupMicProcessingResources };
 };
 export { useMicrophone };

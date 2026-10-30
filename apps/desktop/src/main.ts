@@ -59,6 +59,7 @@ const windowController = createDesktopWindow({
     pushToTalk.dispose();
     applicationAudio.stopApplicationAudioCapture();
   },
+  onBlur: () => pushToTalk.releaseHeld(),
   onClosed: (id) => downloads?.releaseWindow(id)
 });
 const { getMainWindow, getSenderWindow, isAllowedRendererUrl } =

@@ -60,6 +60,7 @@
   "devicesDesc": "Manage your peripheral devices and their settings.",
   "voiceChannelActiveInfo": "You are in a voice channel, changes will only take effect after you leave and rejoin the channel.",
   "playbackLabel": "Playback",
+  "muteSharedStreamAudioByDefaultLabel": "Mute screen share audio by default",
   "playbackPlaceholder": "Select the output device",
   "defaultOutput": "Default Output",
   "microphoneLabel": "Microphone",

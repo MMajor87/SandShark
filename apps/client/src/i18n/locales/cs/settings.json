@@ -60,6 +60,7 @@
   "devicesDesc": "Spravujte svá zařízení a jejich nastavení.",
   "voiceChannelActiveInfo": "Jste v hlasovém kanálu. Změny se projeví jen až při příštím připojení.",
   "playbackLabel": "Výstup",
+  "muteSharedStreamAudioByDefaultLabel": "Ve výchozím nastavení ztlumit zvuk sdílené obrazovky",
   "playbackPlaceholder": "Vyberte výstupní zařízení",
   "defaultOutput": "Výchozí výstup",
   "microphoneLabel": "Mikrofon",

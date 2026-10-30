@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 const getDefaultDeviceSettings = (): TDeviceSettings => ({
   microphoneId: undefined,
   playbackId: undefined,
+  muteSharedStreamAudioByDefault: false,
   webcamId: undefined,
   webcamResolution: Resolution['720p'],
   webcamFramerate: 30,

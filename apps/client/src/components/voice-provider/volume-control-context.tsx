@@ -1,3 +1,4 @@
+import { useDevices } from '@/components/devices-provider/hooks/use-devices';
 import {
   getLocalStorageItemAsJSON,
   LocalStorageKey,
@@ -11,6 +12,7 @@ import {
   useRef,
   useState
 } from 'react';
+import { getSavedOrDefaultVolume } from './volume-default';
 
 // volume keys are string-based for persistence
 // user volumes: "user-{userId}"
@@ -57,6 +59,9 @@ const saveVolumesToStorage = (volumes: TVolumeSettings) => {
 
 const VolumeControlProvider = memo(
   ({ children }: TVolumeControlProviderProps) => {
+    const { devices } = useDevices();
+    const muteSharedStreamAudioByDefault =
+      devices.muteSharedStreamAudioByDefault;
     const [volumes, setVolumes] = useState<TVolumeSettings>(
       loadVolumesFromStorage
     );
@@ -65,9 +70,13 @@ const VolumeControlProvider = memo(
 
     const getVolume = useCallback(
       (key: TVolumeKey): number => {
-        return volumes[key] ?? 100;
+        return getSavedOrDefaultVolume(
+          volumes,
+          key,
+          muteSharedStreamAudioByDefault
+        );
       },
-      [volumes]
+      [volumes, muteSharedStreamAudioByDefault]
     );
 
     const setVolume = useCallback((key: TVolumeKey, volume: number) => {
@@ -82,23 +91,30 @@ const VolumeControlProvider = memo(
       }
     }, []);
 
-    const toggleMute = useCallback((key: TVolumeKey) => {
-      setVolumes((prev) => {
-        const currentVolume = prev[key] ?? 100;
-        const isMuted = currentVolume === 0;
-        const newVolume = isMuted
-          ? (previousVolumesRef.current[key] ?? 100)
-          : 0;
+    const toggleMute = useCallback(
+      (key: TVolumeKey) => {
+        setVolumes((prev) => {
+          const currentVolume = getSavedOrDefaultVolume(
+            prev,
+            key,
+            muteSharedStreamAudioByDefault
+          );
+          const isMuted = currentVolume === 0;
+          const newVolume = isMuted
+            ? (previousVolumesRef.current[key] ?? 100)
+            : 0;
 
-        if (!isMuted) {
-          previousVolumesRef.current[key] = currentVolume;
-        }
+          if (!isMuted) {
+            previousVolumesRef.current[key] = currentVolume;
+          }
 
-        const next = { ...prev, [key]: newVolume };
-        saveVolumesToStorage(next);
-        return next;
-      });
-    }, []);
+          const next = { ...prev, [key]: newVolume };
+          saveVolumesToStorage(next);
+          return next;
+        });
+      },
+      [muteSharedStreamAudioByDefault]
+    );
 
     const getUserVolumeKey = useCallback((userId: number): TVolumeKey => {
       return `user-${userId}`;

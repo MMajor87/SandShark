@@ -60,6 +60,7 @@
   "devicesDesc": "Gérez vos appareils périphériques et leurs paramètres.",
   "voiceChannelActiveInfo": "Vous êtes dans un salon vocal, les modifications ne prendront effet qu'après avoir quitté et rejoint le salon.",
   "playbackLabel": "Lecture",
+  "muteSharedStreamAudioByDefaultLabel": "Couper le son des partages d'écran par défaut",
   "playbackPlaceholder": "Sélectionnez l'appareil de sortie",
   "defaultOutput": "Sortie par défaut",
   "microphoneLabel": "Microphone",

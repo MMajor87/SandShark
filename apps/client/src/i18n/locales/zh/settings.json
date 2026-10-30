@@ -60,6 +60,7 @@
   "devicesDesc": "管理您的外围设备及其设置。",
   "voiceChannelActiveInfo": "您正在语音频道中，更改将在您离开并重新加入频道后生效。",
   "playbackLabel": "播放设备",
+  "muteSharedStreamAudioByDefaultLabel": "默认静音屏幕共享音频",
   "playbackPlaceholder": "选择输出设备",
   "defaultOutput": "默认输出",
   "microphoneLabel": "麦克风",

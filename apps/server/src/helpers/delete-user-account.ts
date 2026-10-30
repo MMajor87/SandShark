@@ -1,6 +1,7 @@
 import {
   ActivityLogType,
   DELETED_USER_IDENTITY_AND_NAME,
+  OWNER_ROLE_ID,
   ServerEvents
 } from '@sharkord/shared';
 import { and, eq, exists, notExists, or, sql } from 'drizzle-orm';
@@ -16,11 +17,13 @@ import {
   messageReactions,
   messages,
   settings,
+  userRoles,
   users
 } from '../db/schema';
 import { logger } from '../logger';
 import { eventBus } from '../plugins/event-bus';
 import { enqueueActivityLog } from '../queues/activity-log';
+import { invariant } from '../utils/invariant';
 import { pubsub } from '../utils/pubsub';
 import { PUBLIC_PATH } from './paths';
 
@@ -31,6 +34,24 @@ const deleteUserAccount = async (
   { wipe, deletedBy }: { wipe: boolean; deletedBy: number }
 ) => {
   const result = db.transaction((tx) => {
+    const target = tx
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, userId))
+      .get();
+    invariant(target, { code: 'NOT_FOUND', message: 'User not found.' });
+    const ownerRole = tx
+      .select({ userId: userRoles.userId })
+      .from(userRoles)
+      .where(
+        and(eq(userRoles.userId, userId), eq(userRoles.roleId, OWNER_ROLE_ID))
+      )
+      .get();
+    invariant(!ownerRole, {
+      code: 'FORBIDDEN',
+      message: 'The server owner cannot be deleted.'
+    });
+
     let placeholder = tx
       .select({ id: users.id })
       .from(users)

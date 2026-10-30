@@ -556,5 +556,15 @@
   "failedSaveHotkeys": "Failed to save hotkey settings",
   "hotkeysBridgeFailed": "Not found, stopped trying",
   "hotkeysBridgeRetry": "Try to connect",
-  "desktopTab": "Desktop"
+  "desktopTab": "Desktop",
+  "deleteAccountTab": "Delete account",
+  "deleteAccountDescription": "Remove your account from this server. This cannot be undone.",
+  "deleteAccountOwner": "The server owner cannot delete their account.",
+  "deleteAccountSso": "Sign in with your identity provider again to confirm deletion.",
+  "deleteAccountWipeLabel": "Delete my content too",
+  "deleteAccountWipeDescription": "Keep: messages, reactions, custom emoji and attached files remain under Deleted User. Delete: they are removed. Calendar events, invitations, direct message access and account data are removed in both cases.",
+  "deleteAccountKeepMessage": "Your account will be deleted. Messages, reactions, custom emoji and attached files will remain under Deleted User. Your calendar events and invitations will be deleted. This cannot be undone.",
+  "deleteAccountWipeMessage": "Your account, messages, reactions, uploads and calendar events will be deleted. This cannot be undone.",
+  "deleteAccountButton": "Delete account",
+  "failedDeleteAccount": "Could not delete your account"
 }

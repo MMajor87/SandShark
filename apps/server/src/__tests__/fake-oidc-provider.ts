@@ -20,6 +20,7 @@ type TPendingAuthorization = {
   nonce?: string;
   codeChallenge?: string;
   redirectUri: string;
+  freshAuthentication: boolean;
 };
 
 const CLIENT_ID = 'sharkord-test-client';
@@ -65,13 +66,14 @@ const startFakeOidcProvider = async (basePath = '') => {
   // a provider whose userinfo endpoint is temporarily unreachable, which is a different
   // case from one that simply has no email to give
   let userInfoAvailable = true;
+  let freshAuthenticationTimeOffsetSeconds = 0;
 
   const json = (res: http.ServerResponse, body: unknown) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(body));
   };
 
-  const buildIdToken = async (nonce?: string) => {
+  const buildIdToken = async (nonce?: string, freshAuthentication = false) => {
     const payload: TFakeProviderClaims = {};
 
     for (const key of idTokenClaims) {
@@ -79,6 +81,10 @@ const startFakeOidcProvider = async (basePath = '') => {
     }
 
     if (nonce) payload.nonce = nonce;
+    if (freshAuthentication) {
+      payload.auth_time =
+        Math.floor(Date.now() / 1000) + freshAuthenticationTimeOffsetSeconds;
+    }
 
     return new SignJWT(payload)
       .setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
@@ -129,7 +135,8 @@ const startFakeOidcProvider = async (basePath = '') => {
       pendingCodes.set(code, {
         nonce: url.searchParams.get('nonce') ?? undefined,
         codeChallenge: url.searchParams.get('code_challenge') ?? undefined,
-        redirectUri
+        redirectUri,
+        freshAuthentication: url.searchParams.get('max_age') === '0'
       });
 
       const target = new URL(redirectUri);
@@ -218,7 +225,7 @@ const startFakeOidcProvider = async (basePath = '') => {
         access_token: randomBytes(16).toString('hex'),
         token_type: 'Bearer',
         expires_in: 300,
-        id_token: await buildIdToken(pending.nonce)
+        id_token: await buildIdToken(pending.nonce, pending.freshAuthentication)
       });
 
       return;
@@ -291,6 +298,9 @@ const startFakeOidcProvider = async (basePath = '') => {
     },
     setUserInfoAvailable: (next: boolean) => {
       userInfoAvailable = next;
+    },
+    setFreshAuthenticationTimeOffsetSeconds: (next: number) => {
+      freshAuthenticationTimeOffsetSeconds = next;
     },
     getLastTokenAuth: () => lastTokenAuth,
     // a back-channel logout token, section 2.4. an override set to undefined drops that

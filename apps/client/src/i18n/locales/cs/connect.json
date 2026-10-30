@@ -35,5 +35,6 @@
   "addServerTitle": "Přidat server",
   "serverUrlLabel": "URL serveru",
   "linkedServerFailed": "Server z odkazu se nepodařilo otevřít.",
-  "chooseServerForLink": "Před otevřením odkazu na kanál vyberte server."
+  "chooseServerForLink": "Před otevřením odkazu na kanál vyberte server.",
+  "accountDeleted": "Váš účet byl smazán."
 }

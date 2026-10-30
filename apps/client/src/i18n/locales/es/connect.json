@@ -35,5 +35,6 @@
   "addServerTitle": "Añadir servidor",
   "serverUrlLabel": "URL del servidor",
   "linkedServerFailed": "No se pudo abrir el servidor del enlace.",
-  "chooseServerForLink": "Selecciona un servidor antes de abrir un enlace a un canal."
+  "chooseServerForLink": "Selecciona un servidor antes de abrir un enlace a un canal.",
+  "accountDeleted": "Se eliminó tu cuenta."
 }

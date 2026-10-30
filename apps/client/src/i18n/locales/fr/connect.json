@@ -35,5 +35,6 @@
   "addServerTitle": "Ajouter un serveur",
   "serverUrlLabel": "URL du serveur",
   "linkedServerFailed": "Impossible d’ouvrir le serveur indiqué par le lien.",
-  "chooseServerForLink": "Choisissez un serveur avant d’ouvrir un lien vers un salon."
+  "chooseServerForLink": "Choisissez un serveur avant d’ouvrir un lien vers un salon.",
+  "accountDeleted": "Votre compte a été supprimé."
 }

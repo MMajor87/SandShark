@@ -123,9 +123,12 @@ test.each([
   );
 });
 
-
 test('carries the invite through the isolated desktop login window', async () => {
-  const pending = startOidcLogin(parent, 'https://server.example', 'invite&value');
+  const pending = startOidcLogin(
+    parent,
+    'https://server.example',
+    'invite&value'
+  );
   const url = new URL(FakeWindow.latest.url);
   expect(url.origin).toBe('https://server.example');
   expect(url.pathname).toBe('/oidc/login');
@@ -135,5 +138,46 @@ test('carries the invite through the isolated desktop login window', async () =>
 });
 
 test('rejects oversized desktop invite codes', () => {
-  expect(() => startOidcLogin(parent, 'https://server.example', 'a'.repeat(257))).toThrow('Invalid invite code.');
+  expect(() =>
+    startOidcLogin(parent, 'https://server.example', 'a'.repeat(257))
+  ).toThrow('Invalid invite code.');
+});
+
+test('confirms account deletion through the isolated OIDC window', async () => {
+  exchange.mockImplementation(
+    async () => new Response(JSON.stringify({ token: 'deleted' }))
+  );
+  const intent = 'a'.repeat(43);
+  const pending = startOidcLogin(
+    parent,
+    'https://server.example',
+    undefined,
+    intent
+  );
+  const window = FakeWindow.latest;
+  expect(new URL(window.url).searchParams.get('delete_intent')).toBe(intent);
+
+  window.webContents.emit(
+    'will-redirect',
+    { preventDefault() {} },
+    'https://server.example/#account_deleted=handoff'
+  );
+
+  expect(await pending).toBe('deleted');
+  expect(exchange).toHaveBeenCalledTimes(1);
+});
+
+test('rejects an ordinary login handoff during account deletion', async () => {
+  const pending = startOidcLogin(
+    parent,
+    'https://server.example',
+    undefined,
+    'a'.repeat(43)
+  );
+  FakeWindow.latest.webContents.emit(
+    'will-redirect',
+    { preventDefault() {} },
+    'https://server.example/#account_deleted=handoff'
+  );
+  await expect(pending).rejects.toThrow('Invalid account deletion response.');
 });

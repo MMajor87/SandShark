@@ -556,5 +556,15 @@
   "hotkeysBridgeRetry": "Intentar conectar",
   "desktopTab": "Escritorio",
   "simulcastLabel": "Simulcast",
-  "simulcastDesc": "Permite enviar varias capas de calidad de vídeo para que los receptores puedan adaptarse a conexiones más lentas. Esto aumentará el uso de ancho de banda y CPU del servidor, pero puede mejorar la experiencia con conexiones lentas."
+  "simulcastDesc": "Permite enviar varias capas de calidad de vídeo para que los receptores puedan adaptarse a conexiones más lentas. Esto aumentará el uso de ancho de banda y CPU del servidor, pero puede mejorar la experiencia con conexiones lentas.",
+  "deleteAccountTab": "Eliminar cuenta",
+  "deleteAccountDescription": "Elimina tu cuenta de este servidor. Esta acción no se puede deshacer.",
+  "deleteAccountOwner": "El propietario del servidor no puede eliminar su cuenta.",
+  "deleteAccountSso": "Vuelve a iniciar sesión con tu proveedor de identidad para confirmar la eliminación.",
+  "deleteAccountWipeLabel": "Eliminar también mi contenido",
+  "deleteAccountWipeDescription": "Conservar: los mensajes, las reacciones, los emojis personalizados y los archivos adjuntos permanecerán bajo Usuario eliminado. Eliminar: se borrarán. En ambos casos se eliminan los eventos, las invitaciones, el acceso a mensajes directos y los datos de la cuenta.",
+  "deleteAccountKeepMessage": "Se eliminará tu cuenta. Tus mensajes, reacciones, emojis personalizados y archivos adjuntos permanecerán bajo Usuario eliminado. Se eliminarán tus eventos e invitaciones. Esta acción no se puede deshacer.",
+  "deleteAccountWipeMessage": "Se eliminarán tu cuenta, mensajes, reacciones, archivos subidos y eventos del calendario. Esta acción no se puede deshacer.",
+  "deleteAccountButton": "Eliminar cuenta",
+  "failedDeleteAccount": "No se pudo eliminar tu cuenta"
 }

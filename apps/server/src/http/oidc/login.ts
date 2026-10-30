@@ -6,6 +6,7 @@ import {
 import type http from 'http';
 import * as client from 'openid-client';
 import { z } from 'zod';
+import { bindAccountDeleteIntent } from '../../helpers/account-delete-intents';
 import type { getWsInfo } from '../../helpers/get-ws-info';
 import {
   oidcManager,
@@ -41,6 +42,12 @@ const oidcLoginRouteHandler = async (
     const inviteCode = zInviteCode.safeParse(
       url.searchParams.get('invite')
     ).data;
+    const deleteIntent = url.searchParams.get('delete_intent');
+
+    if (deleteIntent && !bindAccountDeleteIntent(deleteIntent, state)) {
+      redirectWithError(req, res, OidcError.EXPIRED);
+      return;
+    }
 
     oidcManager.startTransaction(state, { nonce, codeVerifier, redirectUri });
 
@@ -50,7 +57,8 @@ const oidcLoginRouteHandler = async (
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
       state,
-      nonce
+      nonce,
+      ...(deleteIntent ? { prompt: 'login', max_age: '0' } : {})
     });
 
     res.writeHead(302, {

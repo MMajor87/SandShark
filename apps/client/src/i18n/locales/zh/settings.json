@@ -556,5 +556,15 @@
   "hotkeysBridgeRetry": "尝试连接",
   "desktopTab": "桌面应用",
   "simulcastLabel": "Simulcast",
-  "simulcastDesc": "允许用户发送多个画质层的视频，让接收方适应较慢的网络连接。这会增加服务器的带宽和 CPU 使用量，但可以改善慢速连接用户的体验。"
+  "simulcastDesc": "允许用户发送多个画质层的视频，让接收方适应较慢的网络连接。这会增加服务器的带宽和 CPU 使用量，但可以改善慢速连接用户的体验。",
+  "deleteAccountTab": "删除账户",
+  "deleteAccountDescription": "从此服务器删除你的账户。此操作无法撤销。",
+  "deleteAccountOwner": "服务器所有者不能删除自己的账户。",
+  "deleteAccountSso": "请通过身份提供方重新登录以确认删除。",
+  "deleteAccountWipeLabel": "同时删除我的内容",
+  "deleteAccountWipeDescription": "保留：消息、回应、自定义表情和附件将归于“已删除用户”。删除：这些内容将被移除。无论哪种选择，日历活动、邀请、私信访问权限和账户数据都会删除。",
+  "deleteAccountKeepMessage": "你的账户将被删除。消息、回应、自定义表情和附件将归于“已删除用户”。日历活动和邀请将被删除。此操作无法撤销。",
+  "deleteAccountWipeMessage": "你的账户、消息、回应、上传文件和日历活动将被删除。此操作无法撤销。",
+  "deleteAccountButton": "删除账户",
+  "failedDeleteAccount": "无法删除账户"
 }

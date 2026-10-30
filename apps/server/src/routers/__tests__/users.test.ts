@@ -8,7 +8,7 @@ import {
   type TTempFile
 } from '@sharkord/shared';
 import { describe, expect, test } from 'bun:test';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import {
   createFakeSocket,
@@ -23,7 +23,10 @@ import { config } from '../../config';
 import { getUserByToken } from '../../db/queries/users';
 import {
   activityLog,
+  calendarEventInvitees,
+  calendarEvents,
   channels,
+  directMessages,
   emojis,
   files,
   logins,
@@ -35,6 +38,7 @@ import {
   userRoles,
   users
 } from '../../db/schema';
+import { eventBus } from '../../plugins/event-bus';
 import { drainActivityLogQueue } from '../../queues/activity-log';
 import { pubsub } from '../../utils/pubsub';
 
@@ -1201,6 +1205,186 @@ describe('users router', () => {
     expect(deletedUser).toBeUndefined();
   });
 
+  test('should delete a password account and revoke its token', async () => {
+    const { caller, mockedToken } = await initTest(2);
+    const deleted: number[] = [];
+    const pluginEvents: number[] = [];
+    const subscription = pubsub.subscribe(ServerEvents.USER_DELETE).subscribe({
+      next: (event) => deleted.push(event.userId)
+    });
+    const unregister = eventBus.register(
+      'account-delete-test',
+      'user:deleted',
+      ({ userId }) => {
+        pluginEvents.push(userId);
+      }
+    );
+
+    try {
+      await caller.users.deleteOwn({ password: 'password123', wipe: false });
+      expect(await getUserByToken(mockedToken)).toBeUndefined();
+      expect(deleted).toEqual([2]);
+      expect(pluginEvents).toEqual([2]);
+      await drainActivityLogQueue();
+      const log = await tdb
+        .select({ userId: activityLog.userId })
+        .from(activityLog)
+        .where(eq(activityLog.type, ActivityLogType.USER_DELETED))
+        .get();
+      expect(log?.userId).toBeNull();
+    } finally {
+      subscription.unsubscribe();
+      unregister();
+    }
+  });
+
+  test('should reject a wrong password and the owner account', async () => {
+    const member = await initTest(2);
+    await expect(
+      member.caller.users.deleteOwn({ password: 'wrong', wipe: false })
+    ).rejects.toThrow('Current password is incorrect');
+    expect(await getUserByToken(member.mockedToken)).toBeDefined();
+
+    const owner = await initTest(1);
+    await expect(
+      owner.caller.users.deleteOwn({ password: 'password123', wipe: false })
+    ).rejects.toThrow('The server owner cannot delete their account.');
+  });
+
+  test('should validate self deletion input and refuse OIDC deletion for a local account', async () => {
+    const { caller } = await initTest(2);
+
+    await expect(
+      caller.users.deleteOwn({ password: 'abc', wipe: false })
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    await expect(
+      caller.users.deleteOwn({ password: 'password123', wipe: 'yes' as never })
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    await expect(
+      caller.users.beginOidcDelete({ wipe: false })
+    ).rejects.toThrow(
+      'Identity provider sign in is unavailable for this account.'
+    );
+  });
+
+  test('should require OIDC reauthentication for a passwordless account', async () => {
+    await tdb.update(users).set({ passwordSet: false }).where(eq(users.id, 2));
+    const { caller } = await initTest(2);
+    await expect(
+      caller.users.deleteOwn({ password: 'password123', wipe: false })
+    ).rejects.toThrow(
+      'Sign in with your identity provider to delete this account.'
+    );
+  });
+
+  test('should close every session after a successful self deletion', async () => {
+    const firstTab = createFakeSocket();
+    const secondTab = createFakeSocket();
+    const { caller } = await initTest(2, undefined, {
+      getUserWs: (userId) =>
+        userId === 2 ? [firstTab, secondTab] : []
+    });
+
+    await caller.users.deleteOwn({ password: 'password123', wipe: true });
+    await Bun.sleep(1100);
+
+    const close = {
+      code: DisconnectCode.KICKED,
+      reason: 'Your account has been deleted'
+    };
+    expect(firstTab.closes).toEqual([close]);
+    expect(secondTab.closes).toEqual([close]);
+  });
+
+  test('should remove owned calendar events and invitations in keep mode', async () => {
+    await tdb
+      .update(calendarEvents)
+      .set({ creatorId: 2 })
+      .where(eq(calendarEvents.id, 2));
+    const { caller } = await initTest(2);
+    await caller.users.deleteOwn({ password: 'password123', wipe: false });
+
+    expect(
+      await tdb
+        .select({ id: calendarEvents.id })
+        .from(calendarEvents)
+        .where(eq(calendarEvents.id, 2))
+        .get()
+    ).toBeUndefined();
+    expect(
+      await tdb
+        .select({ id: calendarEventInvitees.id })
+        .from(calendarEventInvitees)
+        .where(eq(calendarEventInvitees.eventId, 2))
+        .all()
+    ).toHaveLength(0);
+  });
+
+  test('should remove direct message membership while retaining opted-in content', async () => {
+    const { caller } = await initTest(3);
+    const before = await tdb
+      .select({ channelId: directMessages.channelId })
+      .from(directMessages)
+      .get();
+
+    expect(before).toBeDefined();
+
+    await caller.users.deleteOwn({ password: 'password123', wipe: false });
+
+    expect(await tdb.select().from(directMessages).all()).toHaveLength(0);
+    expect(
+      await tdb
+        .select({ id: messages.id })
+        .from(messages)
+        .where(eq(messages.channelId, before!.channelId))
+        .get()
+    ).toBeDefined();
+  });
+
+  test('should roll back deletion without publishing success', async () => {
+    const { caller } = await initTest(2);
+    tdb.run(
+      sql`CREATE TEMP TRIGGER reject_user_delete BEFORE DELETE ON users WHEN OLD.id = 2 BEGIN SELECT RAISE(ABORT, 'delete failure'); END`
+    );
+    const deleted: number[] = [];
+    const pluginEvents: number[] = [];
+    const subscription = pubsub.subscribe(ServerEvents.USER_DELETE).subscribe({
+      next: (event) => deleted.push(event.userId)
+    });
+    const unregister = eventBus.register(
+      'account-delete-rollback-test',
+      'user:deleted',
+      ({ userId }) => {
+        pluginEvents.push(userId);
+      }
+    );
+
+    try {
+      await expect(
+        caller.users.deleteOwn({ password: 'password123', wipe: false })
+      ).rejects.toThrow('delete failure');
+      expect(
+        await tdb
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.id, 2))
+          .get()
+      ).toBeDefined();
+      expect(
+        await tdb
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.identity, DELETED_USER_IDENTITY_AND_NAME))
+          .get()
+      ).toBeUndefined();
+      expect(deleted).toEqual([]);
+      expect(pluginEvents).toEqual([]);
+    } finally {
+      subscription.unsubscribe();
+      unregister();
+    }
+  });
+
   test('should throw when trying to delete yourself', async () => {
     const { caller } = await initTest();
 
@@ -1577,8 +1761,7 @@ describe('users router', () => {
       .where(eq(files.id, insertedMessageFile!.id))
       .get();
 
-    expect(wipedMessageFile).toBeDefined();
-    expect(wipedMessageFile!.userId).toBe(targetUserId);
+    expect(wipedMessageFile).toBeUndefined();
 
     const wipedEmojiFile = await tdb
       .select({ id: files.id, userId: files.userId })
@@ -1586,8 +1769,7 @@ describe('users router', () => {
       .where(eq(files.id, insertedEmojiFile!.id))
       .get();
 
-    expect(wipedEmojiFile).toBeDefined();
-    expect(wipedEmojiFile!.userId).toBe(targetUserId);
+    expect(wipedEmojiFile).toBeUndefined();
   });
 
   test('should unban user', async () => {

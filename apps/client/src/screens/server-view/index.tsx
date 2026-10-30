@@ -9,6 +9,7 @@ import { VoiceProvider } from '@/components/voice-provider';
 import { useSelectedDmChannelId, useThreadSidebar } from '@/features/app/hooks';
 import { setDmsOpen } from '@/features/server/actions';
 import { setSelectedChannelId } from '@/features/server/channels/actions';
+import { useMediaAccessRefresh } from '@/features/server/files/use-media-access-refresh';
 import { useDmsOpen, usePublicServerSettings } from '@/features/server/hooks';
 import {
   getLocalStorageItemBool,
@@ -23,6 +24,7 @@ import { ContentWrapper } from './content-wrapper';
 import { PreventBrowser } from './prevent-browser';
 
 const ServerView = memo(() => {
+  useMediaAccessRefresh();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileUsersOpen, setIsMobileUsersOpen] = useState(false);
   const [isDesktopRightSidebarOpen, setIsDesktopRightSidebarOpen] = useState(

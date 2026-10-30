@@ -27,6 +27,8 @@ const ImageOverride = memo(({ src, alt }: TImageOverrideProps) => {
     setError(true);
   }, []);
 
+  useEffect(() => setError(false), [src]);
+
   useEffect(() => {
     setTimeout(() => {
       setLoading((prev) => {

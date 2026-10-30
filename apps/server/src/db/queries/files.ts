@@ -1,5 +1,5 @@
 import type { TFile, TPluginStorageUsage } from '@sharkord/shared';
-import { desc, eq, sql, sum } from 'drizzle-orm';
+import { desc, eq, inArray, sql, sum } from 'drizzle-orm';
 import { db } from '..';
 import { attachFileToken } from '../../helpers/files-crypto';
 import { files, messageFiles } from '../schema';
@@ -144,6 +144,45 @@ const getFileAccess = async (fileId: number) => {
   };
 };
 
+const getAccessibleFilesByIds = async (
+  fileIds: number[],
+  visibleChannelIds: number[]
+): Promise<TFile[]> => {
+  if (fileIds.length === 0) return [];
+
+  const ids = sql.join(
+    fileIds.map((id) => sql`${id}`),
+    sql`, `
+  );
+  const [fileRows, publicRows, channelRows] = await Promise.all([
+    db.select().from(files).where(inArray(files.id, fileIds)),
+    db.all<{ id: number }>(sql`
+      SELECT f.id FROM files f WHERE f.id IN (${ids}) AND (
+        EXISTS (SELECT 1 FROM users u WHERE u.avatar_id = f.id OR u.banner_id = f.id)
+        OR EXISTS (SELECT 1 FROM emojis e WHERE e.file_id = f.id)
+        OR EXISTS (SELECT 1 FROM settings s WHERE s.logo_id = f.id)
+      )
+    `),
+    db.all<{ fileId: number; channelId: number }>(sql`
+      SELECT mf.file_id AS fileId, m.channel_id AS channelId
+      FROM message_files mf JOIN messages m ON m.id = mf.message_id
+      WHERE mf.file_id IN (${ids})
+      UNION
+      SELECT mr.file_id AS fileId, m.channel_id AS channelId
+      FROM message_reactions mr JOIN messages m ON m.id = mr.message_id
+      WHERE mr.file_id IN (${ids})
+    `)
+  ]);
+
+  const allowed = new Set(publicRows.map((row) => row.id));
+  const visible = new Set(visibleChannelIds);
+  for (const row of channelRows) {
+    if (visible.has(row.channelId)) allowed.add(row.fileId);
+  }
+
+  return fileRows.filter((file) => allowed.has(file.id));
+};
+
 const ORPHAN_GRACE_MS = 15 * 60 * 1000; // 15 minutes
 const ORPHAN_BATCH_SIZE = 500;
 
@@ -221,6 +260,7 @@ const isFileOrphaned = async (fileId: number): Promise<boolean> => {
 };
 
 export {
+  getAccessibleFilesByIds,
   getExceedingOldFiles,
   getFileAccess,
   getFileNameById,

@@ -82,8 +82,15 @@ const Devices = memo(() => {
     loadDevices
   } = useDevices();
   const onSave = useCallback(
-    async (values: TDeviceSettings) => saveDevices(values),
-    [saveDevices]
+    async (values: TDeviceSettings) => {
+      if (currentVoiceChannelId) {
+        const bridge = getVoiceControlsBridge();
+        if (!bridge) throw new Error(t('voiceControlsUnavailable'));
+        await bridge.applyDevices(values, devices);
+      }
+      saveDevices(values);
+    },
+    [currentVoiceChannelId, devices, saveDevices, t]
   );
   const { values, onChange, reset } = useSettingsForm<TDeviceSettings>({
     initialValues: devices,
@@ -270,12 +277,6 @@ const Devices = memo(() => {
 
   return (
     <SettingsSection title={t('devicesTitle')} description={t('devicesDesc')}>
-      {currentVoiceChannelId && (
-        <Alert variant="default">
-          <Info />
-          <AlertDescription>{t('voiceChannelActiveInfo')}</AlertDescription>
-        </Alert>
-      )}
       <div className="space-y-6">
         <Group label={t('playbackLabel')}>
           <Select

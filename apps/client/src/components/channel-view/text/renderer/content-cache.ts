@@ -1,6 +1,11 @@
 import { isEmojiOnlyMessage, type TJoinedMessage } from '@sharkord/shared';
-import parse, { type DOMNode } from 'html-react-parser';
-import type { ReactNode } from 'react';
+import parse, {
+  attributesToProps,
+  domToReact,
+  Element,
+  type DOMNode
+} from 'html-react-parser';
+import { createElement, type ReactNode } from 'react';
 import { extractYoutubeVideoIds } from './helpers';
 import { readFromCache, writeToCache } from './lru-cache';
 import { serializer } from './serializer';
@@ -30,9 +35,26 @@ const getParsedMessageHtml = (message: TJoinedMessage) => {
 
   if (cached !== undefined) return cached;
 
-  const parsed = parse(message.content ?? '', {
-    replace: (domNode: DOMNode) => serializer(domNode, message.id)
-  });
+  const replace = (domNode: DOMNode) => {
+    if (domNode instanceof Element && domNode.name === 'p') {
+      return createElement(
+        'p',
+        { dir: 'auto' },
+        domToReact(domNode.children as DOMNode[], { replace })
+      );
+    }
+
+    if (domNode instanceof Element && domNode.name === 'a') {
+      return createElement(
+        'a',
+        { ...attributesToProps(domNode.attribs), dir: 'auto' },
+        domToReact(domNode.children as DOMNode[], { replace })
+      );
+    }
+
+    return serializer(domNode, message.id);
+  };
+  const parsed = parse(message.content ?? '', { replace });
 
   writeToCache(parsedMessageCache, cacheKey, parsed);
 

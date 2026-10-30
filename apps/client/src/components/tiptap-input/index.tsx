@@ -96,6 +96,11 @@ const TiptapInput = memo(
     const extensions = useMemo(() => {
       const exts = [
         StarterKit.configure({
+          paragraph: {
+            HTMLAttributes: {
+              dir: 'auto'
+            }
+          },
           hardBreak: {
             HTMLAttributes: {
               class: 'hard-break'
@@ -107,6 +112,7 @@ const TiptapInput = memo(
           defaultProtocol: 'https',
           openOnClick: false,
           HTMLAttributes: {
+            dir: 'auto',
             target: '_blank',
             rel: 'noopener noreferrer'
           },
@@ -165,6 +171,7 @@ const TiptapInput = memo(
       },
       editorProps: {
         attributes: {
+          dir: 'auto',
           'data-testid': TestId.MESSAGE_COMPOSE_EDITOR
         },
         handleKeyDown: (_view, event) => {

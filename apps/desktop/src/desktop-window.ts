@@ -36,6 +36,7 @@ const createDesktopWindow = ({
   developmentRendererUrl,
   isPackagedSmokeTest,
   onRendererReset,
+  onBlur,
   onClosed
 }: {
   currentDirectory: string;
@@ -43,6 +44,7 @@ const createDesktopWindow = ({
   developmentRendererUrl: string;
   isPackagedSmokeTest: boolean;
   onRendererReset: () => void;
+  onBlur: () => void;
   onClosed: (id: number) => void;
 }) => {
   const desktopIconPath = isDevelopment
@@ -957,6 +959,8 @@ const createDesktopWindow = ({
     mainWindow.on('focus', () => {
       mainWindow?.flashFrame(false);
     });
+    // focus changes can lose a key release, so clear a held shortcut
+    mainWindow.on('blur', onBlur);
 
     if (isDevelopment) {
       await mainWindow.loadURL(getDevelopmentRendererUrl());

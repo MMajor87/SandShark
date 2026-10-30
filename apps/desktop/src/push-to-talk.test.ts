@@ -64,3 +64,26 @@ test('failed native startup removes listeners and permits retry', () => {
   expect(ptt.setPushToTalk(config).registered).toBe(true);
   ptt.dispose();
 });
+
+test('focus loss releases a held key and the next press still works', () => {
+  const hook = Object.assign(new EventEmitter(), {
+    start: mock(() => {}),
+    stop: mock(() => {})
+  });
+  const states: boolean[] = [];
+  const ptt = createPushToTalk(
+    hook as unknown as Parameters<typeof createPushToTalk>[0],
+    (active) => states.push(active),
+    'win32'
+  );
+
+  ptt.setPushToTalk(config);
+  hook.emit('keydown', key);
+  ptt.releaseHeld();
+  ptt.releaseHeld();
+  hook.emit('keydown', key);
+  hook.emit('keyup', key);
+
+  expect(states).toEqual([true, false, true, false]);
+  ptt.dispose();
+});

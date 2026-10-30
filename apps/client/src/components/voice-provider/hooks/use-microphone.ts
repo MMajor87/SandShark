@@ -51,17 +51,24 @@ const useMicrophone = ({
   );
   const nsAudioContextsRef = useRef<AudioContext[]>([]);
   const micMutedRef = useRef(ownVoiceState.micMuted);
+  const soundMutedRef = useRef(ownVoiceState.soundMuted);
+  const serverMutedRef = useRef(ownVoiceState.serverMuted);
   const pushToTalkActiveRef = useRef(pushToTalkActive);
-  const pushToTalkModeRef = useRef<'talk' | 'mute' | undefined>(undefined);
+  const pushToTalkModeRef = useRef<'talk' | 'mute' | undefined>(
+    pushToTalkRegistered ? pushToTalkSettings.mode : undefined
+  );
 
   const syncTransmitMicrophoneTrackState = useCallback(() => {
     const track = transmitMicrophoneTrackRef.current;
 
     if (!track) return;
 
+    // the held key gates transmission without changing the user's manual mute state
     const pushToTalkMode = pushToTalkModeRef.current;
     const shouldEnable =
       !micMutedRef.current &&
+      !soundMutedRef.current &&
+      !serverMutedRef.current &&
       (pushToTalkMode === undefined ||
         (pushToTalkMode === 'talk'
           ? pushToTalkActiveRef.current
@@ -84,8 +91,15 @@ const useMicrophone = ({
 
   useEffect(() => {
     micMutedRef.current = ownVoiceState.micMuted;
+    soundMutedRef.current = ownVoiceState.soundMuted;
+    serverMutedRef.current = ownVoiceState.serverMuted;
     syncTransmitMicrophoneTrackState();
-  }, [ownVoiceState.micMuted, syncTransmitMicrophoneTrackState]);
+  }, [
+    ownVoiceState.micMuted,
+    ownVoiceState.soundMuted,
+    ownVoiceState.serverMuted,
+    syncTransmitMicrophoneTrackState
+  ]);
 
   useEffect(() => {
     if (!microphoneNoiseGateWorkletNodeRef.current) return;

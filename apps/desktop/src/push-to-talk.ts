@@ -173,6 +173,7 @@ const createPushToTalk = (
     pushToTalkConfig = undefined;
     stopGlobalInputHook();
   };
+  const releaseHeld = () => sendPushToTalkState(false);
   const registerIpc = (ipc: TDesktopIpc) => {
     const { getSenderWindow } = ipc;
     ipc.handle('sandshark:set-push-to-talk', (event, config: unknown) => {
@@ -190,6 +191,6 @@ const createPushToTalk = (
       stopGlobalInputHook();
     });
   };
-  return { setPushToTalk, dispose, registerIpc };
+  return { setPushToTalk, releaseHeld, dispose, registerIpc };
 };
 export { createPushToTalk };

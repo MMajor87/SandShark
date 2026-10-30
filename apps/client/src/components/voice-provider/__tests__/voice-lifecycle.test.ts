@@ -374,7 +374,14 @@ afterEach(() => {
 });
 const renderMicrophone = (
   getUserMedia: () => Promise<MediaStream>,
-  muted = false
+  muted = false,
+  options: {
+    soundMuted?: boolean;
+    serverMuted?: boolean;
+    pushToTalkActive?: boolean;
+    pushToTalkRegistered?: boolean;
+    mode?: 'talk' | 'mute';
+  } = {}
 ) => {
   Object.defineProperty(globalThis, 'navigator', {
     configurable: true,
@@ -401,7 +408,12 @@ const renderMicrophone = (
         microphoneId: 'selected-mic',
         noiseGateEnabled: false
       } as Parameters<typeof useMicrophone>[0]['devices'],
-      ownVoiceState: { ...state, micMuted: muted },
+      ownVoiceState: {
+        ...state,
+        micMuted: muted,
+        soundMuted: options.soundMuted ?? false,
+        serverMuted: options.serverMuted ?? false
+      },
       producerTransport: {
         current: { closed: false, produce } as unknown as Parameters<
           typeof useMicrophone
@@ -409,9 +421,9 @@ const renderMicrophone = (
       },
       localAudioProducer,
       setLocalAudioStream,
-      pushToTalkActive: false,
-      pushToTalkRegistered: false,
-      pushToTalkSettings: { mode: 'talk' } as Parameters<
+      pushToTalkActive: options.pushToTalkActive ?? false,
+      pushToTalkRegistered: options.pushToTalkRegistered ?? false,
+      pushToTalkSettings: { mode: options.mode ?? 'talk' } as Parameters<
         typeof useMicrophone
       >[0]['pushToTalkSettings']
     });
@@ -489,6 +501,59 @@ test('microphone rebuild preserves the selected device and mute while cleanup is
   expect(track.stop).toHaveBeenCalledTimes(1);
   expect(producer.close).toHaveBeenCalledTimes(1);
 });
+for (const [description, muted, options, expectedEnabled] of [
+  [
+    'open mic after release',
+    false,
+    { mode: 'mute', pushToTalkRegistered: true },
+    true
+  ],
+  [
+    'open mic while held',
+    false,
+    { mode: 'mute', pushToTalkRegistered: true, pushToTalkActive: true },
+    false
+  ],
+  [
+    'previously muted mic after release',
+    true,
+    { mode: 'mute', pushToTalkRegistered: true },
+    false
+  ],
+  [
+    'deafened mic after release',
+    false,
+    { mode: 'mute', pushToTalkRegistered: true, soundMuted: true },
+    false
+  ],
+  [
+    'moderator muted mic after release',
+    false,
+    { mode: 'mute', pushToTalkRegistered: true, serverMuted: true },
+    false
+  ],
+  [
+    'push to talk before press',
+    false,
+    { mode: 'talk', pushToTalkRegistered: true },
+    false
+  ],
+  [
+    'push to talk while held',
+    false,
+    { mode: 'talk', pushToTalkRegistered: true, pushToTalkActive: true },
+    true
+  ]
+] as const) {
+  test(`push to mute starts ${description} with the correct transmit state`, async () => {
+    disconnected = false;
+    const { stream, track } = fakeMicrophone();
+    const { microphone } = renderMicrophone(async () => stream, muted, options);
+    await microphone.startMicStream();
+    expect(track.enabled).toBe(expectedEnabled);
+    microphone.cleanupMicProcessingResources();
+  });
+}
 test('failed microphone producer releases acquired capture resources', async () => {
   disconnected = false;
   const { stream, track } = fakeMicrophone();

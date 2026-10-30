@@ -556,5 +556,15 @@
   "hotkeysBridgeRetry": "Essayer de se connecter",
   "desktopTab": "Bureau",
   "simulcastLabel": "Simulcast",
-  "simulcastDesc": "Permet aux utilisateurs d’envoyer plusieurs niveaux de qualité vidéo afin que les destinataires puissent s’adapter aux connexions plus lentes. Cela augmente l’utilisation de la bande passante et du processeur du serveur, mais peut améliorer l’expérience sur les connexions lentes."
+  "simulcastDesc": "Permet aux utilisateurs d’envoyer plusieurs niveaux de qualité vidéo afin que les destinataires puissent s’adapter aux connexions plus lentes. Cela augmente l’utilisation de la bande passante et du processeur du serveur, mais peut améliorer l’expérience sur les connexions lentes.",
+  "deleteAccountTab": "Supprimer le compte",
+  "deleteAccountDescription": "Supprime votre compte de ce serveur. Cette action est irréversible.",
+  "deleteAccountOwner": "Le propriétaire du serveur ne peut pas supprimer son compte.",
+  "deleteAccountSso": "Reconnectez-vous avec votre fournisseur d'identité pour confirmer la suppression.",
+  "deleteAccountWipeLabel": "Supprimer aussi mon contenu",
+  "deleteAccountWipeDescription": "Conserver : les messages, réactions, émojis personnalisés et fichiers joints restent sous Utilisateur supprimé. Supprimer : ils sont effacés. Dans les deux cas, les événements, invitations, l'accès aux messages privés et les données du compte sont supprimés.",
+  "deleteAccountKeepMessage": "Votre compte sera supprimé. Vos messages, réactions, émojis personnalisés et fichiers joints resteront sous Utilisateur supprimé. Vos événements et invitations seront supprimés. Cette action est irréversible.",
+  "deleteAccountWipeMessage": "Votre compte, vos messages, réactions, fichiers et événements seront supprimés. Cette action est irréversible.",
+  "deleteAccountButton": "Supprimer le compte",
+  "failedDeleteAccount": "Impossible de supprimer votre compte"
 }

@@ -1,7 +1,12 @@
 import { BrowserWindow } from 'electron';
 import { randomUUID } from 'node:crypto';
 
-const startOidcLogin = (parent: BrowserWindow, serverUrl: string, invite?: string) => {
+const startOidcLogin = (
+  parent: BrowserWindow,
+  serverUrl: string,
+  invite?: string,
+  deleteIntent?: string
+) => {
   const server = new URL(serverUrl);
   if (
     !['https:', 'http:'].includes(server.protocol) ||
@@ -14,11 +19,18 @@ const startOidcLogin = (parent: BrowserWindow, serverUrl: string, invite?: strin
     throw new Error('Invalid authentication server URL.');
   }
 
-  if (invite !== undefined && (typeof invite !== 'string' || invite.length > 256)) {
+  if (
+    invite !== undefined &&
+    (typeof invite !== 'string' || invite.length > 256)
+  ) {
     throw new Error('Invalid invite code.');
+  }
+  if (deleteIntent !== undefined && !/^[A-Za-z0-9_-]{43}$/.test(deleteIntent)) {
+    throw new Error('Invalid account deletion request.');
   }
   const loginUrl = new URL('/oidc/login', server);
   if (invite) loginUrl.searchParams.set('invite', invite);
+  if (deleteIntent) loginUrl.searchParams.set('delete_intent', deleteIntent);
 
   return new Promise<string | null>((resolve, reject) => {
     const loginWindow = new BrowserWindow({
@@ -74,6 +86,10 @@ const startOidcLogin = (parent: BrowserWindow, serverUrl: string, invite?: strin
         const result = (await response.json()) as { token?: unknown };
         if (typeof result.token !== 'string' || !result.token)
           throw new Error('Invalid authentication response.');
+        if (deleteIntent && result.token !== 'deleted')
+          throw new Error('Invalid account deletion response.');
+        if (!deleteIntent && result.token === 'deleted')
+          throw new Error('Invalid authentication response.');
         finish(result.token);
       } catch (error) {
         finish(
@@ -90,7 +106,10 @@ const startOidcLogin = (parent: BrowserWindow, serverUrl: string, invite?: strin
       }
       // only the selected server's root can deliver the one-time handoff code.
       if (url.origin !== server.origin || url.pathname !== '/') return;
-      const code = new URLSearchParams(url.hash.slice(1)).get('oidc');
+      const hash = new URLSearchParams(url.hash.slice(1));
+      const code = deleteIntent
+        ? hash.get('account_deleted')
+        : hash.get('oidc');
       if (code) {
         event.preventDefault();
         void exchange(code);

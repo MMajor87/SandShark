@@ -556,5 +556,15 @@
   "hotkeysBridgeRetry": "Prova a connettere",
   "desktopTab": "Desktop",
   "simulcastLabel": "Simulcast",
-  "simulcastDesc": "Consenti agli utenti di inviare più livelli di qualità video, così i destinatari possono adattarsi alle connessioni più lente. Questo aumenta l’uso della larghezza di banda e della CPU del server, ma può migliorare l’esperienza sulle connessioni lente."
+  "simulcastDesc": "Consenti agli utenti di inviare più livelli di qualità video, così i destinatari possono adattarsi alle connessioni più lente. Questo aumenta l’uso della larghezza di banda e della CPU del server, ma può migliorare l’esperienza sulle connessioni lente.",
+  "deleteAccountTab": "Elimina account",
+  "deleteAccountDescription": "Rimuove il tuo account da questo server. L'azione è irreversibile.",
+  "deleteAccountOwner": "Il proprietario del server non può eliminare il proprio account.",
+  "deleteAccountSso": "Accedi di nuovo tramite il provider di identità per confermare l'eliminazione.",
+  "deleteAccountWipeLabel": "Elimina anche i miei contenuti",
+  "deleteAccountWipeDescription": "Conserva: messaggi, reazioni, emoji personalizzate e allegati rimangono sotto Utente eliminato. Elimina: vengono rimossi. In entrambi i casi vengono eliminati eventi, inviti, accesso ai messaggi diretti e dati dell'account.",
+  "deleteAccountKeepMessage": "Il tuo account verrà eliminato. Messaggi, reazioni, emoji personalizzate e allegati resteranno sotto Utente eliminato. Eventi e inviti verranno eliminati. L'azione è irreversibile.",
+  "deleteAccountWipeMessage": "Il tuo account, i messaggi, le reazioni, i file caricati e gli eventi verranno eliminati. L'azione è irreversibile.",
+  "deleteAccountButton": "Elimina account",
+  "failedDeleteAccount": "Impossibile eliminare il tuo account"
 }

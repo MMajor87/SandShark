@@ -36,7 +36,11 @@ const isHandlingOidcCallback = (search: string, hash: string) => {
   const params = new URLSearchParams(search);
   const fragment = new URLSearchParams(hash.replace(/^#/, ''));
 
-  return fragment.has('oidc') || params.has('oidc_error');
+  return (
+    fragment.has('oidc') ||
+    fragment.has('account_deleted') ||
+    params.has('oidc_error')
+  );
 };
 
 const getDocumentTitle = (

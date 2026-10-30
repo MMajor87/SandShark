@@ -4,6 +4,7 @@ import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import fs from 'fs/promises';
 import path from 'path';
 import { migrateDatabase } from '../db/migrate';
+import { clearAccountDeleteIntentsForTests } from '../helpers/account-delete-intents';
 import { DATA_PATH } from '../helpers/paths';
 import { clearVoiceMoveGrantsForTests } from '../helpers/voice-move-grants';
 import { createHttpServer } from '../http';
@@ -96,6 +97,7 @@ beforeEach(async () => {
   pluginManager.clearHooks();
   clearRateLimitersForTests();
   clearVoiceMoveGrantsForTests();
+  clearAccountDeleteIntentsForTests();
   VoiceRuntime.clearServerMutesForTests();
   clearUserSocketsForTests();
 

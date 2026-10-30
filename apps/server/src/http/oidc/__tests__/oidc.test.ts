@@ -1,5 +1,6 @@
 import {
   ActivityLogType,
+  DisconnectCode,
   MAX_USER_NAME_LENGTH,
   OidcError,
   sha256
@@ -20,14 +21,19 @@ import {
   type TFakeOidcProvider,
   type TFakeProviderClaims
 } from '../../../__tests__/fake-oidc-provider';
+import { createFakeSocket, getMockedToken } from '../../../__tests__/helpers';
 import { TEST_SECRET_TOKEN } from '../../../__tests__/seed';
 import { findTestLog, tdb, testsBaseUrl } from '../../../__tests__/setup';
 import { config } from '../../../config';
+import { getUserByToken } from '../../../db/queries/users';
 import {
   activityLog,
+  calendarEventInvitees,
+  calendarEvents,
   channelReadStates,
   files,
   invites,
+  messages,
   oidcTransactions,
   roles,
   settings,
@@ -36,6 +42,7 @@ import {
 } from '../../../db/schema';
 import { oidcManager } from '../../../helpers/oidc/manager';
 import { appRouter } from '../../../routers';
+import { trackUserSocket } from '../../../utils/wss';
 
 /**
  * Driven against a real provider (see fake-oidc-provider.ts) rather than a mocked
@@ -64,14 +71,18 @@ const getStateCookie = (response: Response) => {
 const getHandoffCode = (target: URL) =>
   new URLSearchParams(target.hash.replace(/^#/, '')).get('oidc');
 
+const getDeleteHandoffCode = (target: URL) =>
+  new URLSearchParams(target.hash.replace(/^#/, '')).get('account_deleted');
+
 // walks the redirects a browser would follow: our login route, the provider's authorization
 // endpoint, then back into our callback carrying the state cookie
 const runOidcFlow = async (
-  options: { cookie?: string; invite?: string } = {}
+  options: { cookie?: string; invite?: string; deleteIntent?: string } = {}
 ) => {
-  const query = options.invite
-    ? `?invite=${encodeURIComponent(options.invite)}`
-    : '';
+  const params = new URLSearchParams();
+  if (options.invite) params.set('invite', options.invite);
+  if (options.deleteIntent) params.set('delete_intent', options.deleteIntent);
+  const query = params.size ? `?${params}` : '';
 
   const loginResponse = await fetch(`${testsBaseUrl}/oidc/login${query}`, {
     redirect: 'manual'
@@ -94,6 +105,7 @@ const runOidcFlow = async (
 
   return {
     code: getHandoffCode(target),
+    deleteCode: getDeleteHandoffCode(target),
     error: target.searchParams.get('oidc_error'),
     cookie
   };
@@ -122,6 +134,17 @@ const signIn = async () => {
   const data = (await response.json()) as { success: boolean; token: string };
 
   return data.token;
+};
+
+const getAuthenticatedCaller = async (token: string) => {
+  const caller = appRouter.createCaller(
+    await createMockContext({ customToken: token })
+  );
+  const { handshakeHash } = await caller.others.handshake();
+
+  await caller.others.joinServer({ handshakeHash });
+
+  return caller;
 };
 
 beforeAll(async () => {
@@ -156,6 +179,7 @@ beforeEach(() => {
   ]);
   provider.setAuthMethods(['client_secret_post']);
   provider.setUserInfoAvailable(true);
+  provider.setFreshAuthenticationTimeOffsetSeconds(0);
 
   oidcManager.resetForTests();
 });
@@ -369,6 +393,164 @@ describe('behind a tls terminating proxy', () => {
 });
 
 describe('/oidc/callback', () => {
+  test('should require fresh OIDC proof before deleting a passwordless account', async () => {
+    const token = await signIn();
+    const caller = await getAuthenticatedCaller(token);
+    const user = await tdb
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.oidcSub, 'oidc-subject-1'))
+      .get();
+
+    expect(user).toBeDefined();
+    const socket = createFakeSocket();
+    trackUserSocket(user!.id, socket);
+
+    await tdb
+      .update(messages)
+      .set({ userId: user!.id })
+      .where(eq(messages.id, 1));
+    await tdb
+      .update(calendarEvents)
+      .set({ creatorId: user!.id })
+      .where(eq(calendarEvents.id, 2));
+
+    const intent = await caller.users.beginOidcDelete({ wipe: false });
+    const { deleteCode, code, error, cookie } = await runOidcFlow({
+      deleteIntent: intent
+    });
+
+    expect(error).toBeNull();
+    expect(code).toBeNull();
+    expect(deleteCode).not.toBeNull();
+
+    const confirmation = await exchange(deleteCode!, cookie);
+    expect(confirmation.status).toBe(200);
+    expect(((await confirmation.json()) as { token: string }).token).toBe(
+      'deleted'
+    );
+    expect((await exchange(deleteCode!, cookie)).status).toBe(401);
+    expect(
+      await tdb.select().from(users).where(eq(users.id, user!.id)).get()
+    ).toBeUndefined();
+    expect(await getUserByToken(token)).toBeUndefined();
+    expect(
+      await tdb.select().from(messages).where(eq(messages.id, 1)).get()
+    ).toMatchObject({ userId: expect.any(Number) });
+    expect(
+      await tdb
+        .select()
+        .from(calendarEvents)
+        .where(eq(calendarEvents.id, 2))
+        .get()
+    ).toBeUndefined();
+    expect(
+      await tdb
+        .select()
+        .from(calendarEventInvitees)
+        .where(eq(calendarEventInvitees.eventId, 2))
+        .all()
+    ).toHaveLength(0);
+    await Bun.sleep(1100);
+    expect(socket.closes).toEqual([
+      {
+        code: DisconnectCode.KICKED,
+        reason: 'Your account has been deleted'
+      }
+    ]);
+  });
+
+  test('should wipe OIDC account messages after fresh authentication', async () => {
+    const token = await signIn();
+    const caller = await getAuthenticatedCaller(token);
+    const user = await tdb
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.oidcSub, 'oidc-subject-1'))
+      .get();
+
+    await tdb
+      .update(messages)
+      .set({ userId: user!.id })
+      .where(eq(messages.id, 1));
+
+    const intent = await caller.users.beginOidcDelete({ wipe: true });
+    const { deleteCode, cookie } = await runOidcFlow({
+      deleteIntent: intent
+    });
+
+    expect(deleteCode).not.toBeNull();
+    expect((await exchange(deleteCode!, cookie)).status).toBe(200);
+    expect(
+      await tdb.select().from(messages).where(eq(messages.id, 1)).get()
+    ).toBeUndefined();
+  });
+
+  test('should keep the owner account even when it is OIDC linked', async () => {
+    await tdb
+      .update(users)
+      .set({
+        oidcSub: 'owner-subject',
+        oidcIssuer: provider.issuer,
+        passwordSet: false
+      })
+      .where(eq(users.id, 1));
+    const caller = await getAuthenticatedCaller(await getMockedToken(1));
+
+    await expect(caller.users.beginOidcDelete({ wipe: false })).rejects.toThrow(
+      'The server owner cannot delete their account.'
+    );
+  });
+
+  test('should reject a different OIDC subject and consume the intent', async () => {
+    const token = await signIn();
+    const caller = await getAuthenticatedCaller(token);
+    const intent = await caller.users.beginOidcDelete({ wipe: true });
+
+    provider.setClaims({ ...DEFAULT_CLAIMS, sub: 'another-subject' });
+
+    const { error, deleteCode } = await runOidcFlow({
+      deleteIntent: intent
+    });
+
+    expect(error).toBe(OidcError.ACCESS_DENIED);
+    expect(deleteCode).toBeNull();
+    expect(
+      await tdb
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.oidcSub, 'oidc-subject-1'))
+        .get()
+    ).toBeDefined();
+
+    const retry = await fetch(
+      `${testsBaseUrl}/oidc/login?delete_intent=${intent}`,
+      { redirect: 'manual' }
+    );
+    expect(
+      new URL(retry.headers.get('location')!).searchParams.get('oidc_error')
+    ).toBe(OidcError.EXPIRED);
+  });
+
+  test('should reject an old OIDC authentication time', async () => {
+    const token = await signIn();
+    const caller = await getAuthenticatedCaller(token);
+    const intent = await caller.users.beginOidcDelete({ wipe: true });
+
+    provider.setFreshAuthenticationTimeOffsetSeconds(-600);
+
+    const { error } = await runOidcFlow({ deleteIntent: intent });
+
+    expect(error).toBe(OidcError.ACCESS_DENIED);
+    expect(
+      await tdb
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.oidcSub, 'oidc-subject-1'))
+        .get()
+    ).toBeDefined();
+  });
+
   test('should create the user, assign the default role and back fill read states', async () => {
     const token = await signIn();
 

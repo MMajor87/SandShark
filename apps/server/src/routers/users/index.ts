@@ -1,8 +1,10 @@
 import { t } from '../../utils/trpc';
 import { addRoleRoute } from './add-role';
 import { banRoute } from './ban';
+import { beginOidcDeleteRoute } from './begin-oidc-delete';
 import { changeAvatarRoute } from './change-avatar';
 import { changeBannerRoute } from './change-banner';
+import { deleteOwnRoute } from './delete-own';
 import { deleteUserRoute } from './delete-user';
 import {
   onUserCreateRoute,
@@ -34,6 +36,8 @@ export const usersRouter = t.router({
   ban: banRoute,
   unban: unbanRoute,
   delete: deleteUserRoute,
+  deleteOwn: deleteOwnRoute,
+  beginOidcDelete: beginOidcDeleteRoute,
   onJoin: onUserJoinRoute,
   onLeave: onUserLeaveRoute,
   onUpdate: onUserUpdateRoute,

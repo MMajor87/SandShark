@@ -1,13 +1,28 @@
-import { getErrorMessage, OidcError } from '@sharkord/shared';
+import {
+  DisconnectCode,
+  getErrorMessage,
+  OidcError,
+  OWNER_ROLE_ID
+} from '@sharkord/shared';
+import { eq } from 'drizzle-orm';
 import type http from 'http';
 import jwt from 'jsonwebtoken';
 import * as client from 'openid-client';
+import { db } from '../../db';
+import { getUserRoleIds } from '../../db/queries/roles';
 import { getServerToken } from '../../db/queries/server';
+import { users } from '../../db/schema';
+import {
+  hasAccountDeleteIntent,
+  takeAccountDeleteIntent
+} from '../../helpers/account-delete-intents';
+import { deleteUserAccount } from '../../helpers/delete-user-account';
 import type { getWsInfo } from '../../helpers/get-ws-info';
 import { OidcCallbackError } from '../../helpers/oidc/error';
 import { oidcManager } from '../../helpers/oidc/manager';
 import { resolveOidcUser, type TOidcClaims } from '../../helpers/oidc/user';
 import { logger } from '../../logger';
+import { disconnectUser } from '../../utils/wss';
 import {
   clearStateCookie,
   getStateCookieInvite,
@@ -60,7 +75,10 @@ const completeOidcCallback = async (
   req: http.IncomingMessage,
   url: URL,
   ip: string | undefined
-): Promise<{ handoffCode: string; origin: string }> => {
+): Promise<
+  | { kind: 'login'; handoffCode: string; origin: string }
+  | { kind: 'deleted'; handoffCode: string; origin: string; userId: number }
+> => {
   const stateParam = url.searchParams.get('state');
 
   if (url.searchParams.has('error')) {
@@ -98,6 +116,49 @@ const completeOidcCallback = async (
     expectedNonce: transaction.nonce
   });
 
+  if (hasAccountDeleteIntent(stateParam)) {
+    const intent = takeAccountDeleteIntent(stateParam);
+    const claims = tokens.claims();
+    const user = intent
+      ? await db
+          .select({ oidcSub: users.oidcSub, oidcIssuer: users.oidcIssuer })
+          .from(users)
+          .where(eq(users.id, intent.userId))
+          .get()
+      : undefined;
+    const authTime = claims?.auth_time;
+    const now = Math.floor(Date.now() / 1000);
+
+    if (
+      !intent ||
+      !user ||
+      !claims ||
+      claims.sub !== user.oidcSub ||
+      claims.iss !== user.oidcIssuer ||
+      typeof authTime !== 'number' ||
+      authTime > now + 60 ||
+      now - authTime > 300 ||
+      (await getUserRoleIds(intent.userId)).includes(OWNER_ROLE_ID)
+    ) {
+      throw new OidcCallbackError(
+        OidcError.ACCESS_DENIED,
+        'Account deletion reauthentication failed'
+      );
+    }
+
+    await deleteUserAccount(intent.userId, {
+      wipe: intent.wipe,
+      deletedBy: intent.userId
+    });
+
+    return {
+      kind: 'deleted',
+      handoffCode: oidcManager.createHandoff('deleted', stateParam),
+      origin: callbackUrl.origin,
+      userId: intent.userId
+    };
+  }
+
   const { claims, userInfoFailed } = await collectClaims(oidcConfig, tokens);
   const { user } = await resolveOidcUser(claims, {
     userInfoFailed,
@@ -121,6 +182,7 @@ const completeOidcCallback = async (
   );
 
   return {
+    kind: 'login',
     handoffCode: oidcManager.createHandoff(token, stateParam),
     origin: callbackUrl.origin
   };
@@ -142,21 +204,33 @@ const oidcCallbackRouteHandler = async (
   const state = url.searchParams.get('state');
 
   try {
-    const { handoffCode, origin } = await completeOidcCallback(
-      req,
-      url,
-      info?.ip
-    );
-    const target = new URL(origin);
+    const result = await completeOidcCallback(req, url, info?.ip);
+    const target = new URL(result.origin);
 
-    target.hash = `oidc=${handoffCode}`;
+    if (result.kind === 'deleted') {
+      target.hash = `account_deleted=${result.handoffCode}`;
+    } else {
+      target.hash = `oidc=${result.handoffCode}`;
+    }
 
     res.writeHead(302, {
       'Cache-Control': 'no-store',
       Location: target.toString()
     });
     res.end();
+    if (result.kind === 'deleted') {
+      setTimeout(
+        () =>
+          disconnectUser(
+            result.userId,
+            DisconnectCode.KICKED,
+            'Your account has been deleted'
+          ),
+        1000
+      );
+    }
   } catch (error) {
+    if (state) takeAccountDeleteIntent(state);
     const code =
       error instanceof OidcCallbackError ? error.code : OidcError.SERVER_ERROR;
 

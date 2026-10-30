@@ -556,5 +556,15 @@
   "hotkeysBridgeRetry": "Zkusit připojit",
   "desktopTab": "Počítačová aplikace",
   "simulcastLabel": "Simulcast",
-  "simulcastDesc": "Umožněte uživatelům odesílat video v několika úrovních kvality, aby se příjemci mohli přizpůsobit pomalejšímu připojení. Zvýší se využití přenosové kapacity a procesoru serveru, ale uživatelům s pomalejším připojením to může zlepšit zážitek."
+  "simulcastDesc": "Umožněte uživatelům odesílat video v několika úrovních kvality, aby se příjemci mohli přizpůsobit pomalejšímu připojení. Zvýší se využití přenosové kapacity a procesoru serveru, ale uživatelům s pomalejším připojením to může zlepšit zážitek.",
+  "deleteAccountTab": "Smazat účet",
+  "deleteAccountDescription": "Odebere váš účet z tohoto serveru. Akci nelze vrátit.",
+  "deleteAccountOwner": "Vlastník serveru nemůže svůj účet smazat.",
+  "deleteAccountSso": "Smazání potvrdíte opětovným přihlášením přes poskytovatele identity.",
+  "deleteAccountWipeLabel": "Smazat také můj obsah",
+  "deleteAccountWipeDescription": "Ponechat: zprávy, reakce, vlastní emoji a přiložené soubory zůstanou pod účtem Smazaný uživatel. Smazat: budou odstraněny. Události kalendáře, pozvánky, přístup k soukromým zprávám a údaje účtu se odstraní v obou případech.",
+  "deleteAccountKeepMessage": "Váš účet bude smazán. Zprávy, reakce, vlastní emoji a přiložené soubory zůstanou pod účtem Smazaný uživatel. Události kalendáře a pozvánky budou smazány. Akci nelze vrátit.",
+  "deleteAccountWipeMessage": "Váš účet, zprávy, reakce, nahrané soubory a události kalendáře budou smazány. Akci nelze vrátit.",
+  "deleteAccountButton": "Smazat účet",
+  "failedDeleteAccount": "Účet se nepodařilo smazat"
 }

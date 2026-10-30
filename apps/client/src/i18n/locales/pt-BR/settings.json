@@ -556,5 +556,15 @@
   "failedSaveHotkeys": "Falha ao salvar as configurações de atalhos",
   "hotkeysBridgeFailed": "Não encontrado, parou de tentar",
   "hotkeysBridgeRetry": "Tentar conectar",
-  "desktopTab": "Aplicativo para computador"
+  "desktopTab": "Aplicativo para computador",
+  "deleteAccountTab": "Excluir conta",
+  "deleteAccountDescription": "Remove sua conta deste servidor. Esta ação não pode ser desfeita.",
+  "deleteAccountOwner": "O proprietário do servidor não pode excluir a própria conta.",
+  "deleteAccountSso": "Entre novamente pelo provedor de identidade para confirmar a exclusão.",
+  "deleteAccountWipeLabel": "Excluir também meu conteúdo",
+  "deleteAccountWipeDescription": "Manter: mensagens, reações, emojis personalizados e anexos ficam como Usuário excluído. Excluir: eles são removidos. Eventos, convites, acesso às mensagens diretas e dados da conta são removidos em ambos os casos.",
+  "deleteAccountKeepMessage": "Sua conta será excluída. Mensagens, reações, emojis personalizados e anexos ficarão como Usuário excluído. Eventos e convites serão excluídos. Esta ação não pode ser desfeita.",
+  "deleteAccountWipeMessage": "Sua conta, mensagens, reações, arquivos enviados e eventos serão excluídos. Esta ação não pode ser desfeita.",
+  "deleteAccountButton": "Excluir conta",
+  "failedDeleteAccount": "Não foi possível excluir sua conta"
 }

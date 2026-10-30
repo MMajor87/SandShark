@@ -703,9 +703,10 @@ const createDesktopWindow = ({
       (event, payload: unknown) => {
         if (!payload || typeof payload !== 'object')
           throw new Error('Invalid authentication request.');
-        const { serverUrl, invite } = payload as {
+        const { serverUrl, invite, deleteIntent } = payload as {
           serverUrl?: unknown;
           invite?: unknown;
+          deleteIntent?: unknown;
         };
         const senderWindow = getSenderWindow(event);
         if (typeof serverUrl !== 'string' || serverUrl.length > 2048)
@@ -716,7 +717,14 @@ const createDesktopWindow = ({
         ) {
           throw new Error('Invalid invite code.');
         }
-        return startOidcLogin(senderWindow, serverUrl, invite);
+        if (
+          deleteIntent !== undefined &&
+          (typeof deleteIntent !== 'string' ||
+            !/^[A-Za-z0-9_-]{43}$/.test(deleteIntent))
+        ) {
+          throw new Error('Invalid account deletion request.');
+        }
+        return startOidcLogin(senderWindow, serverUrl, invite, deleteIntent);
       }
     );
     desktopIpc.handle('sandshark:get-version', (event) => {

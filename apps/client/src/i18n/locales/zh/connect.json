@@ -35,5 +35,6 @@
   "addServerTitle": "添加服务器",
   "serverUrlLabel": "服务器 URL",
   "linkedServerFailed": "无法打开链接中的服务器。",
-  "chooseServerForLink": "打开频道链接前，请先选择服务器。"
+  "chooseServerForLink": "打开频道链接前，请先选择服务器。",
+  "accountDeleted": "你的账户已删除。"
 }

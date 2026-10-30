@@ -71,6 +71,7 @@ describe('shouldAutoRedirectToOidc', () => {
 describe('isHandlingOidcCallback', () => {
   test('should detect a successful callback', () => {
     expect(isHandlingOidcCallback('', '#oidc=some-code')).toBe(true);
+    expect(isHandlingOidcCallback('', '#account_deleted=some-code')).toBe(true);
   });
 
   test('should detect a failed callback', () => {

@@ -65,8 +65,10 @@ const createDesktopUpdater = ({
     }
 
     if (autoUpdaterConfigured && autoUpdater) {
-      autoUpdater.autoDownload =
+      const automaticallyDownload =
         preferences.getUpdateSettings().automaticallyDownload;
+      autoUpdater.autoDownload = automaticallyDownload;
+      autoUpdater.autoInstallOnAppQuit = automaticallyDownload;
       return autoUpdater;
     }
 
@@ -89,10 +91,11 @@ const createDesktopUpdater = ({
 
     try {
       autoUpdater = loadedAutoUpdater;
-      autoUpdater.autoDownload =
+      const automaticallyDownload =
         preferences.getUpdateSettings().automaticallyDownload;
+      autoUpdater.autoDownload = automaticallyDownload;
       autoUpdater.allowPrerelease = false;
-      autoUpdater.autoInstallOnAppQuit = true;
+      autoUpdater.autoInstallOnAppQuit = automaticallyDownload;
       const listen: typeof loadedAutoUpdater.on = (event, listener) => {
         removeListeners.push(() =>
           loadedAutoUpdater.removeListener(event, listener)

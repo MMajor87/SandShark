@@ -3,7 +3,11 @@ import { EventEmitter } from 'node:events';
 import { createDesktopUpdater } from './desktop-updater.js';
 
 test('concurrent updater initialization attaches one listener set and disposal silences later events', async () => {
-  const updater = Object.assign(new EventEmitter(), { autoDownload: true });
+  const updater = Object.assign(new EventEmitter(), {
+    autoDownload: true,
+    autoInstallOnAppQuit: true
+  });
+  let automaticallyDownload = false;
   const send = mock(() => {});
   let destroyed = false;
   const load = mock(async () => updater);
@@ -15,7 +19,7 @@ test('concurrent updater initialization attaches one listener set and disposal s
     preferences: {
       getUpdateSettings: () => ({
         automaticallyCheck: false,
-        automaticallyDownload: false
+        automaticallyDownload
       })
     },
     isDevelopment: false,
@@ -30,6 +34,14 @@ test('concurrent updater initialization attaches one listener set and disposal s
   expect(load).toHaveBeenCalledTimes(1);
   expect(updater.listenerCount('update-available')).toBe(1);
   expect(updater.autoDownload).toBe(false);
+  expect(updater.autoInstallOnAppQuit).toBe(false);
+  automaticallyDownload = true;
+  await service.configureAutoUpdater();
+  expect(updater.autoDownload).toBe(true);
+  expect(updater.autoInstallOnAppQuit).toBe(true);
+  automaticallyDownload = false;
+  await service.configureAutoUpdater();
+  expect(updater.autoInstallOnAppQuit).toBe(false);
   updater.emit('update-available', { version: '2.0.0' });
   expect(send).toHaveBeenCalledTimes(1);
   destroyed = true;

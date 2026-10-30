@@ -60,6 +60,7 @@
   "devicesDesc": "Gestiona tus dispositivos periféricos y sus ajustes.",
   "voiceChannelActiveInfo": "Estás en un canal de voz, los cambios solo tendrán efecto después de salir y volver a unirte al canal.",
   "playbackLabel": "Reproducción",
+  "muteSharedStreamAudioByDefaultLabel": "Silenciar el audio de las pantallas compartidas de forma predeterminada",
   "playbackPlaceholder": "Selecciona el dispositivo de salida",
   "defaultOutput": "Salida por defecto",
   "microphoneLabel": "Micrófono",

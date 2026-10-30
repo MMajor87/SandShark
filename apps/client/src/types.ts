@@ -62,6 +62,7 @@ export enum NoiseSuppression {
 export type TDeviceSettings = {
   microphoneId: string | undefined;
   playbackId: string | undefined;
+  muteSharedStreamAudioByDefault: boolean;
   webcamId: string | undefined;
   webcamResolution: Resolution;
   webcamFramerate: number;

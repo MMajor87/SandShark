@@ -307,6 +307,15 @@ const Devices = memo(() => {
           </Select>
         </Group>
 
+        <Group label={t('muteSharedStreamAudioByDefaultLabel')}>
+          <Switch
+            checked={values.muteSharedStreamAudioByDefault}
+            onCheckedChange={(checked) =>
+              onChange('muteSharedStreamAudioByDefault', checked)
+            }
+          />
+        </Group>
+
         {hotkeysEnabled && (
           <HotkeyBindGroup
             actionId={CoreHotkeyAction.TOGGLE_SOUND}

@@ -10,6 +10,7 @@ import type {
   TDirectMessageConversation,
   TExternalStream,
   TExternalStreamsMap,
+  TFile,
   TFollowedThread,
   TFollowedThreadsMap,
   TJoinedEmoji,
@@ -404,6 +405,45 @@ export const serverSlice = createSlice({
       state.messagesMap[conversationKey] = messages.slice(
         -DEFAULT_MESSAGES_LIMIT
       );
+    },
+    refreshFileAccess: (
+      state,
+      action: PayloadAction<{ requestedIds: number[]; files: TFile[] }>
+    ) => {
+      const requested = new Set(action.payload.requestedIds);
+      const refreshed = new Map(
+        action.payload.files.map((file) => [file.id, file])
+      );
+
+      for (const messages of Object.values(state.messagesMap)) {
+        for (const message of messages) {
+          if (message.files.some((file) => requested.has(file.id))) {
+            message.files = message.files
+              .filter(
+                (file) => !requested.has(file.id) || refreshed.has(file.id)
+              )
+              .map((file) => refreshed.get(file.id) ?? file);
+          }
+          for (const reaction of message.reactions) {
+            if (reaction.file && requested.has(reaction.file.id)) {
+              reaction.file = refreshed.get(reaction.file.id) ?? null;
+            }
+          }
+        }
+      }
+
+      if (state.emojis.some((emoji) => requested.has(emoji.file.id))) {
+        state.emojis = state.emojis
+          .filter(
+            (emoji) =>
+              !requested.has(emoji.file.id) || refreshed.has(emoji.file.id)
+          )
+          .map((emoji) =>
+            requested.has(emoji.file.id)
+              ? { ...emoji, file: refreshed.get(emoji.file.id) ?? emoji.file }
+              : emoji
+          );
+      }
     },
 
     addTypingUser: (

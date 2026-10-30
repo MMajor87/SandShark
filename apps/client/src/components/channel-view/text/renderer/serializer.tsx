@@ -4,10 +4,21 @@ import { MessageNodeType, parseDomCommand } from '@sharkord/shared';
 import { Element, type DOMNode } from 'html-react-parser';
 import { CommandOverride } from '../overrides/command';
 import { MentionOverride } from '../overrides/mention';
+import { MessageCustomEmoji } from './message-custom-emoji';
 
 const serializer = (domNode: DOMNode, messageId: number) => {
   try {
-    if (domNode instanceof Element && domNode.name === 'command') {
+    if (
+      domNode instanceof Element &&
+      domNode.name === 'span' &&
+      domNode.attribs['data-type'] === MessageNodeType.EMOJI &&
+      domNode.attribs['data-name'] &&
+      domNode.children.some(
+        (child) => child instanceof Element && child.name === 'img'
+      )
+    ) {
+      return <MessageCustomEmoji name={domNode.attribs['data-name']} />;
+    } else if (domNode instanceof Element && domNode.name === 'command') {
       const command = parseDomCommand(domNode);
 
       return <CommandOverride command={command} />;

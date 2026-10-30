@@ -1,5 +1,5 @@
 import { ChannelType, type TFile, type TTempFile } from '@sharkord/shared';
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import fs from 'fs/promises';
 import path from 'path';
@@ -178,33 +178,63 @@ describe('/public', () => {
     expect(response.status).toBe(206);
     expect(await response.text()).toBe(filesToCreate[0]!.content.slice(0, 4));
     expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+
+    await enableSignedUrls();
+    expect((await globalThis.fetch(mediaUrl)).status).toBe(403);
+    const signedMediaUrl = `${mediaUrl}&accessToken=${generateFileToken(file.id, expires)}&expires=${expires}`;
+    expect((await globalThis.fetch(signedMediaUrl)).status).toBe(200);
+
     await tdb
       .update(messages)
       .set({ channelId: 5 })
       .where(eq(messages.id, filesToCreate[0]!.messageId!));
-    expect((await globalThis.fetch(mediaUrl)).status).toBe(404);
+    expect((await globalThis.fetch(signedMediaUrl)).status).toBe(404);
     await tdb.update(channelUserPermissions).set({ allow: true });
-    expect((await globalThis.fetch(mediaUrl)).status).toBe(200);
+    expect((await globalThis.fetch(signedMediaUrl)).status).toBe(200);
     await tdb.update(channelUserPermissions).set({ allow: false });
-    expect((await globalThis.fetch(mediaUrl)).status).toBe(404);
+    expect((await globalThis.fetch(signedMediaUrl)).status).toBe(404);
     await tdb
       .update(messages)
       .set({ channelId: 3 })
       .where(eq(messages.id, filesToCreate[0]!.messageId!));
-    expect((await globalThis.fetch(mediaUrl)).status).toBe(404);
+    expect((await globalThis.fetch(signedMediaUrl)).status).toBe(404);
     expect(
       (
         await globalThis.fetch(
-          `${url}?mediaToken=${createMediaAccessToken(1, 0)}`
+          `${url}?mediaToken=${createMediaAccessToken(1, 0)}&accessToken=${generateFileToken(file.id, expires)}&expires=${expires}`
         )
       ).status
     ).toBe(404);
     expect(
       (
         await globalThis.fetch(
-          `${url}?mediaToken=${createMediaAccessToken(3, 0)}`
+          `${url}?mediaToken=${createMediaAccessToken(3, 0)}&accessToken=${generateFileToken(file.id, expires)}&expires=${expires}`
         )
       ).status
+    ).toBe(200);
+  });
+
+  test('rejects expired media credentials for private attachments', async () => {
+    const file = (await getFileByMessageId(filesToCreate[0]!.messageId!))!;
+    const now = Date.now();
+    const dateNow = spyOn(Date, 'now');
+    let expiredToken: string;
+
+    try {
+      dateNow.mockReturnValue(now - 8 * 24 * 60 * 60 * 1000);
+      expiredToken = createMediaAccessToken(2, 0);
+    } finally {
+      dateNow.mockRestore();
+    }
+
+    const url = `${testsBaseUrl}/public/${encodeURIComponent(file.name)}`;
+    expect(
+      (await globalThis.fetch(`${url}?mediaToken=${expiredToken}`)).status
+    ).toBe(404);
+
+    const validToken = createMediaAccessToken(2, 0);
+    expect(
+      (await globalThis.fetch(`${url}?mediaToken=${validToken}`)).status
     ).toBe(200);
   });
 

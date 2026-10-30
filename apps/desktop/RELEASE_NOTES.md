@@ -1,3 +1,14 @@
+# SandShark 1.1.3
+
+- Adds account self deletion with password confirmation and removes the user's calendar events and invitations.
+- Improves desktop updater behavior so the auto install preference is respected.
+- Fixes mixed direction message text rendering and makes incoming screen share audio muted by default.
+- Allows active voice devices to be changed without rejoining and strengthens reconnect, capture, and media access handling.
+
+## Upgrade notes
+
+Upgrade the paired SandShark server to 0.1.1. The Windows installer does not deploy a server. Back up server data before upgrading. This installer remains unsigned.
+
 # SandShark 1.1.2
 
 - Separates desktop logging, persistence, updates, downloads, native input and capture ownership, with bounded diagnostic logs and behavioral IPC tests.

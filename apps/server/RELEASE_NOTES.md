@@ -1,3 +1,15 @@
+# SandShark Server 0.1.1
+
+- Adds account self deletion with password confirmation. Deleting an account removes its calendar events and invitations.
+- Includes fixes for private media access after permission changes, profile image uploads, and voice capture teardown.
+- Builds the bundled web client from the same source revision as the server.
+
+## Compatibility and upgrade
+
+Use SandShark Desktop 1.1.3 with this server. Stop the server and back up its entire data directory before upgrading. Migrations run automatically at startup. To roll back after a migration, restore both the previous binary and its data backup.
+
+The release publishes Linux x64/arm64, Windows x64, and macOS arm64 binaries, plus the versioned Docker image `ghcr.io/mmajor87/sandshark-server:0.1.1`. The workflow does not move a `latest` image tag. The desktop release remains GitHub's Latest release for desktop updater compatibility.
+
 # SandShark Server 0.1.0
 
 First independently versioned SandShark server release, based on Sharkord 0.0.28

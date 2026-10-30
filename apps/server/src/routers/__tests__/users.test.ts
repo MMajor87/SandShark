@@ -1260,9 +1260,7 @@ describe('users router', () => {
     await expect(
       caller.users.deleteOwn({ password: 'password123', wipe: 'yes' as never })
     ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
-    await expect(
-      caller.users.beginOidcDelete({ wipe: false })
-    ).rejects.toThrow(
+    await expect(caller.users.beginOidcDelete({ wipe: false })).rejects.toThrow(
       'Identity provider sign in is unavailable for this account.'
     );
   });
@@ -1281,8 +1279,7 @@ describe('users router', () => {
     const firstTab = createFakeSocket();
     const secondTab = createFakeSocket();
     const { caller } = await initTest(2, undefined, {
-      getUserWs: (userId) =>
-        userId === 2 ? [firstTab, secondTab] : []
+      getUserWs: (userId) => (userId === 2 ? [firstTab, secondTab] : [])
     });
 
     await caller.users.deleteOwn({ password: 'password123', wipe: true });

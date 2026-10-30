@@ -7,7 +7,7 @@ import { useOwnPublicUser } from '@/features/server/users/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
 import type { TPickedImage } from '@/hooks/use-pick-image';
 import { getTRPCClient } from '@/lib/trpc';
-import { DEFAULT_PROFILE_COLOR } from '@sharkord/shared';
+import { DEFAULT_PROFILE_COLOR, UploadPurpose } from '@sharkord/shared';
 import {
   ColorPicker,
   Group,
@@ -94,6 +94,7 @@ const Profile = memo(() => {
     <SettingsSection title={t('profileTitle')} description={t('profileDesc')}>
       <div className="flex flex-wrap items-start gap-4">
         <ImagePicker
+          purpose={UploadPurpose.PROFILE_IMAGE}
           label={t('avatarLabel')}
           className="h-32 w-32 rounded-full"
           currentUrl={getFileUrl(ownPublicUser.avatar)}
@@ -110,6 +111,7 @@ const Profile = memo(() => {
         />
 
         <ImagePicker
+          purpose={UploadPurpose.PROFILE_IMAGE}
           label={t('bannerLabel')}
           className="h-32 w-80"
           currentUrl={getFileUrl(ownPublicUser.banner)}

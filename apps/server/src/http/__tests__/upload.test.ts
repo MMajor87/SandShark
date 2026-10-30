@@ -1,10 +1,15 @@
-import { Permission, UploadHeaders, type TTempFile } from '@sharkord/shared';
+import {
+  Permission,
+  UploadHeaders,
+  UploadPurpose,
+  type TTempFile
+} from '@sharkord/shared';
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import fs from 'fs/promises';
 import net from 'net';
 import path from 'path';
-import { login, uploadFile } from '../../__tests__/helpers';
+import { initTest, login, uploadFile } from '../../__tests__/helpers';
 import { tdb, testsBaseUrl } from '../../__tests__/setup';
 import { config } from '../../config';
 import { rolePermissions, settings, users } from '../../db/schema';
@@ -15,6 +20,15 @@ const getMockFile = (content: string): File => {
   const blob = new Blob([content], { type: 'text/plain' });
 
   return new File([blob], 'test-upload.txt', { type: 'text/plain' });
+};
+
+const getMockImage = (): File => {
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6tWcAAAAASUVORK5CYII=',
+    'base64'
+  );
+
+  return new File([png], 'avatar.png', { type: 'image/png' });
 };
 
 describe('/upload', () => {
@@ -112,6 +126,91 @@ describe('/upload', () => {
     const uploadResponse = await uploadFile(file, data.token);
 
     expect(uploadResponse.status).toBe(403);
+  });
+
+  test('should allow a profile image without UPLOAD_FILES and save it as the owner', async () => {
+    const response = await login('testuser', 'password123');
+    const data = (await response.json()) as { token: string };
+
+    await tdb
+      .delete(rolePermissions)
+      .where(
+        and(
+          eq(rolePermissions.roleId, 2),
+          eq(rolePermissions.permission, Permission.UPLOAD_FILES)
+        )
+      );
+
+    const file = getMockImage();
+    const uploadResponse = await uploadFile(file, data.token, {
+      [UploadHeaders.PURPOSE]: UploadPurpose.PROFILE_IMAGE
+    });
+
+    expect(uploadResponse.status).toBe(200);
+
+    const temporaryFile = (await uploadResponse.json()) as TTempFile;
+    const { caller } = await initTest(2);
+
+    await expect(
+      caller.messages.send({
+        channelId: 1,
+        content: '',
+        files: [temporaryFile.id]
+      })
+    ).rejects.toThrow('Insufficient permissions');
+
+    const updatedUser = await caller.users.changeAvatar({
+      fileId: temporaryFile.id
+    });
+
+    expect(updatedUser.avatarId).toBeNumber();
+
+    const messageUpload = await uploadFile(file, data.token, {
+      [UploadHeaders.PURPOSE]: UploadPurpose.MESSAGE
+    });
+
+    expect(messageUpload.status).toBe(403);
+  });
+
+  test('should reject non-image content for profile uploads', async () => {
+    const file = new File(['not image content'], 'avatar.png', {
+      type: 'image/png'
+    });
+    const response = await uploadFile(file, token, {
+      [UploadHeaders.PURPOSE]: UploadPurpose.PROFILE_IMAGE
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toHaveProperty('error', 'Invalid image file');
+  });
+
+  test('should honor disabled uploads for profile images', async () => {
+    await tdb.update(settings).set({ storageUploadEnabled: false });
+
+    const response = await uploadFile(getMockImage(), token, {
+      [UploadHeaders.PURPOSE]: UploadPurpose.PROFILE_IMAGE
+    });
+
+    expect(response.status).toBe(403);
+  });
+
+  test('should honor the upload size limit for profile images', async () => {
+    await tdb.update(settings).set({ storageUploadMaxFileSize: 10 });
+
+    const response = await uploadFile(getMockImage(), token, {
+      [UploadHeaders.PURPOSE]: UploadPurpose.PROFILE_IMAGE
+    });
+
+    expect(response.status).toBe(413);
+  });
+
+  test('should reject unknown upload purposes', async () => {
+    const file = getMockFile('invalid purpose');
+    const response = await uploadFile(file, token, {
+      [UploadHeaders.PURPOSE]: 'unknown'
+    });
+
+    expect(response.status).toBe(400);
   });
 
   test('should rate limit excessive upload attempts', async () => {

@@ -1,6 +1,12 @@
-import { getErrorMessage, Permission, UploadHeaders } from '@sharkord/shared';
+import {
+  getErrorMessage,
+  Permission,
+  UploadHeaders,
+  UploadPurpose
+} from '@sharkord/shared';
 import fs from 'fs';
 import http from 'http';
+import { imageSizeFromFile } from 'image-size/fromFile';
 import z from 'zod';
 import { config } from '../config';
 import { userCan } from '../db/queries/roles';
@@ -19,7 +25,8 @@ import {
 const zHeaders = z.object({
   [UploadHeaders.TOKEN]: z.string(),
   [UploadHeaders.ORIGINAL_NAME]: z.string(),
-  [UploadHeaders.CONTENT_LENGTH]: z.coerce.number().int().nonnegative()
+  [UploadHeaders.CONTENT_LENGTH]: z.coerce.number().int().nonnegative(),
+  [UploadHeaders.PURPOSE]: z.enum(UploadPurpose).optional()
 });
 
 const uploadRateLimiter = createRateLimiter({
@@ -56,6 +63,7 @@ const uploadFileRouteHandler = async (
   ];
 
   const originalName = sanitizeFileName(rawOriginalName);
+  const purpose = parsedHeaders[UploadHeaders.PURPOSE] ?? UploadPurpose.MESSAGE;
 
   if (!originalName) {
     req.resume();
@@ -71,7 +79,10 @@ const uploadFileRouteHandler = async (
     return;
   }
 
-  if (!(await userCan(user.id, Permission.UPLOAD_FILES))) {
+  if (
+    purpose !== UploadPurpose.PROFILE_IMAGE &&
+    !(await userCan(user.id, Permission.UPLOAD_FILES))
+  ) {
     req.resume();
     sendJsonError(res, 403, 'You do not have permission to upload files');
     return;
@@ -115,6 +126,20 @@ const uploadFileRouteHandler = async (
         sendJsonError(res, 400, 'Upload did not match the declared size');
 
         return;
+      }
+
+      if (purpose === UploadPurpose.PROFILE_IMAGE) {
+        try {
+          const image = await imageSizeFromFile(safePath);
+
+          if (!image.width || !image.height || image.type === 'svg') {
+            throw new Error('Invalid image');
+          }
+        } catch {
+          await fs.promises.rm(safePath, { force: true });
+          sendJsonError(res, 400, 'Invalid image file');
+          return;
+        }
       }
 
       const tempFile = await fileManager.addTemporaryFile({

@@ -8,7 +8,11 @@ import { useFilePicker } from '@/hooks/use-file-picker';
 import { useForm } from '@/hooks/use-form';
 import { getTRPCClient } from '@/lib/trpc';
 import { AvatarImage } from '@radix-ui/react-avatar';
-import { DEFAULT_PROFILE_COLOR, getTrpcError } from '@sharkord/shared';
+import {
+  DEFAULT_PROFILE_COLOR,
+  getTrpcError,
+  UploadPurpose
+} from '@sharkord/shared';
 import {
   Avatar,
   AvatarFallback,
@@ -54,7 +58,10 @@ const WelcomeProfileSetupDialog = memo(
       try {
         const [file] = await openFilePicker('image/*');
 
-        const temporaryFile = await uploadImage(file);
+        const temporaryFile = await uploadImage(
+          file,
+          UploadPurpose.PROFILE_IMAGE
+        );
 
         if (!temporaryFile) {
           return;
@@ -82,7 +89,10 @@ const WelcomeProfileSetupDialog = memo(
       try {
         const [file] = await openFilePicker('image/*');
 
-        const temporaryFile = await uploadImage(file);
+        const temporaryFile = await uploadImage(
+          file,
+          UploadPurpose.PROFILE_IMAGE
+        );
 
         if (!temporaryFile) {
           return;

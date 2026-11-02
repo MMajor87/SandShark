@@ -17,15 +17,17 @@ internal static class Program
         }
 
         var excludeProcess = args.Length == 2 && args[0] == "--exclude-process";
-        if (args.Length != 1 && !excludeProcess)
+        var windowWithOwner = args.Length == 3 && args[1] == "--owner-process";
+        if (args.Length != 1 && !excludeProcess && !windowWithOwner)
         {
-            Console.Error.WriteLine("Usage: ProcessAudioCapture <window-source-id> | --exclude-process <pid>");
+            Console.Error.WriteLine("Usage: ProcessAudioCapture <window-source-id> [--owner-process <pid>] | --exclude-process <pid>");
             return 2;
         }
 
-        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 20348))
+        // process loopback capture shipped in Windows 10 2004 (build 19041).
+        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041))
         {
-            Console.Error.WriteLine("Windows 10 build 20348 or later is required.");
+            Console.Error.WriteLine("Windows 10 version 2004 (build 19041) or later is required.");
             return 3;
         }
 
@@ -35,12 +37,24 @@ internal static class Program
                 ? uint.Parse(args[1])
                 : ResolveWindowProcessId(args[0]);
             if (processId == 0) throw new ArgumentException("The target process ID must be positive.");
+            var tree = ProcessTree.Snapshot();
+            if (windowWithOwner)
+            {
+                var ownerProcessId = uint.Parse(args[2]);
+                if (ownerProcessId == 0) throw new ArgumentException("The owner process ID must be positive.");
+                // including the owner's tree would capture the owner's own playback, such as a voice call.
+                if (tree.IsInTree(processId, ownerProcessId))
+                {
+                    throw new InvalidOperationException("Audio cannot be shared from a SandShark window.");
+                }
+            }
+
             var mode = excludeProcess
                 ? ProcessLoopbackMode.ExcludeTargetProcessTree
                 : ProcessLoopbackMode.IncludeTargetProcessTree;
             using var capture = new ProcessLoopbackCapture(processId, mode);
             capture.Start();
-            WriteHeader(capture.Format);
+            WriteHeader(capture.Format, processId, tree);
             capture.CopyTo(Console.OpenStandardOutput());
             return 0;
         }
@@ -51,14 +65,17 @@ internal static class Program
         }
     }
 
-    private static void WriteHeader(WaveFormat format)
+    private static void WriteHeader(WaveFormat format, uint targetProcessId, ProcessTree tree)
     {
         var header = JsonSerializer.Serialize(new
         {
             sampleRate = format.SampleRate,
             channels = format.Channels,
             bitsPerSample = format.BitsPerSample,
-            format = format.IsFloat ? "f32" : "s16"
+            format = format.IsFloat ? "f32" : "s16",
+            targetProcessId,
+            targetProcessName = tree.GetName(targetProcessId),
+            treeProcessIds = tree.GetDescendants(targetProcessId).Take(64).ToArray()
         });
         var bytes = Encoding.UTF8.GetBytes($"{HeaderPrefix}{header}\n");
         Console.OpenStandardOutput().Write(bytes, 0, bytes.Length);
@@ -160,11 +177,12 @@ internal sealed class ProcessLoopbackCapture : IDisposable
 
         if (_audioClient is null) throw new InvalidOperationException("Windows did not activate process audio capture.");
 
-        Format = new WaveFormat(44100, 2, 16, 4, false);
+        // 48 kHz float matches the WebRTC Opus clock, so the renderer never resamples.
+        Format = new WaveFormat(48000, 2, 32, 8, true);
         _mixFormat = Marshal.AllocCoTaskMem(Marshal.SizeOf<WaveFormatEx>());
         Marshal.StructureToPtr(new WaveFormatEx
         {
-            FormatTag = NativeMethods.WaveFormatPcm,
+            FormatTag = NativeMethods.WaveFormatIeeeFloat,
             Channels = Format.Channels,
             SamplesPerSec = Format.SampleRate,
             AverageBytesPerSec = Format.SampleRate * Format.BlockAlign,
@@ -247,6 +265,76 @@ internal sealed class ProcessLoopbackCapture : IDisposable
     {
         if (result < 0) throw new COMException($"Could not {operation}.", result);
     }
+}
+
+internal sealed class ProcessTree
+{
+    private readonly Dictionary<uint, (uint ParentId, string Name)> _processes;
+
+    private ProcessTree(Dictionary<uint, (uint ParentId, string Name)> processes)
+    {
+        _processes = processes;
+    }
+
+    public static ProcessTree Snapshot()
+    {
+        var processes = new Dictionary<uint, (uint ParentId, string Name)>();
+        var snapshot = NativeMethods.CreateToolhelp32Snapshot(NativeMethods.Th32csSnapProcess, 0);
+        if (snapshot == NativeMethods.InvalidHandleValue) return new ProcessTree(processes);
+
+        try
+        {
+            var entry = new ProcessEntry32 { Size = (uint)Marshal.SizeOf<ProcessEntry32>() };
+            if (!NativeMethods.Process32First(snapshot, ref entry)) return new ProcessTree(processes);
+            do
+            {
+                processes[entry.ProcessId] = (entry.ParentProcessId, entry.ExeFile);
+            } while (NativeMethods.Process32Next(snapshot, ref entry));
+        }
+        finally
+        {
+            NativeMethods.CloseHandle(snapshot);
+        }
+
+        return new ProcessTree(processes);
+    }
+
+    public string? GetName(uint processId) =>
+        _processes.TryGetValue(processId, out var process) ? process.Name : null;
+
+    public bool IsInTree(uint processId, uint rootProcessId)
+    {
+        var visited = new HashSet<uint>();
+        var current = processId;
+        // parent ids can be reused by unrelated processes, so stop at any cycle.
+        while (current != 0 && visited.Add(current))
+        {
+            if (current == rootProcessId) return true;
+            if (!_processes.TryGetValue(current, out var process)) return false;
+            current = process.ParentId;
+        }
+
+        return false;
+    }
+
+    public IEnumerable<uint> GetDescendants(uint rootProcessId) =>
+        _processes.Keys.Where((processId) => IsInTree(processId, rootProcessId));
+}
+
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+internal struct ProcessEntry32
+{
+    public uint Size;
+    public uint Usage;
+    public uint ProcessId;
+    public IntPtr DefaultHeapId;
+    public uint ModuleId;
+    public uint Threads;
+    public uint ParentProcessId;
+    public int PriorityClassBase;
+    public uint Flags;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+    public string ExeFile;
 }
 
 internal readonly record struct WaveFormat(uint SampleRate, ushort Channels, ushort BitsPerSample, ushort BlockAlign, bool IsFloat)
@@ -400,4 +488,18 @@ internal static class NativeMethods
     internal static extern bool IsWindow(IntPtr windowHandle);
     [DllImport("user32.dll")]
     internal static extern uint GetWindowThreadProcessId(IntPtr windowHandle, out uint processId);
+
+    internal const uint Th32csSnapProcess = 0x00000002;
+    internal static readonly IntPtr InvalidHandleValue = new(-1);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    internal static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint processId);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool Process32First(IntPtr snapshot, ref ProcessEntry32 entry);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool Process32Next(IntPtr snapshot, ref ProcessEntry32 entry);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool CloseHandle(IntPtr handle);
 }

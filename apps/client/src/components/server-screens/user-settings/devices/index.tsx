@@ -674,43 +674,47 @@ const Devices = memo(() => {
             />
           </div>
 
-          <Group
-            label={t('restrictOwnAudioLabel')}
-            description={t('restrictOwnAudioDesc')}
-          >
-            {isRestrictOwnAudioSupported ? (
-              <Switch
-                checked={!!values.restrictOwnAudio}
-                disabled={!isRestrictOwnAudioSupported}
-                onCheckedChange={(checked) =>
-                  onChange('restrictOwnAudio', checked)
-                }
-              />
-            ) : (
-              <RestrictOwnAudioAlert
-                isSupported={isRestrictOwnAudioSupported}
-              />
-            )}
-          </Group>
+          {!isDesktopClient() && (
+            <>
+              <Group
+                label={t('restrictOwnAudioLabel')}
+                description={t('restrictOwnAudioDesc')}
+              >
+                {isRestrictOwnAudioSupported ? (
+                  <Switch
+                    checked={!!values.restrictOwnAudio}
+                    disabled={!isRestrictOwnAudioSupported}
+                    onCheckedChange={(checked) =>
+                      onChange('restrictOwnAudio', checked)
+                    }
+                  />
+                ) : (
+                  <RestrictOwnAudioAlert
+                    isSupported={isRestrictOwnAudioSupported}
+                  />
+                )}
+              </Group>
 
-          <Group
-            label={t('suppressLocalAudioPlaybackLabel')}
-            description={t('suppressLocalAudioPlaybackDesc')}
-          >
-            {isSuppressLocalAudioPlaybackSupported ? (
-              <Switch
-                checked={!!values.suppressLocalAudioPlayback}
-                disabled={!isSuppressLocalAudioPlaybackSupported}
-                onCheckedChange={(checked) =>
-                  onChange('suppressLocalAudioPlayback', checked)
-                }
-              />
-            ) : (
-              <SuppressLocalAudioPlaybackAlert
-                isSupported={isSuppressLocalAudioPlaybackSupported}
-              />
-            )}
-          </Group>
+              <Group
+                label={t('suppressLocalAudioPlaybackLabel')}
+                description={t('suppressLocalAudioPlaybackDesc')}
+              >
+                {isSuppressLocalAudioPlaybackSupported ? (
+                  <Switch
+                    checked={!!values.suppressLocalAudioPlayback}
+                    disabled={!isSuppressLocalAudioPlaybackSupported}
+                    onCheckedChange={(checked) =>
+                      onChange('suppressLocalAudioPlayback', checked)
+                    }
+                  />
+                ) : (
+                  <SuppressLocalAudioPlaybackAlert
+                    isSupported={isSuppressLocalAudioPlaybackSupported}
+                  />
+                )}
+              </Group>
+            </>
+          )}
 
           <span className="text-sm text-muted-foreground">
             {t('screenSharingNote')}

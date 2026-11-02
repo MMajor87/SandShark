@@ -104,3 +104,82 @@ test('late cleanup for an old capture cannot stop its replacement', async () => 
   audio.stopApplicationAudioCapture(current.captureId);
   expect(children[1].killed).toBe(true);
 });
+
+test('window capture asks the helper to refuse windows owned by SandShark', async () => {
+  const { audio, spawnProcess, start } = setup();
+  start('window:42:0');
+  expect(spawnProcess).toHaveBeenCalledWith(
+    process.execPath,
+    ['window:42:0', '--owner-process', String(process.pid)],
+    expect.anything()
+  );
+  start('screen:0');
+  expect(spawnProcess).toHaveBeenLastCalledWith(
+    process.execPath,
+    ['--exclude-process', String(process.pid)],
+    expect.anything()
+  );
+  audio.stopApplicationAudioCapture();
+});
+
+test('an unexpected helper exit tells the renderer, a requested stop does not', async () => {
+  const { audio, children, sender, start } = setup();
+  const pending = start('screen:0');
+  children[0].stdout.emit('data', header);
+  const capture = await pending;
+  children[0].emit('exit', 1);
+  expect(sender.send).toHaveBeenCalledWith(
+    'sandshark:application-audio-ended',
+    capture.captureId
+  );
+  sender.send.mockClear();
+  const next = start('screen:0');
+  children[1].stdout.emit('data', header);
+  await next;
+  audio.stopApplicationAudioCapture();
+  children[1].emit('exit', null);
+  expect(sender.send).not.toHaveBeenCalled();
+});
+
+test('reports whether the audio service sits inside the captured process tree', async () => {
+  const diagnostics: Record<string, unknown>[] = [];
+  const children: ReturnType<typeof child>[] = [];
+  const audio = createApplicationAudio({
+    getExecutablePath: () => process.execPath,
+    writeDesktopCaptureDiagnostic: (stage, details) => {
+      if (stage === 'application-audio-started')
+        diagnostics.push(details ?? {});
+    },
+    getAudioServiceProcessId: () => 30,
+    spawnProcess: (() => {
+      const process = child();
+      children.push(process);
+      return process;
+    }) as unknown as NonNullable<
+      Parameters<typeof createApplicationAudio>[0]['spawnProcess']
+    >,
+    platform: 'win32'
+  });
+  const pending = audio.startApplicationAudioCapture(
+    'screen:0',
+    Object.assign(new EventEmitter(), {
+      isDestroyed: () => false,
+      send: () => {}
+    }) as unknown as Electron.WebContents
+  );
+  children[0].stdout.emit(
+    'data',
+    Buffer.from(
+      'SANDSHARK_PROCESS_AUDIO {"sampleRate":48000,"channels":2,"format":"f32","targetProcessName":"SandShark.exe","treeProcessIds":[10,20,30]}\n'
+    )
+  );
+  await pending;
+  expect(diagnostics[0]).toMatchObject({
+    mode: 'exclude-sandshark',
+    targetProcessName: 'SandShark.exe',
+    treeProcessCount: 3,
+    audioServiceProcessId: 30,
+    audioServiceInTree: true
+  });
+  audio.stopApplicationAudioCapture();
+});

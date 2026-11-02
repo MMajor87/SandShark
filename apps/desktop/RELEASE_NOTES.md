@@ -1,3 +1,16 @@
+# SandShark 1.1.6
+
+- Stops screen share audio from ever falling back to whole system capture, which could include SandShark's own voice playback.
+- Shares SandShark's own windows as video only, since their audio would carry the voice call.
+- Keeps sharing video when application audio cannot start, and tells the sharer when screen audio stops mid share.
+- Supports application audio capture on Windows 10 version 2004 and later.
+- Keeps screen share audio in sync with the video and smooths out short audio dropouts.
+- Logs which processes each audio capture includes, to help diagnose audio leaking into a share.
+
+## Upgrade notes
+
+No server changes. Keep the paired SandShark server on 0.1.1. The Windows installer does not deploy a server. This installer remains unsigned.
+
 # SandShark 1.1.5
 
 - Checks for updates when SandShark starts and asks before downloading a new version.

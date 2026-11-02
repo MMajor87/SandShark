@@ -110,20 +110,14 @@ const createDesktopCapture = (
             return;
           }
 
-          const includeLoopbackAudio =
-            request.audioRequested &&
-            process.platform === 'win32' &&
-            source.id.startsWith('screen:');
+          // never grant Electron loopback: it records the whole system mix, including
+          // SandShark's own voice playback. audio comes from the native helper instead.
           writeDesktopCaptureDiagnostic('display-media-granted', {
             sourceType: source.id.startsWith('screen:') ? 'screen' : 'window',
-            loopbackAudio: includeLoopbackAudio,
+            audioRequested: request.audioRequested,
             applicationAudio: applicationAudio.isCapturingSource(sourceId)
           });
-          callback(
-            includeLoopbackAudio
-              ? { video: source, audio: 'loopback' }
-              : { video: source }
-          );
+          callback({ video: source });
         } catch (error) {
           console.error(
             'SandShark could not grant screen capture access.',

@@ -55,6 +55,7 @@
   "failedUpdateSoundState": "Impossibile aggiornare lo stato dell’audio",
   "failedUpdateWebcamState": "Impossibile aggiornare lo stato della webcam",
   "failedUpdateScreenShareState": "Impossibile aggiornare la condivisione schermo",
+  "screenShareAudioStopped": "L'audio della condivisione schermo si è interrotto. Lo schermo è ancora condiviso senza audio.",
   "notificationPermissionDenied": "Permesso per le notifiche negato",
   "uploadsDisabled": "I caricamenti di file sono disabilitati su questo server",
   "noUploadPermission": "Non hai il permesso di caricare file",

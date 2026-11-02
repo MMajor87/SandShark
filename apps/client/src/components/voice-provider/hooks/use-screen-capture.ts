@@ -18,6 +18,7 @@ import type {
   RtpCodecCapability
 } from 'mediasoup-client/types';
 import { useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useDevices } from '../../devices-provider/hooks/use-devices';
 import {
@@ -81,6 +82,7 @@ const useScreenCapture = ({
   simulcastEnabled,
   setScreenShareProducer
 }: TScreenCaptureParams) => {
+  const { t } = useTranslation('common');
   const {
     chooseDesktopCaptureSource,
     picker: desktopCapturePicker,
@@ -145,6 +147,18 @@ const useScreenCapture = ({
         !transport.closed
     );
     const trpc = session.client;
+    const handleProcessAudioEnded = () => {
+      if (!operation.isCurrent()) return;
+
+      voiceLogger.warn('screen audio: application audio helper stopped');
+      reportDesktopCaptureDiagnostic('application-audio-ended');
+      localScreenShareAudioProducer.current?.close();
+      localScreenShareAudioProducer.current = undefined;
+      setLocalScreenShareAudio(undefined);
+      stopProcessAudioTrack().catch(console.error);
+      toast.warning(t('screenShareAudioStopped'));
+    };
+
     try {
       operation.assertCurrent();
       voiceLogger.info('Starting screen share stream');
@@ -240,12 +254,15 @@ const useScreenCapture = ({
           ) {
             try {
               processAudioTrack = await operation.wait(
-                createProcessAudioTrack({
-                  captureId: applicationAudio.captureId,
-                  sampleRate: applicationAudio.sampleRate,
-                  channels: applicationAudio.channels,
-                  format: applicationAudio.format
-                }),
+                createProcessAudioTrack(
+                  {
+                    captureId: applicationAudio.captureId,
+                    sampleRate: applicationAudio.sampleRate,
+                    channels: applicationAudio.channels,
+                    format: applicationAudio.format
+                  },
+                  handleProcessAudioEnded
+                ),
                 (track) => track.stop()
               );
               processAudioTrackRef.current = processAudioTrack;
@@ -263,20 +280,16 @@ const useScreenCapture = ({
               await desktopApi.stopApplicationAudioCapture(
                 applicationAudio.captureId
               );
-              throw new Error(
-                error instanceof Error
-                  ? error.message
-                  : 'Could not start application audio capture.'
-              );
+              operation.assertCurrent();
+              // share video only rather than failing, and never fall back to loopback.
+              reportDesktopCaptureDiagnostic('application-audio-unavailable', {
+                reason: getErrorMessage(error)
+              });
             }
           } else {
             reportDesktopCaptureDiagnostic('application-audio-unavailable', {
               reason: applicationAudio.reason
             });
-            throw new Error(
-              applicationAudio.reason ??
-                'Could not start application audio capture.'
-            );
           }
         }
         // native audio capture avoids Electron loopback recapturing our playback.
@@ -582,7 +595,8 @@ const useScreenCapture = ({
     simulcastEnabled,
     routerRtpCapabilities,
     chooseDesktopCaptureSource,
-    stopProcessAudioTrack
+    stopProcessAudioTrack,
+    t
   ]);
 
   return {

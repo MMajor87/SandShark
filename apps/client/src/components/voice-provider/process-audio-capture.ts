@@ -15,7 +15,8 @@ type TProcessAudioTrack = {
 };
 
 const createProcessAudioTrack = async (
-  capture: TApplicationAudioCapture
+  capture: TApplicationAudioCapture,
+  onEnded?: () => void
 ): Promise<TProcessAudioTrack> => {
   const desktopApi = getDesktopBridge();
   if (!desktopApi)
@@ -26,12 +27,14 @@ const createProcessAudioTrack = async (
   let destination: MediaStreamAudioDestinationNode | undefined;
   let diagnosticTimer: number | undefined;
   let unsubscribe: (() => void) | undefined;
+  let unsubscribeEnded: (() => void) | undefined;
   let stopped = false;
   const stop = async () => {
     if (stopped) return;
     stopped = true;
     window.clearInterval(diagnosticTimer);
     unsubscribe?.();
+    unsubscribeEnded?.();
     for (const track of destination?.stream.getTracks() ?? []) track.stop();
     worklet?.disconnect();
     await Promise.all([
@@ -104,6 +107,13 @@ const createProcessAudioTrack = async (
         }
       }
       worklet?.port.postMessage({ type: 'audio', samples }, [samples.buffer]);
+    });
+
+    unsubscribeEnded = desktopApi.onApplicationAudioEnded((captureId) => {
+      if (captureId !== capture.captureId || stopped) return;
+
+      logVoice('Application audio helper ended unexpectedly', { captureId });
+      onEnded?.();
     });
 
     await audioContext.resume();

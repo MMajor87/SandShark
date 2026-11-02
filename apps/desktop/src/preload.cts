@@ -82,6 +82,19 @@ const desktopApi: TSandSharkDesktopAPI = {
       ipcRenderer.removeListener('sandshark:application-audio-data', handler);
     };
   },
+  onApplicationAudioEnded: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, captureId: unknown) => {
+      if (typeof captureId !== 'string') return;
+
+      listener(captureId);
+    };
+
+    ipcRenderer.on('sandshark:application-audio-ended', handler);
+
+    return () => {
+      ipcRenderer.removeListener('sandshark:application-audio-ended', handler);
+    };
+  },
   reportDesktopCaptureDiagnostic: (diagnostic: TDesktopCaptureDiagnostic) =>
     invoke<void>('sandshark:report-desktop-capture-diagnostic', diagnostic),
   showDesktopCaptureLog: () =>

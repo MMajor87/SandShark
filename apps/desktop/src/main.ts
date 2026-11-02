@@ -83,9 +83,19 @@ const getProcessAudioCaptureExecutablePath = () =>
     ? join(currentDirectory, '../native/bin/ProcessAudioCapture.exe')
     : join(process.resourcesPath, 'native', 'ProcessAudioCapture.exe');
 
+const getAudioServiceProcessId = () => {
+  const metrics = app.getAppMetrics();
+  const audioService = metrics.find(
+    ({ serviceName }) => serviceName === 'audio.mojom.AudioService'
+  );
+
+  return audioService?.pid;
+};
+
 const applicationAudio = createApplicationAudio({
   getExecutablePath: getProcessAudioCaptureExecutablePath,
-  writeDesktopCaptureDiagnostic
+  writeDesktopCaptureDiagnostic,
+  getAudioServiceProcessId
 });
 
 const capture = createDesktopCapture(

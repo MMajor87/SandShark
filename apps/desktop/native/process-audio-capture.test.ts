@@ -51,9 +51,11 @@ test('starts Windows capture with process exclusion and returns the PCM format',
     );
     expect(format).toMatchObject({
       channels: 2,
-      sampleRate: 44100,
-      format: 's16'
+      sampleRate: 48000,
+      format: 'f32',
+      targetProcessId: process.pid
     });
+    expect(format.treeProcessIds).toContain(process.pid);
   } finally {
     clearTimeout(timeout);
     helper.kill();

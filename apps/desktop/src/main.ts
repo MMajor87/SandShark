@@ -74,7 +74,8 @@ const updater = createDesktopUpdater({
   getMainWindow,
   preferences,
   isDevelopment,
-  isPackagedSmokeTest
+  isPackagedSmokeTest,
+  dialog
 });
 
 const getProcessAudioCaptureExecutablePath = () =>

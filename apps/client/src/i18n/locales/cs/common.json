@@ -55,6 +55,7 @@
   "failedUpdateSoundState": "Aktualizace stavu zvuku se nezdařila",
   "failedUpdateWebcamState": "Aktualizace stavu kamery se nezdařila",
   "failedUpdateScreenShareState": "Aktualizace sdílení obrazovky se nezdařila",
+  "screenShareAudioStopped": "Zvuk sdílení obrazovky se zastavil. Obrazovka se stále sdílí bez zvuku.",
   "notificationPermissionDenied": "Oprávnění k oznámením bylo zamítnuto",
   "uploadsDisabled": "Nahrávání souborů je na tomto serveru zakázáno",
   "noUploadPermission": "Nemáte oprávnění nahrávat soubory",

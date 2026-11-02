@@ -9,10 +9,12 @@ import type { TDesktopLogDetails } from './diagnostics.js';
 const createApplicationAudio = ({
   getExecutablePath,
   writeDesktopCaptureDiagnostic,
+  getAudioServiceProcessId = () => undefined,
   spawnProcess = spawn,
   platform = process.platform
 }: {
   getExecutablePath: () => string;
+  getAudioServiceProcessId?: () => number | undefined;
   writeDesktopCaptureDiagnostic: (
     stage: string,
     details?: TDesktopLogDetails
@@ -67,9 +69,10 @@ const createApplicationAudio = ({
       const captureId = randomUUID();
       // exclude the Electron main process and all of its audio-rendering children.
       const excludeOwnAudio = sourceId.startsWith('screen:');
+      // the owner lets the helper refuse a window that belongs to SandShark itself.
       const captureArguments = excludeOwnAudio
         ? ['--exclude-process', String(process.pid)]
-        : [sourceId];
+        : [sourceId, '--owner-process', String(process.pid)];
       writeDesktopCaptureDiagnostic('native-audio-requested', {
         mode: excludeOwnAudio ? 'exclude-sandshark' : 'include-application',
         excludedProcessId: excludeOwnAudio ? process.pid : undefined
@@ -144,6 +147,8 @@ const createApplicationAudio = ({
             sampleRate?: unknown;
             channels?: unknown;
             format?: unknown;
+            targetProcessName?: unknown;
+            treeProcessIds?: unknown;
           };
           if (
             typeof details.sampleRate !== 'number' ||
@@ -153,10 +158,28 @@ const createApplicationAudio = ({
             throw new Error('invalid audio format');
           }
 
+          const treeProcessIds = Array.isArray(details.treeProcessIds)
+            ? details.treeProcessIds
+            : [];
+          const audioServiceProcessId = getAudioServiceProcessId();
+
+          // in exclude mode the audio service must be inside the excluded tree, otherwise
+          // our own playback leaks into the share; in include mode it must be outside it.
           writeDesktopCaptureDiagnostic('application-audio-started', {
             sampleRate: details.sampleRate,
             channels: details.channels,
-            format: details.format
+            format: details.format,
+            mode: excludeOwnAudio ? 'exclude-sandshark' : 'include-application',
+            targetProcessName:
+              typeof details.targetProcessName === 'string'
+                ? details.targetProcessName
+                : undefined,
+            treeProcessCount: treeProcessIds.length,
+            audioServiceProcessId,
+            audioServiceInTree:
+              audioServiceProcessId === undefined
+                ? undefined
+                : treeProcessIds.includes(audioServiceProcessId)
           });
           finish({
             active: true,
@@ -226,6 +249,10 @@ const createApplicationAudio = ({
           writeDesktopCaptureDiagnostic('application-audio-stopped', {
             code: code ?? undefined
           });
+
+          // the helper died on its own, so the renderer would otherwise stream silence.
+          if (!sender.isDestroyed())
+            sender.send('sandshark:application-audio-ended', captureId);
         }
       });
     });

@@ -154,6 +154,9 @@ export type TSandSharkDesktopAPI = {
   onApplicationAudioData: (
     listener: (captureId: string, data: Uint8Array) => void
   ) => () => void;
+  onApplicationAudioEnded: (
+    listener: (captureId: string) => void
+  ) => () => void;
   reportDesktopCaptureDiagnostic: (
     diagnostic: TDesktopCaptureDiagnostic
   ) => Promise<void>;

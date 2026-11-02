@@ -22,6 +22,8 @@ const setup = (failure?: string) => {
   const clearInterval = mock(() => undefined);
   const stopNative = mock(async (_captureId?: string) => undefined);
   const close = mock(async () => undefined);
+  const unsubscribeEnded = mock(() => undefined);
+  let endedListener: ((captureId: string) => void) | undefined;
   const track = { stop };
   class Context {
     state = 'running';
@@ -55,10 +57,24 @@ const setup = (failure?: string) => {
         failAt('subscribe');
         return unsubscribe;
       },
+      reportDesktopDiagnostic: async () => undefined,
+      onApplicationAudioEnded: (listener: (captureId: string) => void) => {
+        endedListener = listener;
+        return unsubscribeEnded;
+      },
       stopApplicationAudioCapture: stopNative
     }
   } as unknown as Window & typeof globalThis;
-  return { stop, close, disconnect, unsubscribe, clearInterval, stopNative };
+  return {
+    stop,
+    close,
+    disconnect,
+    unsubscribe,
+    unsubscribeEnded,
+    clearInterval,
+    stopNative,
+    emitEnded: (captureId: string) => endedListener?.(captureId)
+  };
 };
 const capture = {
   captureId: 'old-capture',
@@ -97,4 +113,18 @@ test('application audio stop is idempotent and targets only its owned native cap
   expect(resources.unsubscribe).toHaveBeenCalledTimes(1);
   expect(resources.clearInterval).toHaveBeenCalledTimes(1);
   expect(resources.stopNative.mock.calls).toEqual([['old-capture']]);
+});
+
+test('an unexpected helper exit for this capture notifies the owner and a stopped capture stays quiet', async () => {
+  const resources = setup();
+  const onEnded = mock(() => undefined);
+  const audio = await createProcessAudioTrack(capture, onEnded);
+  resources.emitEnded('another-capture');
+  expect(onEnded).not.toHaveBeenCalled();
+  resources.emitEnded('old-capture');
+  expect(onEnded).toHaveBeenCalledTimes(1);
+  await audio.stop();
+  expect(resources.unsubscribeEnded).toHaveBeenCalledTimes(1);
+  resources.emitEnded('old-capture');
+  expect(onEnded).toHaveBeenCalledTimes(1);
 });

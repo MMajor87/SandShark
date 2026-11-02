@@ -55,6 +55,7 @@
   "failedUpdateSoundState": "Falha ao atualizar o estado do som",
   "failedUpdateWebcamState": "Falha ao atualizar o estado da webcam",
   "failedUpdateScreenShareState": "Falha ao atualizar o estado do compartilhamento de tela",
+  "screenShareAudioStopped": "O áudio do compartilhamento de tela parou. Sua tela continua sendo compartilhada sem som.",
   "notificationPermissionDenied": "A permissão de notificação foi negada",
   "uploadsDisabled": "O envio de arquivos está desativado neste servidor",
   "noUploadPermission": "Você não tem permissão para enviar arquivos",

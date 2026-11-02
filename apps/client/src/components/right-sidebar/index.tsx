@@ -7,7 +7,9 @@ import { cn } from '@/lib/utils';
 import {
   DELETED_USER_IDENTITY_AND_NAME,
   PluginSlot,
-  TestId
+  TestId,
+  UserStatus,
+  type TJoinedPublicUser
 } from '@sharkord/shared';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,16 +24,20 @@ type TUserProps = {
   userId: number;
   name: string;
   banned: boolean;
+  offline: boolean;
 };
 
-const User = memo(({ userId, name, banned }: TUserProps) => {
+const User = memo(({ userId, name, banned, offline }: TUserProps) => {
   const pluginProps = useMemo(() => ({ userId }), [userId]);
 
   return (
     <UserPopover userId={userId}>
       <div
         data-testid={TestId.MEMBER_ITEM}
-        className="flex items-center gap-3 rounded px-2 py-1.5 hover:bg-accent select-none min-w-0"
+        className={cn(
+          'flex min-w-0 select-none items-center gap-3 rounded-md px-2 py-1.5 transition-opacity hover:bg-accent hover:opacity-100',
+          offline && 'opacity-40'
+        )}
       >
         <UserAvatar userId={userId} className="h-8 w-8 shrink-0" />
         <span
@@ -52,6 +58,34 @@ const User = memo(({ userId, name, banned }: TUserProps) => {
   );
 });
 
+type TMemberGroupProps = {
+  label: string;
+  users: TJoinedPublicUser[];
+  offline: boolean;
+};
+
+const MemberGroup = memo(({ label, users, offline }: TMemberGroupProps) => {
+  if (users.length === 0) return null;
+
+  return (
+    <section className="space-y-0.5">
+      <h3 className="px-2 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+        <span className="ml-1.5">{users.length}</span>
+      </h3>
+      {users.map((user) => (
+        <User
+          key={user.id}
+          userId={user.id}
+          name={user.name}
+          banned={user.banned}
+          offline={offline}
+        />
+      ))}
+    </section>
+  );
+});
+
 type TRightSidebarProps = {
   className?: string;
   isOpen?: boolean;
@@ -62,18 +96,20 @@ const RightSidebar = memo(
     const { t } = useTranslation('sidebar');
     const users = useUsers();
 
-    const { usersToShow, usersCount } = useMemo(() => {
+    const { onlineUsers, offlineUsers, hiddenCount } = useMemo(() => {
       const filtered = users.filter(
         (user) => user.name !== DELETED_USER_IDENTITY_AND_NAME
       );
+      const visible = filtered.slice(0, MAX_USERS_TO_SHOW);
+      const isOffline = (user: TJoinedPublicUser) =>
+        !user.status || user.status === UserStatus.OFFLINE;
 
       return {
-        usersToShow: filtered.slice(0, MAX_USERS_TO_SHOW),
-        usersCount: filtered.length
+        onlineUsers: visible.filter((user) => !isOffline(user)),
+        offlineUsers: visible.filter(isOffline),
+        hiddenCount: filtered.length - visible.length
       };
     }, [users]);
-
-    const hasHiddenUsers = users.length > MAX_USERS_TO_SHOW;
 
     return (
       <ResizableSidebar
@@ -85,28 +121,26 @@ const RightSidebar = memo(
         isOpen={isOpen}
         className={cn('h-full', className)}
       >
-        <div className="flex h-12 items-center border-b border-border px-4">
-          <h3 className="text-sm font-semibold text-foreground">
-            {t('membersHeader', { count: usersCount })}
-          </h3>
-        </div>
-        <div className="flex-1 overflow-y-auto p-2">
-          <div className="space-y-1">
-            {usersToShow.map((user) => (
-              <User
-                key={user.id}
-                userId={user.id}
-                name={user.name}
-                banned={user.banned}
-              />
-            ))}
-            {hasHiddenUsers && (
-              <div className="text-sm text-muted-foreground px-2 py-1.5">
-                +{users.length - MAX_USERS_TO_SHOW} more...
-              </div>
-            )}
-          </div>
-        </div>
+        <aside
+          aria-label={t('members')}
+          className="flex-1 overflow-y-auto px-2 pb-2"
+        >
+          <MemberGroup
+            label={t('membersOnline')}
+            users={onlineUsers}
+            offline={false}
+          />
+          <MemberGroup
+            label={t('membersOffline')}
+            users={offlineUsers}
+            offline
+          />
+          {hiddenCount > 0 && (
+            <div className="px-2 py-1.5 text-sm text-muted-foreground">
+              {t('membersHidden', { count: hiddenCount })}
+            </div>
+          )}
+        </aside>
       </ResizableSidebar>
     );
   }

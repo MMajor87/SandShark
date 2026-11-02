@@ -1,16 +1,7 @@
-import {
-  beginServerConnection,
-  openServerProfiles
-} from '@/features/app/actions';
+import { openServerProfiles } from '@/features/app/actions';
 import { openDialog, requestConfirmation } from '@/features/dialogs/actions';
 import { openServerScreen } from '@/features/server-screens/actions';
-import { disconnectFromServer, switchServer } from '@/features/server/actions';
-import {
-  getActiveServerProfileId,
-  getServerProfiles,
-  selectServerProfile,
-  type TServerProfile
-} from '@/helpers/server-connection';
+import { disconnectFromServer } from '@/features/server/actions';
 import { Permission, TestId } from '@sharkord/shared';
 import {
   Button,
@@ -21,136 +12,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@sharkord/ui';
-import { CalendarDays, Check, ChevronDown, Menu, Server } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { CalendarDays, ChevronDown } from 'lucide-react';
+import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from '../dialogs/dialogs';
 import { Protect } from '../protect';
 import { ServerScreen } from '../server-screens/screens';
-
-type TServerSwitcherProps = {
-  serverName: string | undefined;
-  serverIcon?: string;
-  'data-testid'?: string;
-};
-
-type TServerProfileIconProps = {
-  icon: string | undefined;
-  className: string;
-};
-
-const ServerProfileIcon = memo(
-  ({ icon, className }: TServerProfileIconProps) => {
-    const [failedToLoad, setFailedToLoad] = useState(false);
-
-    useEffect(() => {
-      setFailedToLoad(false);
-    }, [icon]);
-
-    if (!icon || failedToLoad) {
-      return <Server className={className} />;
-    }
-
-    return (
-      <img
-        src={icon}
-        alt=""
-        className={className}
-        onError={() => setFailedToLoad(true)}
-      />
-    );
-  }
-);
-
-const ServerSwitcher = memo(
-  ({ serverName, serverIcon, 'data-testid': testId }: TServerSwitcherProps) => {
-    const [open, setOpen] = useState(false);
-    const [profiles, setProfiles] = useState<TServerProfile[]>(() =>
-      getServerProfiles()
-    );
-    const [activeProfileId, setActiveProfileId] = useState(() =>
-      getActiveServerProfileId()
-    );
-
-    const handleOpenChange = useCallback((nextOpen: boolean) => {
-      if (nextOpen) {
-        setProfiles(getServerProfiles());
-        setActiveProfileId(getActiveServerProfileId());
-      }
-
-      setOpen(nextOpen);
-    }, []);
-
-    const switchProfile = useCallback((profileId: string) => {
-      if (profileId === getActiveServerProfileId()) {
-        setOpen(false);
-        return;
-      }
-
-      if (!selectServerProfile(profileId)) return;
-
-      switchServer();
-      beginServerConnection();
-      setOpen(false);
-    }, []);
-
-    const manageServers = useCallback(() => {
-      setOpen(false);
-      openServerProfiles();
-    }, []);
-
-    const activeProfile = profiles.find(
-      (profile) => profile.id === activeProfileId
-    );
-
-    return (
-      <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="min-w-0 flex-1 justify-start gap-1 px-0 font-semibold"
-            title="Switch server"
-            data-testid={testId}
-          >
-            <ServerProfileIcon
-              icon={serverIcon ?? activeProfile?.icon}
-              className="h-5 w-5 shrink-0 rounded object-cover text-muted-foreground"
-            />
-            <span className="truncate">{serverName ?? 'SandShark'}</span>
-            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-72">
-          <DropdownMenuLabel>Servers</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {profiles.map((profile) => {
-            const isActive = profile.id === activeProfileId;
-            const name = profile.displayName ?? profile.httpUrl;
-
-            return (
-              <DropdownMenuItem
-                key={profile.id}
-                onClick={() => switchProfile(profile.id)}
-                className="flex items-center gap-2"
-              >
-                <ServerProfileIcon
-                  icon={profile.icon}
-                  className="h-5 w-5 shrink-0 rounded object-cover text-muted-foreground"
-                />
-                <span className="min-w-0 flex-1 truncate">{name}</span>
-                {isActive && <Check className="h-4 w-4 shrink-0" />}
-              </DropdownMenuItem>
-            );
-          })}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={manageServers}>
-            Manage servers
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  }
-);
 
 const ServerDropdownMenu = memo(() => {
   const { t } = useTranslation('sidebar');
@@ -190,8 +57,9 @@ const ServerDropdownMenu = memo(() => {
           data-testid={TestId.SERVER_MENU_TRIGGER}
           variant="ghost"
           size="icon"
+          aria-label={t('serverMenu')}
         >
-          <Menu className="h-4 w-4 text-muted-foreground" />
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
@@ -220,7 +88,7 @@ const ServerDropdownMenu = memo(() => {
           <DropdownMenuSeparator />
         </Protect>
         <DropdownMenuItem onClick={openServerProfiles}>
-          Switch server
+          {t('switchServer')}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -235,4 +103,4 @@ const ServerDropdownMenu = memo(() => {
   );
 });
 
-export { ServerDropdownMenu, ServerSwitcher };
+export { ServerDropdownMenu };

@@ -2,8 +2,9 @@ import { LeftSidebar } from '@/components/left-sidebar';
 import { ModViewSheet } from '@/components/mod-view-sheet';
 import { Protect } from '@/components/protect';
 import { RightSidebar } from '@/components/right-sidebar';
+import { ServerRail } from '@/components/server-rail';
 import { ThreadSidebar } from '@/components/thread-sidebar';
-import { TopBar } from '@/components/top-bar';
+import { HeaderActions } from '@/components/top-bar';
 import { VoiceChatSidebar } from '@/components/voice-chat-sidebar';
 import { VoiceProvider } from '@/components/voice-provider';
 import { useSelectedDmChannelId, useThreadSidebar } from '@/features/app/hooks';
@@ -18,10 +19,14 @@ import {
 } from '@/helpers/storage';
 import { useSwipeGestures } from '@/hooks/use-swipe-gestures';
 import { cn } from '@/lib/utils';
+import { isDesktopClient } from '@/platform/environment';
 import { Permission, TestId } from '@sharkord/shared';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ContentWrapper } from './content-wrapper';
 import { PreventBrowser } from './prevent-browser';
+
+// matches tailwind's lg breakpoint, below it the member list is an overlay
+const PERSISTENT_MEMBER_LIST_QUERY = '(min-width: 1024px)';
 
 const ServerView = memo(() => {
   useMediaAccessRefresh();
@@ -43,6 +48,29 @@ const ServerView = memo(() => {
       !isDesktopRightSidebarOpen
     );
   }, [isDesktopRightSidebarOpen]);
+
+  const handleToggleMembers = useCallback(() => {
+    if (window.matchMedia(PERSISTENT_MEMBER_LIST_QUERY).matches) {
+      handleDesktopRightSidebarToggle();
+
+      return;
+    }
+
+    setIsMobileUsersOpen((prev) => !prev);
+  }, [handleDesktopRightSidebarToggle]);
+
+  const headerActions = useMemo(
+    () => (
+      <HeaderActions
+        onToggleMembers={handleToggleMembers}
+        isMembersOpen={isDesktopRightSidebarOpen}
+      />
+    ),
+    [handleToggleMembers, isDesktopRightSidebarOpen]
+  );
+
+  const closeMobileMenu = useCallback(() => setIsMobileMenuOpen(false), []);
+  const closeMobileUsers = useCallback(() => setIsMobileUsersOpen(false), []);
 
   const handleSwipeRight = useCallback(() => {
     if (isMobileMenuOpen || isMobileUsersOpen) {
@@ -87,26 +115,24 @@ const ServerView = memo(() => {
         className="flex h-dvh flex-col bg-background text-foreground dark"
         {...swipeHandlers}
       >
-        <TopBar
-          onToggleRightSidebar={handleDesktopRightSidebarToggle}
-          isOpen={isDesktopRightSidebarOpen}
-        />
         <div className="relative flex min-h-0 flex-1 overflow-hidden">
           <PreventBrowser />
 
           {isMobileMenuOpen && (
             <div
               className="md:hidden fixed inset-0 bg-black/50 z-30"
-              onClick={() => setIsMobileMenuOpen(false)}
+              onClick={closeMobileMenu}
             />
           )}
 
           {isMobileUsersOpen && (
             <div
               className="lg:hidden fixed inset-0 bg-black/50 z-30"
-              onClick={() => setIsMobileUsersOpen(false)}
+              onClick={closeMobileUsers}
             />
           )}
+
+          {isDesktopClient() && <ServerRail />}
 
           <LeftSidebar
             className={cn(
@@ -120,6 +146,7 @@ const ServerView = memo(() => {
           <ContentWrapper
             isDmMode={dmsOpen}
             selectedDmChannelId={selectedDmChannelId}
+            headerActions={headerActions}
           />
 
           <VoiceChatSidebar />

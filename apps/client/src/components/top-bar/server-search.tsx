@@ -27,13 +27,16 @@ const ServerSearch = memo(() => {
     <button
       type="button"
       onClick={openSearchDialog}
-      className="flex w-96 max-w-2xl items-center gap-2 rounded-md border border-border/80 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-muted"
+      aria-label={t('searchContent')}
+      className="ml-1 flex h-7 w-36 items-center gap-2 rounded-md bg-rail px-2 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring xl:w-56"
     >
-      <Search className="h-3.5 w-3.5 animate-pulse" />
-      <span className="truncate text-left">{t('searchContent')}</span>
-      <span className="ml-auto hidden rounded border border-border bg-background px-1.5 py-0.5 text-[10px] md:inline">
+      <span className="min-w-0 flex-1 truncate text-left">
+        {t('searchContent')}
+      </span>
+      <span className="hidden shrink-0 rounded border border-border px-1 text-[10px] xl:inline">
         Ctrl+K
       </span>
+      <Search className="size-4 shrink-0" />
     </button>
   );
 });

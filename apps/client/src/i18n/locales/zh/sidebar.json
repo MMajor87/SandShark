@@ -56,7 +56,6 @@
   "gpuEncoder": "GPU ({{encoder}})",
   "cpuEncoder": "CPU ({{encoder}})",
   "unknownEncoder": "未知 ({{encoder}})",
-  "membersHeader": "成员 — {{count}}",
   "openDirectMessages": "打开私信",
   "closeDirectMessages": "关闭私信",
   "openChat": "打开聊天",
@@ -85,5 +84,13 @@
   "couldNotCloseDM": "无法关闭私信",
   "failedLoadDMs": "加载私信失败",
   "simulcastLayers": "联播层数：{{count}}",
-  "simulcastLayer": "第 {{layer}} 层"
+  "simulcastLayer": "第 {{layer}} 层",
+  "servers": "服务器",
+  "addServer": "添加服务器",
+  "switchServer": "切换服务器",
+  "serverMenu": "服务器菜单",
+  "members": "成员",
+  "membersOnline": "在线",
+  "membersOffline": "离线",
+  "membersHidden": "还有 {{count}} 位"
 }

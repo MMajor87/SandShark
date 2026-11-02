@@ -58,7 +58,6 @@
   "gpuEncoder": "GPU ({{encoder}})",
   "cpuEncoder": "CPU ({{encoder}})",
   "unknownEncoder": "Unknown ({{encoder}})",
-  "membersHeader": "Members — {{count}}",
   "openDirectMessages": "Open Direct Messages",
   "closeDirectMessages": "Close Direct Messages",
   "openChat": "Open Text Chat",
@@ -84,5 +83,13 @@
   "failedLoadThreads": "Failed to load threads",
   "loadMoreThreads": "Load more",
   "closeConversation": "Close conversation",
-  "couldNotCloseDM": "Could not close direct message"
+  "couldNotCloseDM": "Could not close direct message",
+  "servers": "Servers",
+  "addServer": "Add a server",
+  "switchServer": "Switch server",
+  "serverMenu": "Server menu",
+  "members": "Members",
+  "membersOnline": "Online",
+  "membersOffline": "Offline",
+  "membersHidden": "+{{count}} more"
 }

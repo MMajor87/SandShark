@@ -56,7 +56,6 @@
   "gpuEncoder": "GPU ({{encoder}})",
   "cpuEncoder": "CPU ({{encoder}})",
   "unknownEncoder": "Неизвестный ({{encoder}})",
-  "membersHeader": "Участники — {{count}}",
   "openDirectMessages": "Открыть личные сообщения",
   "closeDirectMessages": "Закрыть личные сообщения",
   "openChat": "Открыть текстовый чат",
@@ -85,5 +84,13 @@
   "couldNotCloseDM": "Не удалось закрыть личное сообщение",
   "failedLoadDMs": "Не удалось загрузить личные сообщения",
   "simulcastLayers": "Слои simulcast: {{count}}",
-  "simulcastLayer": "Слой {{layer}}"
+  "simulcastLayer": "Слой {{layer}}",
+  "servers": "Серверы",
+  "addServer": "Добавить сервер",
+  "switchServer": "Сменить сервер",
+  "serverMenu": "Меню сервера",
+  "members": "Участники",
+  "membersOnline": "В сети",
+  "membersOffline": "Не в сети",
+  "membersHidden": "+ещё {{count}}"
 }

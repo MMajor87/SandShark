@@ -56,7 +56,6 @@
   "gpuEncoder": "GPU ({{encoder}})",
   "cpuEncoder": "CPU ({{encoder}})",
   "unknownEncoder": "Inconnu ({{encoder}})",
-  "membersHeader": "Membres — {{count}}",
   "openDirectMessages": "Ouvrir les messages privés",
   "closeDirectMessages": "Fermer les messages privés",
   "openChat": "Ouvrir le chat textuel",
@@ -85,5 +84,13 @@
   "couldNotCloseDM": "Impossible de fermer le message privé",
   "failedLoadDMs": "Échec du chargement des messages privés",
   "simulcastLayers": "Couches simulcast : {{count}}",
-  "simulcastLayer": "Couche {{layer}}"
+  "simulcastLayer": "Couche {{layer}}",
+  "servers": "Serveurs",
+  "addServer": "Ajouter un serveur",
+  "switchServer": "Changer de serveur",
+  "serverMenu": "Menu du serveur",
+  "members": "Membres",
+  "membersOnline": "En ligne",
+  "membersOffline": "Hors ligne",
+  "membersHidden": "+{{count}} de plus"
 }

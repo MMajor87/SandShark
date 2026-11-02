@@ -1,3 +1,14 @@
+# SandShark 1.1.4
+
+- Adds a server rail on the left of the desktop client for switching between saved servers, with an add server button.
+- Moves search, the member list toggle and voice controls into each channel header, and keeps them available in narrow windows.
+- Groups the member list into online and offline sections.
+- Refreshes the dark theme with layered surfaces and fixes light scrollbars appearing in the dark app on Windows light themes.
+
+## Upgrade notes
+
+No server changes. Keep the paired SandShark server on 0.1.1. The Windows installer does not deploy a server. This installer remains unsigned.
+
 # SandShark 1.1.3
 
 - Adds account self deletion with password confirmation and removes the user's calendar events and invitations.

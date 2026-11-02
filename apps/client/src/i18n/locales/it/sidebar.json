@@ -56,7 +56,6 @@
   "gpuEncoder": "GPU ({{encoder}})",
   "cpuEncoder": "CPU ({{encoder}})",
   "unknownEncoder": "Sconosciuto ({{encoder}})",
-  "membersHeader": "Membri - {{count}}",
   "openDirectMessages": "Apri messaggi diretti",
   "closeDirectMessages": "Chiudi messaggi diretti",
   "openChat": "Apri chat testuale",
@@ -85,5 +84,13 @@
   "couldNotCloseDM": "Impossibile chiudere il messaggio diretto",
   "failedLoadDMs": "Impossibile caricare i messaggi diretti",
   "simulcastLayers": "Livelli simulcast: {{count}}",
-  "simulcastLayer": "Livello {{layer}}"
+  "simulcastLayer": "Livello {{layer}}",
+  "servers": "Server",
+  "addServer": "Aggiungi un server",
+  "switchServer": "Cambia server",
+  "serverMenu": "Menu del server",
+  "members": "Membri",
+  "membersOnline": "Online",
+  "membersOffline": "Offline",
+  "membersHidden": "+{{count}} altri"
 }

@@ -58,7 +58,6 @@
   "gpuEncoder": "GPU ({{encoder}})",
   "cpuEncoder": "CPU ({{encoder}})",
   "unknownEncoder": "Desconhecido ({{encoder}})",
-  "membersHeader": "Membros — {{count}}",
   "openDirectMessages": "Abrir Mensagens Diretas",
   "closeDirectMessages": "Fechar Mensagens Diretas",
   "openChat": "Abrir Bate-Papo",
@@ -84,5 +83,13 @@
   "failedLoadThreads": "Falha ao carregar os tópicos",
   "loadMoreThreads": "Carregar mais",
   "closeConversation": "Fechar conversa",
-  "couldNotCloseDM": "Não foi possível fechar a mensagem direta"
+  "couldNotCloseDM": "Não foi possível fechar a mensagem direta",
+  "servers": "Servidores",
+  "addServer": "Adicionar um servidor",
+  "switchServer": "Trocar de servidor",
+  "serverMenu": "Menu do servidor",
+  "members": "Membros",
+  "membersOnline": "Online",
+  "membersOffline": "Offline",
+  "membersHidden": "+{{count}} a mais"
 }

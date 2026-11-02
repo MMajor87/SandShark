@@ -2,9 +2,11 @@ import { TextChannel } from '@/components/channel-view/text';
 import { VoiceChannel } from '@/components/channel-view/voice';
 import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { ThreadContent } from '@/components/thread-sidebar/thread-content';
+import { ViewHeader } from '@/components/view-header';
 import { setSelectedThread } from '@/features/app/actions';
 import { useSelectedThread } from '@/features/app/hooks';
 import {
+  useChannelById,
   useSelectedChannelId,
   useSelectedChannelType
 } from '@/features/server/channels/hooks';
@@ -15,17 +17,36 @@ import {
 import { useThreadsOpen } from '@/features/server/threads/hooks';
 import { ChannelType, PluginSlot } from '@sharkord/shared';
 import { Alert, AlertDescription } from '@sharkord/ui';
-import { AlertTriangle, ArrowLeft, ArrowRight } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  MessageCircleMore,
+  MessageSquareText,
+  Volume2
+} from 'lucide-react';
+import { memo, useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type TContentWrapperProps = {
   isDmMode: boolean;
   selectedDmChannelId?: number;
+  headerActions: ReactNode;
 };
 
+type TVoiceHeaderProps = {
+  channelId: number;
+  actions: ReactNode;
+};
+
+const VoiceHeader = memo(({ channelId, actions }: TVoiceHeaderProps) => {
+  const channel = useChannelById(channelId);
+
+  return <ViewHeader icon={Volume2} title={channel?.name} actions={actions} />;
+});
+
 const ContentWrapper = memo(
-  ({ isDmMode, selectedDmChannelId }: TContentWrapperProps) => {
+  ({ isDmMode, selectedDmChannelId, headerActions }: TContentWrapperProps) => {
     const { t } = useTranslation();
     const selectedChannelId = useSelectedChannelId();
     const selectedChannelType = useSelectedChannelType();
@@ -39,6 +60,7 @@ const ContentWrapper = memo(
     if (activeFullscreenPluginId) {
       return (
         <main className="flex flex-1 flex-col bg-background relative min-w-0 min-h-0">
+          <ViewHeader actions={headerActions} />
           <div className="flex-col gap-2 h-full w-full flex overflow-auto relative bg-background">
             <PluginSlotRenderer
               slotId={PluginSlot.FULL_SCREEN}
@@ -59,13 +81,21 @@ const ContentWrapper = memo(
             parentMessageId={selectedThread.parentMessageId}
             channelId={selectedThread.channelId}
             onClose={onCloseThread}
+            headerActions={headerActions}
           />
         );
       } else {
         content = (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            {t('selectThreadPrompt')}
-          </div>
+          <>
+            <ViewHeader
+              icon={MessageSquareText}
+              title={t('sidebar:threads')}
+              actions={headerActions}
+            />
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              {t('selectThreadPrompt')}
+            </div>
+          </>
         );
       }
 
@@ -82,13 +112,21 @@ const ContentWrapper = memo(
           <TextChannel
             key={selectedDmChannelId}
             channelId={selectedDmChannelId}
+            headerActions={headerActions}
           />
         );
       } else {
         content = (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            {t('selectDmPrompt')}
-          </div>
+          <>
+            <ViewHeader
+              icon={MessageCircleMore}
+              title={t('sidebar:directMessages')}
+              actions={headerActions}
+            />
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              {t('selectDmPrompt')}
+            </div>
+          </>
         );
       }
 
@@ -102,16 +140,30 @@ const ContentWrapper = memo(
     if (selectedChannelId) {
       if (selectedChannelType === ChannelType.TEXT) {
         content = (
-          <TextChannel key={selectedChannelId} channelId={selectedChannelId} />
+          <TextChannel
+            key={selectedChannelId}
+            channelId={selectedChannelId}
+            headerActions={headerActions}
+          />
         );
       } else if (selectedChannelType === ChannelType.VOICE) {
         content = (
-          <VoiceChannel key={selectedChannelId} channelId={selectedChannelId} />
+          <>
+            <VoiceHeader
+              channelId={selectedChannelId}
+              actions={headerActions}
+            />
+            <VoiceChannel
+              key={selectedChannelId}
+              channelId={selectedChannelId}
+            />
+          </>
         );
       }
     } else {
       content = (
         <>
+          <ViewHeader title={serverName} actions={headerActions} />
           <div className="flex-col gap-2 h-full w-full hidden lg:flex overflow-auto">
             <PluginSlotRenderer slotId={PluginSlot.HOME_SCREEN} />
           </div>

@@ -5,7 +5,7 @@ import { useChannelById } from '@/features/server/channels/hooks';
 import { ChannelType, PluginSlot } from '@sharkord/shared';
 import { IconButton, Tooltip } from '@sharkord/ui';
 import { BellOff, Hash, MessageCircleMore, Volume2, X } from 'lucide-react';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PinnedMessagesPopover } from './pinned-messages-popover';
 
@@ -13,10 +13,11 @@ type TTextTopbarProps = {
   onScrollToMessage: (messageId: number) => Promise<void>;
   channelId: number;
   onClose?: () => void;
+  actions?: ReactNode;
 };
 
 const TextTopbar = memo(
-  ({ onScrollToMessage, channelId, onClose }: TTextTopbarProps) => {
+  ({ onScrollToMessage, channelId, onClose, actions }: TTextTopbarProps) => {
     const { t } = useTranslation();
     const channel = useChannelById(channelId);
     const isMuted = useIsChannelMuted(channelId);
@@ -45,17 +46,19 @@ const TextTopbar = memo(
     const getIcon = useCallback(() => {
       if (channel?.isDm) {
         return (
-          <MessageCircleMore className="inline-block text-muted-foreground h-4 w-4" />
+          <MessageCircleMore className="inline-block size-5 shrink-0 text-muted-foreground" />
         );
       }
 
       if (channel?.type === ChannelType.TEXT) {
-        return <Hash className="inline-block text-muted-foreground h-4 w-4" />;
+        return (
+          <Hash className="inline-block size-5 shrink-0 text-muted-foreground" />
+        );
       }
 
       if (channel?.type === ChannelType.VOICE) {
         return (
-          <Volume2 className="inline-block text-muted-foreground h-4 w-4" />
+          <Volume2 className="inline-block size-5 shrink-0 text-muted-foreground" />
         );
       }
 
@@ -63,18 +66,20 @@ const TextTopbar = memo(
     }, [channel]);
 
     return (
-      <div className="flex h-12 border-b border-border bg-card w-auto overflow-hidden">
+      <div className="flex h-12 w-auto shrink-0 overflow-hidden border-b border-border bg-background shadow-sm">
         <div className="flex w-full items-center justify-between px-4">
           <div className="flex items-center gap-2 min-w-0">
             {getIcon()}
-            <span className="font-bold truncate max-w-40">{info.name}</span>
+            <span className="max-w-60 shrink-0 truncate font-semibold">
+              {info.name}
+            </span>
             {info.topic && (
-              <span className="text-xs text-muted-foreground truncate">
+              <span className="truncate border-l border-border pl-2 text-xs text-muted-foreground">
                 {info.topic}
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1">
             <PluginSlotRenderer
               slotId={PluginSlot.CHANNEL_HEADER}
               props={pluginProps}
@@ -99,6 +104,7 @@ const TextTopbar = memo(
                 size="sm"
               />
             )}
+            {actions}
           </div>
         </div>
       </div>

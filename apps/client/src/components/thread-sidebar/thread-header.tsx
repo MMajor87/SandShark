@@ -4,7 +4,7 @@ import { getTRPCClient } from '@/lib/trpc';
 import { getTrpcError } from '@sharkord/shared';
 import { IconButton } from '@sharkord/ui';
 import { Bell, BellOff, MessageSquareText, X } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -12,10 +12,11 @@ type TThreadHeaderProps = {
   parentMessageId: number;
   channelId: number;
   onClose: () => void;
+  actions?: ReactNode;
 };
 
 const ThreadHeader = memo(
-  ({ parentMessageId, channelId, onClose }: TThreadHeaderProps) => {
+  ({ parentMessageId, channelId, onClose, actions }: TThreadHeaderProps) => {
     const { t } = useTranslation('common');
     const isFollowed = useIsThreadFollowed(parentMessageId);
     const channelLabel = useChannelLabel(channelId);
@@ -34,7 +35,7 @@ const ThreadHeader = memo(
     }, [parentMessageId, isFollowed, t]);
 
     return (
-      <div className="flex items-center justify-between px-4 h-12 border-b border-border shrink-0">
+      <div className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-4 shadow-sm">
         <div className="flex min-w-0 items-center gap-2">
           <MessageSquareText className="h-4 w-4 text-muted-foreground" />
           <span className="font-semibold text-sm">{t('thread')}</span>
@@ -58,6 +59,7 @@ const ThreadHeader = memo(
             size="sm"
             className="rounded-md hover:bg-accent transition-colors"
           />
+          {actions}
         </div>
       </div>
     );

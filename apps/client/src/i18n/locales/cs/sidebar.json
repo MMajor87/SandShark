@@ -56,7 +56,6 @@
   "gpuEncoder": "GPU ({{encoder}})",
   "cpuEncoder": "CPU ({{encoder}})",
   "unknownEncoder": "Neznámý ({{encoder}})",
-  "membersHeader": "Členové — {{count}}",
   "openDirectMessages": "Otevřít přímé zprávy",
   "closeDirectMessages": "Zavřít přímé zprávy",
   "openChat": "Otevřít textový chat",
@@ -85,5 +84,13 @@
   "couldNotCloseDM": "Nepodařilo se zavřít přímou zprávu",
   "failedLoadDMs": "Nepodařilo se načíst přímé zprávy",
   "simulcastLayers": "Vrstvy simulcastu: {{count}}",
-  "simulcastLayer": "Vrstva {{layer}}"
+  "simulcastLayer": "Vrstva {{layer}}",
+  "servers": "Servery",
+  "addServer": "Přidat server",
+  "switchServer": "Přepnout server",
+  "serverMenu": "Nabídka serveru",
+  "members": "Členové",
+  "membersOnline": "Online",
+  "membersOffline": "Offline",
+  "membersHidden": "+{{count}} dalších"
 }

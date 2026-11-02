@@ -28,10 +28,11 @@ const DmButton = memo(() => {
         type="button"
         onClick={onToggleDmMode}
         className={cn(
-          'flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+          'flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-2 focus-visible:outline-ring',
           isActive &&
-            'bg-accent text-accent-foreground ring-1 ring-inset ring-primary/30'
+            'bg-accent font-medium text-accent-foreground ring-1 ring-inset ring-border'
         )}
+        aria-current={isActive ? 'page' : undefined}
       >
         <MessageCircleMore className="h-4 w-4" />
         <span className="flex-1 text-left">{t('directMessages')}</span>

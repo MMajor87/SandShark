@@ -2,7 +2,7 @@ import { markThreadAsRead } from '@/features/server/threads/actions';
 import { useThreadReadState } from '@/features/server/threads/hooks';
 import { TestId } from '@sharkord/shared';
 import { MessageSquareText } from 'lucide-react';
-import { memo, useCallback, useEffect } from 'react';
+import { memo, useCallback, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Conversation } from '../channel-view/text/conversation';
 import { ParentMessagePreview } from './parent-message-preview';
@@ -12,10 +12,16 @@ type TThreadContentProps = {
   parentMessageId: number;
   channelId: number;
   onClose: () => void;
+  headerActions?: ReactNode;
 };
 
 const ThreadContent = memo(
-  ({ parentMessageId, channelId, onClose }: TThreadContentProps) => {
+  ({
+    parentMessageId,
+    channelId,
+    onClose,
+    headerActions
+  }: TThreadContentProps) => {
     const { t } = useTranslation('common');
     const { unreadCount } = useThreadReadState(parentMessageId);
 
@@ -32,6 +38,7 @@ const ThreadContent = memo(
             parentMessageId={parentMessageId}
             channelId={channelId}
             onClose={onClose}
+            actions={headerActions}
           />
           <ParentMessagePreview
             messageId={parentMessageId}
@@ -39,7 +46,7 @@ const ThreadContent = memo(
           />
         </>
       ),
-      [parentMessageId, channelId, onClose]
+      [parentMessageId, channelId, onClose, headerActions]
     );
 
     return (

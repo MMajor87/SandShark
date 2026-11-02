@@ -1,4 +1,4 @@
-import type { BrowserWindow } from 'electron';
+import type { BrowserWindow, Dialog, MessageBoxOptions } from 'electron';
 import type { autoUpdater as ElectronAutoUpdater } from 'electron-updater';
 import type { TDesktopUpdateStatus } from './desktop-api.js';
 import type { TDesktopIpc } from './desktop-ipc.js';
@@ -15,6 +15,7 @@ type TUpdaterOptions = {
   preferences: ReturnType<typeof createDesktopPreferences>;
   isDevelopment: boolean;
   isPackagedSmokeTest: boolean;
+  dialog: Pick<Dialog, 'showMessageBox'>;
   loadUpdater?: () => Promise<typeof ElectronAutoUpdater>;
 };
 const createDesktopUpdater = ({
@@ -23,6 +24,7 @@ const createDesktopUpdater = ({
   preferences,
   isDevelopment,
   isPackagedSmokeTest,
+  dialog,
   loadUpdater = () =>
     import('electron-updater').then(({ autoUpdater }) => autoUpdater)
 }: TUpdaterOptions) => {
@@ -34,6 +36,10 @@ const createDesktopUpdater = ({
   let autoUpdaterLoadPromise:
     | Promise<typeof ElectronAutoUpdater | undefined>
     | undefined;
+  // only the check started at launch prompts, a check from settings shows its result there
+  let promptForUpdate = false;
+  // an update accepted from the prompt still installs on quit when auto download is off
+  let installAcceptedUpdateOnQuit = false;
 
   const publishUpdateStatus = (status: TDesktopUpdateStatus) => {
     if (status.state === 'error') {
@@ -52,6 +58,62 @@ const createDesktopUpdater = ({
       window.webContents.send('sandshark:update-status', status);
   };
 
+  const showUpdatePrompt = async (options: MessageBoxOptions) => {
+    const window = getMainWindow();
+    // a dialog parented to a window hidden in the tray would never be seen
+    const { response } =
+      window && !window.isDestroyed() && window.isVisible()
+        ? await dialog.showMessageBox(window, options)
+        : await dialog.showMessageBox(options);
+
+    return response;
+  };
+
+  const promptToDownload = async (version: string) => {
+    const response = await showUpdatePrompt({
+      type: 'info',
+      title: 'Update available',
+      message: `SandShark ${version} is available.`,
+      detail: 'Do you want to download it now?',
+      buttons: ['Download', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true
+    });
+
+    if (disposed || response !== 0) {
+      promptForUpdate = false;
+      return;
+    }
+
+    installAcceptedUpdateOnQuit = true;
+
+    await downloadUpdate();
+  };
+
+  const promptToInstall = async (version: string) => {
+    promptForUpdate = false;
+
+    const response = await showUpdatePrompt({
+      type: 'info',
+      title: 'Update ready',
+      message: `SandShark ${version} is ready to install.`,
+      detail:
+        'Restart now to finish updating, or it will install the next time you close SandShark.',
+      buttons: ['Restart now', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true
+    });
+
+    if (disposed || response !== 0 || !autoUpdater) return;
+
+    writeDesktopLog('updates', 'Update install accepted from prompt', {
+      version
+    });
+    autoUpdater.quitAndInstall();
+  };
+
   const configureAutoUpdater = async (): Promise<
     typeof ElectronAutoUpdater | undefined
   > => {
@@ -68,7 +130,8 @@ const createDesktopUpdater = ({
       const automaticallyDownload =
         preferences.getUpdateSettings().automaticallyDownload;
       autoUpdater.autoDownload = automaticallyDownload;
-      autoUpdater.autoInstallOnAppQuit = automaticallyDownload;
+      autoUpdater.autoInstallOnAppQuit =
+        automaticallyDownload || installAcceptedUpdateOnQuit;
       return autoUpdater;
     }
 
@@ -95,7 +158,8 @@ const createDesktopUpdater = ({
         preferences.getUpdateSettings().automaticallyDownload;
       autoUpdater.autoDownload = automaticallyDownload;
       autoUpdater.allowPrerelease = false;
-      autoUpdater.autoInstallOnAppQuit = automaticallyDownload;
+      autoUpdater.autoInstallOnAppQuit =
+        automaticallyDownload || installAcceptedUpdateOnQuit;
       const listen: typeof loadedAutoUpdater.on = (event, listener) => {
         removeListeners.push(() =>
           loadedAutoUpdater.removeListener(event, listener)
@@ -108,8 +172,12 @@ const createDesktopUpdater = ({
       });
       listen('update-available', (info) => {
         publishUpdateStatus({ state: 'available', version: info.version });
+
+        if (promptForUpdate && !loadedAutoUpdater.autoDownload)
+          promptToDownload(info.version).catch(console.error);
       });
       listen('update-not-available', () => {
+        promptForUpdate = false;
         publishUpdateStatus({ state: 'not-available' });
       });
       listen('download-progress', (progress) => {
@@ -120,8 +188,11 @@ const createDesktopUpdater = ({
       });
       listen('update-downloaded', (info) => {
         publishUpdateStatus({ state: 'downloaded', version: info.version });
+
+        if (promptForUpdate) promptToInstall(info.version).catch(console.error);
       });
       listen('error', (error) => {
+        promptForUpdate = false;
         writeDesktopLog('updates', 'Electron updater error', {
           error: error.message
         });
@@ -132,8 +203,10 @@ const createDesktopUpdater = ({
       });
 
       autoUpdaterConfigured = true;
-      if (preferences.getUpdateSettings().automaticallyCheck)
+      if (preferences.getUpdateSettings().automaticallyCheck) {
+        promptForUpdate = true;
         checkForUpdates().catch(console.error);
+      }
       return autoUpdater;
     } catch (error) {
       for (const remove of removeListeners.splice(0)) remove();

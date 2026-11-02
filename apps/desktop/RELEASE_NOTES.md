@@ -1,3 +1,13 @@
+# SandShark 1.1.5
+
+- Checks for updates when SandShark starts and asks before downloading a new version.
+- Asks to restart once an update has downloaded, or installs it the next time SandShark closes.
+- Manual checks from Desktop settings keep showing their result in settings without a prompt.
+
+## Upgrade notes
+
+No server changes. Keep the paired SandShark server on 0.1.1. The Windows installer does not deploy a server. This installer remains unsigned. Clients on 1.1.4 or earlier update to this version silently; the prompt appears from the following update onward.
+
 # SandShark 1.1.4
 
 - Adds a server rail on the left of the desktop client for switching between saved servers, with an add server button.

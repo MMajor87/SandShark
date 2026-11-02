@@ -178,3 +178,112 @@ test('checks the selected desktop feed and reports lookup failure without fallin
     service.dispose();
   }
 });
+
+const createPromptHarness = (responses: number[]) => {
+  const updater = Object.assign(new EventEmitter(), {
+    autoDownload: false,
+    autoInstallOnAppQuit: false,
+    setFeedURL: mock(() => {}),
+    checkForUpdates: mock(async () => {}),
+    downloadUpdate: mock(async () => {}),
+    quitAndInstall: mock(() => {})
+  });
+  const showMessageBox = mock(async () => ({
+    response: responses.shift() ?? 1,
+    checkboxChecked: false
+  }));
+  const handlers = new Map<string, (event: unknown) => Promise<unknown>>();
+  const service = createDesktopUpdater({
+    getMainWindow: () => null,
+    preferences: {
+      getUpdateSettings: () => ({
+        automaticallyCheck: true,
+        automaticallyDownload: false
+      })
+    },
+    isDevelopment: false,
+    isPackagedSmokeTest: false,
+    dialog: { showMessageBox },
+    writeDesktopLog: () => {},
+    loadUpdater: async () => updater
+  } as unknown as Parameters<typeof createDesktopUpdater>[0]);
+  service.registerIpc({
+    getSenderWindow: () => null,
+    handle: (name: string, handler: (event: unknown) => Promise<unknown>) =>
+      handlers.set(name, handler)
+  } as unknown as Parameters<typeof service.registerIpc>[0]);
+  const fetchSpy = spyOn(globalThis, 'fetch').mockResolvedValue(
+    Response.json([
+      {
+        tag_name: 'sandshark-v1.1.4',
+        draft: false,
+        prerelease: false,
+        assets: [{ name: 'latest.yml' }]
+      }
+    ])
+  );
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  return { updater, showMessageBox, handlers, service, fetchSpy, flush };
+};
+
+test('launch check prompts to download and then to restart', async () => {
+  const { updater, showMessageBox, service, fetchSpy, flush } =
+    createPromptHarness([0, 0]);
+  try {
+    await service.configureAutoUpdater();
+    await flush();
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(1);
+    updater.emit('update-available', { version: '1.1.5' });
+    await flush();
+    expect(showMessageBox).toHaveBeenCalledTimes(1);
+    expect(updater.downloadUpdate).toHaveBeenCalledTimes(1);
+    expect(updater.autoInstallOnAppQuit).toBe(true);
+    updater.emit('update-downloaded', { version: '1.1.5' });
+    await flush();
+    expect(showMessageBox).toHaveBeenCalledTimes(2);
+    expect(updater.quitAndInstall).toHaveBeenCalledTimes(1);
+  } finally {
+    fetchSpy.mockRestore();
+    service.dispose();
+  }
+});
+
+test('declining the launch prompt does not download or prompt again', async () => {
+  const { updater, showMessageBox, service, fetchSpy, flush } =
+    createPromptHarness([1]);
+  try {
+    await service.configureAutoUpdater();
+    await flush();
+    updater.emit('update-available', { version: '1.1.5' });
+    await flush();
+    expect(showMessageBox).toHaveBeenCalledTimes(1);
+    expect(updater.downloadUpdate).not.toHaveBeenCalled();
+    updater.emit('update-downloaded', { version: '1.1.5' });
+    await flush();
+    expect(showMessageBox).toHaveBeenCalledTimes(1);
+    expect(updater.quitAndInstall).not.toHaveBeenCalled();
+  } finally {
+    fetchSpy.mockRestore();
+    service.dispose();
+  }
+});
+
+test('a manual check from settings does not prompt', async () => {
+  const { updater, showMessageBox, handlers, service, fetchSpy, flush } =
+    createPromptHarness([0]);
+  try {
+    await service.configureAutoUpdater();
+    await flush();
+    updater.emit('update-not-available');
+    const check = handlers.get('sandshark:check-for-updates');
+    if (!check) throw new Error('Missing update handler');
+    await check({});
+    updater.emit('update-available', { version: '1.1.5' });
+    await flush();
+    expect(showMessageBox).not.toHaveBeenCalled();
+  } finally {
+    fetchSpy.mockRestore();
+    service.dispose();
+  }
+});

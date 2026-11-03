@@ -3,7 +3,7 @@ import { createPermissionChecks } from '../../helpers/create-permission-checks';
 import { appRouter } from '../../routers';
 import type { TConnectionInfo } from '../../types';
 import { pubsub } from '../../utils/pubsub';
-import type { Context } from '../../utils/trpc';
+import type { Context, TBotInteractionContext } from '../../utils/trpc';
 import {
   getUserStatus,
   getUserWs,
@@ -15,7 +15,8 @@ import {
 // realtime publishes. a bot has no socket of its own here, the gateway owns that
 const createBotCaller = (
   bot: TJoinedUser,
-  info: TConnectionInfo | undefined
+  info: TConnectionInfo | undefined,
+  botInteraction?: TBotInteractionContext
 ) => {
   const ctx: Context = {
     pubsub,
@@ -33,7 +34,8 @@ const createBotCaller = (
     getUserWs,
     getConnectionInfo: () => info,
     throwValidationError,
-    saveUserIp: async () => {}
+    saveUserIp: async () => {},
+    botInteraction
   };
 
   return appRouter.createCaller(ctx);

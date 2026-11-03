@@ -263,6 +263,50 @@ const botCommands = sqliteTable(
   ]
 );
 
+// a member running a bot's slash command. the token lets the bot answer and edit that
+// answer for 15 minutes, after which the row is cleaned up. only its hash is stored
+const botInteractions = sqliteTable(
+  'bot_interactions',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    botId: integer('bot_id')
+      .notNull()
+      .references(() => bots.userId, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    channelId: integer('channel_id')
+      .notNull()
+      .references(() => channels.id, { onDelete: 'cascade' }),
+    commandName: text('command_name').notNull(),
+    tokenHash: text('token_hash').notNull(),
+    responded: integer('responded', { mode: 'boolean' }).notNull(),
+    createdAt: integer('created_at').notNull()
+  },
+  (t) => [
+    uniqueIndex('bot_interactions_token_hash_idx').on(t.tokenHash),
+    index('bot_interactions_created_idx').on(t.createdAt)
+  ]
+);
+
+// answers only the member who ran the command sees. they live as long as the interaction,
+// the client keeps its copy until reload, as discord does
+const botEphemeralMessages = sqliteTable(
+  'bot_ephemeral_messages',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    interactionId: integer('interaction_id')
+      .notNull()
+      .references(() => botInteractions.id, { onDelete: 'cascade' }),
+    content: text('content').notNull(),
+    loading: integer('loading', { mode: 'boolean' }).notNull(),
+    original: integer('original', { mode: 'boolean' }).notNull(),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (t) => [index('bot_ephemeral_messages_interaction_idx').on(t.interactionId)]
+);
+
 const userRoles = sqliteTable(
   'user_roles',
   {
@@ -347,10 +391,24 @@ const messages = sqliteTable(
     editedAt: integer('edited_at'),
     editedBy: integer('edited_by').references(() => users.id, {
       onDelete: 'set null'
-    })
+    }),
+    // a bot's answer to a slash command. the interaction is kept for 15 minutes, as long as
+    // its token can edit the answer, while who ran which command stays on the message
+    interactionId: integer('interaction_id').references(
+      (): AnySQLiteColumn => botInteractions.id,
+      { onDelete: 'set null' }
+    ),
+    interactionUserId: integer('interaction_user_id').references(
+      () => users.id,
+      { onDelete: 'set null' }
+    ),
+    interactionCommandName: text('interaction_command_name'),
+    // a deferred answer the bot has not written yet, shown as the bot thinking
+    loading: integer('loading', { mode: 'boolean' }).notNull().default(false)
   },
   (t) => [
     index('messages_user_idx').on(t.userId),
+    index('messages_interaction_idx').on(t.interactionId),
     index('messages_created_idx').on(t.createdAt),
     index('messages_channel_created_idx').on(t.channelId, t.createdAt),
     index('messages_channel_parent_created_idx').on(
@@ -806,6 +864,8 @@ const pluginCapabilityRoles = sqliteTable(
 export {
   activityLog,
   botCommands,
+  botEphemeralMessages,
+  botInteractions,
   bots,
   calendarEventInvitees,
   calendarEventResponses,

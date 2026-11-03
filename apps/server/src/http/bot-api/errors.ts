@@ -10,11 +10,14 @@ enum DiscordErrorCode {
   UNKNOWN_MESSAGE = 10008,
   UNKNOWN_USER = 10013,
   UNKNOWN_EMOJI = 10014,
+  UNKNOWN_WEBHOOK = 10015,
+  UNKNOWN_INTERACTION = 10062,
   UNKNOWN_APPLICATION_COMMAND = 10063,
   CANNOT_SEND_EMPTY_MESSAGE = 50006,
   MISSING_ACCESS = 50001,
   MISSING_PERMISSIONS = 50013,
-  INVALID_FORM_BODY = 50035
+  INVALID_FORM_BODY = 50035,
+  INTERACTION_ALREADY_ACKNOWLEDGED = 40060
 }
 
 class DiscordApiError extends Error {
@@ -29,6 +32,13 @@ class DiscordApiError extends Error {
 
 const notFound = (code: DiscordErrorCode, what: string) =>
   new DiscordApiError(404, code, `Unknown ${what}`);
+
+const alreadyAcknowledged = () =>
+  new DiscordApiError(
+    400,
+    DiscordErrorCode.INTERACTION_ALREADY_ACKNOWLEDGED,
+    'Interaction has already been acknowledged.'
+  );
 
 const sendDiscordJson = (
   res: http.ServerResponse,
@@ -66,6 +76,7 @@ const sendDiscordRateLimit = (
 export {
   DiscordApiError,
   DiscordErrorCode,
+  alreadyAcknowledged,
   notFound,
   sendDiscordError,
   sendDiscordJson,

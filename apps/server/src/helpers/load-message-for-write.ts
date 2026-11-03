@@ -14,6 +14,7 @@ type TMessageForWrite = {
   parentMessageId: number | null;
   editable: boolean | null;
   pinned: boolean | null;
+  loading: boolean;
   createdAt: number;
 };
 
@@ -42,6 +43,7 @@ const loadMessage = async (messageId: number): Promise<TMessageForWrite> => {
       parentMessageId: messages.parentMessageId,
       editable: messages.editable,
       pinned: messages.pinned,
+      loading: messages.loading,
       createdAt: messages.createdAt
     })
     .from(messages)

@@ -13,6 +13,7 @@ import {
   serializeGuildChannel
 } from '../../../helpers/discord/channel';
 import { getGuildContext } from '../../../helpers/discord/guild';
+import { buildInteractionPayload } from '../../../helpers/discord/interaction';
 import { serializeMember } from '../../../helpers/discord/member';
 import {
   messageSnowflake,
@@ -166,6 +167,14 @@ const bindGatewayEvents = (session: TGatewaySessionApi): Unsubscribable[] => {
     };
 
   const subscriptions = [
+    // interactions need no intent on discord, every session of the bot gets them
+    pubsub.subscribeFor(botId, ServerEvents.BOT_INTERACTION_CREATE).subscribe({
+      next: guarded(async (event) => {
+        const payload = await buildInteractionPayload(event, botId);
+
+        if (payload) session.dispatch('INTERACTION_CREATE', payload);
+      })
+    }),
     pubsub.subscribeFor(botId, ServerEvents.NEW_MESSAGE).subscribe({
       next: guarded((message) =>
         dispatchMessage(session, 'MESSAGE_CREATE', message)

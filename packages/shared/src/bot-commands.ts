@@ -40,3 +40,29 @@ export type TBotCommandOption = {
   maxLength?: number;
   autocomplete?: boolean;
 };
+
+// a bot's answer that only the member who ran the command sees. content is message html
+export type TBotEphemeralMessage = {
+  id: number;
+  interactionId: number;
+  botId: number;
+  channelId: number;
+  commandName: string;
+  content: string;
+  loading: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type TBotEphemeralMessageDelete = {
+  id: number;
+  channelId: number;
+};
+
+// the bot did not answer within discord's three seconds, so the member is told
+export type TBotInteractionFailed = {
+  interactionId: number;
+  botId: number;
+  channelId: number;
+  commandName: string;
+};

@@ -1,3 +1,4 @@
+import { BotCommandType } from '@sandshark/shared';
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '..';
 import { botCommands } from '../schema';
@@ -34,4 +35,19 @@ const getBotCommandById = async (
     .limit(1)
     .get();
 
-export { getBotCommandById, getBotCommands };
+// the slash command a member picked, from any bot and either scope. user and message
+// commands are not slash commands and cannot be run this way
+const getSlashCommandById = async (commandId: number) =>
+  db
+    .select()
+    .from(botCommands)
+    .where(
+      and(
+        eq(botCommands.id, commandId),
+        eq(botCommands.type, BotCommandType.CHAT_INPUT)
+      )
+    )
+    .limit(1)
+    .get();
+
+export { getBotCommandById, getBotCommands, getSlashCommandById };

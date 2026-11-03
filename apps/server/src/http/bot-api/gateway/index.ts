@@ -3,7 +3,11 @@ import type { Duplex } from 'node:stream';
 import { WebSocketServer } from 'ws';
 import { getPublicOrigin } from '../../helpers';
 import { BOT_GATEWAY_PATH, GatewayCloseCode } from './protocol';
-import { closeBotGatewaySessions, GatewaySession } from './session';
+import {
+  closeBotGatewaySessions,
+  GatewaySession,
+  isBotConnected
+} from './session';
 
 const gatewayServer = new WebSocketServer({ noServer: true });
 
@@ -55,5 +59,6 @@ export {
   closeBotGatewaySessions,
   getGatewayUrl,
   handleBotGatewayUpgrade,
+  isBotConnected,
   isBotGatewayRequest
 };

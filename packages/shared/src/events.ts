@@ -56,6 +56,12 @@ export enum ServerEvents {
   PLUGIN_PUSH = 'pluginPush',
   PLUGIN_EPHEMERAL_RESPONSE = 'pluginEphemeralResponse',
 
+  // server side only, the bot gateway turns it into INTERACTION_CREATE
+  BOT_INTERACTION_CREATE = 'botInteractionCreate',
+  BOT_INTERACTION_FAILED = 'botInteractionFailed',
+  BOT_EPHEMERAL_MESSAGE = 'botEphemeralMessage',
+  BOT_EPHEMERAL_MESSAGE_DELETE = 'botEphemeralMessageDelete',
+
   CATEGORY_CREATE = 'categoryCreate',
   CATEGORY_UPDATE = 'categoryUpdate',
   CATEGORY_DELETE = 'categoryDelete',

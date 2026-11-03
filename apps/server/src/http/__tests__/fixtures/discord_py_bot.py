@@ -31,6 +31,15 @@ async def roll(interaction: discord.Interaction, sides: app_commands.Range[int, 
     await interaction.response.send_message(str(sides))
 
 
+# the usual way to take longer than three seconds: think first, then follow up, which fills
+# in the thinking message
+@tree.command(name="slow", description="Takes a moment")
+async def slow(interaction: discord.Interaction):
+    await interaction.response.defer()
+    await interaction.followup.send("done")
+    await interaction.followup.send("and one more", ephemeral=True)
+
+
 @client.event
 async def on_ready():
     guild = client.guilds[0]
@@ -62,4 +71,6 @@ async def on_message(message):
     await client.close()
 
 
-client.run(token, log_handler=None)
+# discord.py logs to stderr, which the test shows when the bot fails, so its tracebacks are
+# not lost
+client.run(token)

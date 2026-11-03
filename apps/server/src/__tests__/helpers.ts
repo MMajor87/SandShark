@@ -144,16 +144,17 @@ const createTestBot = async (name = 'Helper') => {
   return caller.bots.create({ name });
 };
 
-// a json request to the bot api, answered with the status and the parsed body
+// a json request to the bot api, answered with the status and the parsed body. a null
+// token sends no authorization, as the libraries do for the interaction endpoints
 const botApiRequest = async <TBody = Record<string, unknown>>(
   path: string,
-  token: string,
+  token: string | null,
   { method = 'GET', body }: { method?: string; body?: unknown } = {}
 ) => {
   const response = await fetch(`${testsBaseUrl}/api/v10${path}`, {
     method,
     headers: {
-      Authorization: `Bot ${token}`,
+      ...(token === null ? {} : { Authorization: `Bot ${token}` }),
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
     },
     body: body === undefined ? undefined : JSON.stringify(body)

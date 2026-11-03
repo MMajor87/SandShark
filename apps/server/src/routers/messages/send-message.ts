@@ -142,18 +142,28 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
       }
     }
 
-    invariant(!isEmptyMessage(input.content) || input.files.length != 0, {
-      code: 'BAD_REQUEST',
-      message: 'Message cannot be empty.'
-    });
+    // a bot's deferred answer to a slash command is saved empty until the bot writes it
+    const { botInteraction } = ctx;
+    const isLoading = !!botInteraction?.loading;
+
+    invariant(
+      !isEmptyMessage(input.content) || input.files.length != 0 || isLoading,
+      {
+        code: 'BAD_REQUEST',
+        message: 'Message cannot be empty.'
+      }
+    );
 
     let targetContent = sanitizeMessageHtml(input.content);
 
-    invariant(!isEmptyMessage(targetContent) || input.files.length != 0, {
-      code: 'BAD_REQUEST',
-      message:
-        'Your message only contained unsupported or removed content, so there was nothing to send.'
-    });
+    invariant(
+      !isEmptyMessage(targetContent) || input.files.length != 0 || isLoading,
+      {
+        code: 'BAD_REQUEST',
+        message:
+          'Your message only contained unsupported or removed content, so there was nothing to send.'
+      }
+    );
 
     if (enablePlugins) {
       targetContent = await runBeforeMessageSaveHooks({
@@ -172,7 +182,8 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
     // and shown to everyone else
     const plainText = getPlainTextFromHtml(targetContent);
 
-    if (enablePlugins) {
+    // a bot answering a slash command is not running a plugin command of its own
+    if (enablePlugins && !botInteraction) {
       // when plugins are enabled, need to check if the message is a command
       // this might be improved in the future with a more robust parser
       const { args, commandName } = parseCommandArgs(plainText);
@@ -341,6 +352,14 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
           editable,
           parentMessageId: input.parentMessageId ?? null,
           replyToMessageId: input.replyToMessageId ?? null,
+          interactionId: botInteraction?.id ?? null,
+          interactionUserId: botInteraction?.original
+            ? botInteraction.userId
+            : null,
+          interactionCommandName: botInteraction?.original
+            ? botInteraction.commandName
+            : null,
+          loading: isLoading,
           createdAt: Date.now()
         })
         .returning()

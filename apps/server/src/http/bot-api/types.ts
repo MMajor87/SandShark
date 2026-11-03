@@ -1,5 +1,6 @@
 import type { TJoinedUser } from '@sandshark/shared';
 import type http from 'http';
+import type { TBotInteraction } from '../../helpers/bot-interactions';
 import type { TConnectionInfo } from '../../types';
 
 type TBotRequest = {
@@ -18,4 +19,18 @@ const NO_CONTENT = Symbol('no content');
 // a handler returns the json body of a 200, NO_CONTENT, or throws a DiscordApiError
 type TBotRouteHandler = (request: TBotRequest) => Promise<unknown>;
 
-export { NO_CONTENT, type TBotRequest, type TBotRouteHandler };
+// a request authenticated by an interaction token, which names both the bot and the
+// interaction it may answer
+type TInteractionRequest = TBotRequest & { interaction: TBotInteraction };
+
+type TInteractionRouteHandler = (
+  request: TInteractionRequest
+) => Promise<unknown>;
+
+export {
+  NO_CONTENT,
+  type TBotRequest,
+  type TBotRouteHandler,
+  type TInteractionRequest,
+  type TInteractionRouteHandler
+};

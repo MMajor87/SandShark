@@ -76,8 +76,10 @@ const editMessageRoute = rateLimitedProcedure(protectedProcedure, {
       .set({
         content: sanitizedContent,
         updatedAt: editedAt,
-        editedAt,
-        editedBy: ctx.user.id
+        // a bot filling in its deferred answer is writing it, not editing it
+        editedAt: message.loading ? null : editedAt,
+        editedBy: message.loading ? null : ctx.user.id,
+        loading: false
       })
       .where(eq(messages.id, input.messageId));
 

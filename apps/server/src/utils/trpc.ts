@@ -18,6 +18,18 @@ import {
   getClientRateLimitKey
 } from './rate-limiters/rate-limiter';
 
+// set only by the server when a bot answers a slash command, never from a request, so
+// the message it writes is marked as that answer
+export type TBotInteractionContext = {
+  id: number;
+  userId: number;
+  commandName: string;
+  // the first answer carries who ran the command, follow ups do not
+  original: boolean;
+  // a deferred answer, saved empty and shown as the bot thinking
+  loading: boolean;
+};
+
 export type Context = {
   handshakeHash: string;
   authenticated: boolean;
@@ -48,6 +60,7 @@ export type Context = {
   getConnectionInfo: () => TConnectionInfo | undefined;
   throwValidationError: (field: string, message: string) => never;
   saveUserIp: (userId: number, ip: string) => Promise<void>;
+  botInteraction?: TBotInteractionContext;
 };
 
 const t = initTRPC.context<Context>().create();

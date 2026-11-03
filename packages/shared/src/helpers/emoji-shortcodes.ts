@@ -1,4 +1,4 @@
-import table from '../statics/emoji-shortcodes.json';
+import table from '../statics/emoji-shortcodes.json' with { type: 'json' };
 
 // each entry is the emoji character followed by its shortcodes, the first being the one the
 // client stores when someone reacts with it

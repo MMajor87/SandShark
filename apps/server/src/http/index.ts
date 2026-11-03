@@ -7,6 +7,7 @@ import { getWsInfo } from '../helpers/get-ws-info';
 import { logger } from '../logger';
 import { pluginManager } from '../plugins';
 import { SERVER_VERSION } from '../utils/env';
+import { BOT_API_PREFIX, botApiRouteHandler } from './bot-api';
 import { HttpValidationError, PayloadTooLargeError } from './errors';
 import { healthRouteHandler } from './healthz';
 import {
@@ -84,6 +85,7 @@ const routeHandlers: Partial<
       '/oidc/callback': oidcCallbackRouteHandler
     },
     prefix: {
+      [BOT_API_PREFIX]: botApiRouteHandler,
       '/public': publicRouteHandler,
       '/plugin-components': pluginsComponentsRouteHandler,
       '/plugin-bundle': pluginBundleRouteHandler
@@ -96,8 +98,10 @@ const routeHandlers: Partial<
       '/oidc/exchange': oidcExchangeRouteHandler,
       '/oidc/backchannel-logout': oidcBackchannelLogoutRouteHandler
     },
-    prefix: {}
-  }
+    prefix: { [BOT_API_PREFIX]: botApiRouteHandler }
+  },
+  PATCH: { exact: {}, prefix: { [BOT_API_PREFIX]: botApiRouteHandler } },
+  DELETE: { exact: {}, prefix: { [BOT_API_PREFIX]: botApiRouteHandler } }
 };
 
 // this http server implementation is temporary and will be moved to bun server later when things are more stable

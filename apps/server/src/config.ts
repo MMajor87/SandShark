@@ -104,7 +104,9 @@ const zConfig = z.object({
     pluginExecute: zRateLimiter,
     pluginRoute: zRateLimiter,
     oidc: zRateLimiter,
-    reportClientError: zRateLimiter
+    reportClientError: zRateLimiter,
+    botApi: zRateLimiter,
+    botApiAuthFailure: zRateLimiter
   })
 });
 
@@ -252,6 +254,15 @@ const defaultConfig: TConfig = {
       windowMs: 60_000
     },
     reportClientError: {
+      maxRequests: 20,
+      windowMs: 60_000
+    },
+    // discord allows a bot 50 requests a second across every route
+    botApi: {
+      maxRequests: 50,
+      windowMs: 1_000
+    },
+    botApiAuthFailure: {
       maxRequests: 20,
       windowMs: 60_000
     }

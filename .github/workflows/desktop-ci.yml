@@ -53,6 +53,8 @@ jobs:
 
       - name: Smoke launch unpacked app
         working-directory: apps/desktop
+        # the check itself takes seconds; a leftover app process can otherwise hold the step open for hours
+        timeout-minutes: 5
         run: bun run test:packaged-startup
 
       - name: Upload Windows installer

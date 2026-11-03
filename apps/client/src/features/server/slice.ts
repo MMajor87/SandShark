@@ -17,6 +17,7 @@ import type {
   TJoinedMessage,
   TJoinedPublicUser,
   TJoinedRole,
+  TJoinedSoundboardSound,
   TMessagesCursor,
   TPluginCapabilityAccessRule,
   TPluginComponentsMap,
@@ -57,6 +58,7 @@ export interface IServerState {
   categories: TCategory[];
   channels: TChannel[];
   emojis: TJoinedEmoji[];
+  soundboardSounds: TJoinedSoundboardSound[];
   ownUserId: number | undefined;
   ownUserPasswordSet: boolean;
   selectedChannelId: number | undefined;
@@ -114,6 +116,7 @@ const initialState: IServerState = {
   categories: [],
   channels: [],
   emojis: [],
+  soundboardSounds: [],
   selectedChannelId: undefined,
   currentVoiceChannelId: undefined,
   voiceMoveTargetChannelId: undefined,
@@ -209,6 +212,7 @@ export const serverSlice = createSlice({
         ownUserPasswordSet: boolean;
         roles: TJoinedRole[];
         emojis: TJoinedEmoji[];
+        soundboardSounds: TJoinedSoundboardSound[];
         publicSettings: TPublicServerSettings | undefined;
         voiceMap: TVoiceMap;
         externalStreamsMap: TExternalStreamsMap;
@@ -224,6 +228,7 @@ export const serverSlice = createSlice({
       state.categories = action.payload.categories;
       state.channels = action.payload.channels;
       state.emojis = action.payload.emojis;
+      state.soundboardSounds = action.payload.soundboardSounds;
       state.users = action.payload.users;
       state.roles = action.payload.roles;
       state.ownUserId = action.payload.ownUserId;
@@ -444,6 +449,21 @@ export const serverSlice = createSlice({
               : emoji
           );
       }
+
+      if (
+        state.soundboardSounds.some((sound) => requested.has(sound.file.id))
+      ) {
+        state.soundboardSounds = state.soundboardSounds
+          .filter(
+            (sound) =>
+              !requested.has(sound.file.id) || refreshed.has(sound.file.id)
+          )
+          .map((sound) =>
+            requested.has(sound.file.id)
+              ? { ...sound, file: refreshed.get(sound.file.id) ?? sound.file }
+              : sound
+          );
+      }
     },
 
     addTypingUser: (
@@ -533,8 +553,11 @@ export const serverSlice = createSlice({
           }));
       }
 
-      // remove user from emojis
+      // remove user from emojis and sounds, a wipe deleted their files
       state.emojis = state.emojis.filter((e) => e.userId !== userId);
+      state.soundboardSounds = state.soundboardSounds.filter(
+        (sound) => sound.userId !== userId
+      );
     },
     reassignUser: (
       state,
@@ -572,9 +595,12 @@ export const serverSlice = createSlice({
         );
       }
 
-      // reassign emojis
+      // reassign emojis and sounds
       state.emojis = state.emojis.map((e) =>
         e.userId === userId ? { ...e, userId: deletedUserId } : e
+      );
+      state.soundboardSounds = state.soundboardSounds.map((sound) =>
+        sound.userId === userId ? { ...sound, userId: deletedUserId } : sound
       );
     },
 
@@ -772,6 +798,41 @@ export const serverSlice = createSlice({
     removeEmoji: (state, action: PayloadAction<{ emojiId: number }>) => {
       state.emojis = state.emojis.filter(
         (e) => e.id !== action.payload.emojiId
+      );
+    },
+
+    // SOUNDBOARD ------------------------------------------------------------
+
+    addSoundboardSound: (
+      state,
+      action: PayloadAction<TJoinedSoundboardSound>
+    ) => {
+      const exists = state.soundboardSounds.some(
+        (sound) => sound.id === action.payload.id
+      );
+
+      if (exists) return;
+
+      state.soundboardSounds.push(action.payload);
+    },
+    updateSoundboardSound: (
+      state,
+      action: PayloadAction<TJoinedSoundboardSound>
+    ) => {
+      const index = state.soundboardSounds.findIndex(
+        (sound) => sound.id === action.payload.id
+      );
+
+      if (index === -1) return;
+
+      state.soundboardSounds[index] = action.payload;
+    },
+    removeSoundboardSound: (
+      state,
+      action: PayloadAction<{ soundId: number }>
+    ) => {
+      state.soundboardSounds = state.soundboardSounds.filter(
+        (sound) => sound.id !== action.payload.soundId
       );
     },
 

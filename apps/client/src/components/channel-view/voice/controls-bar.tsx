@@ -24,6 +24,7 @@ import {
 import { memo, useCallback, useMemo } from 'react';
 import { ControlToggleButton } from './control-toggle-button';
 import { ReactionsButton } from './reactions-button';
+import { SoundboardButton } from './soundboard-button';
 
 type TControlsBarProps = {
   channelId: number;
@@ -139,6 +140,12 @@ const ControlsBar = memo(({ channelId }: TControlsBarProps) => {
             <div className="h-8 border-r-2 border-border" />
 
             <ReactionsButton />
+          </Protect>
+        )}
+
+        {isConnectedToThisChannel && (
+          <Protect permission={Permission.USE_SOUNDBOARD}>
+            <SoundboardButton />
           </Protect>
         )}
       </div>

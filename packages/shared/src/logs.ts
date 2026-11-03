@@ -35,6 +35,10 @@ export enum ActivityLogType {
   CREATED_EMOJI = 'CREATED_EMOJI',
   DELETED_EMOJI = 'DELETED_EMOJI',
   UPDATED_EMOJI = 'UPDATED_EMOJI',
+  // -------------------- SOUNDBOARD --------------------
+  CREATED_SOUNDBOARD_SOUND = 'CREATED_SOUNDBOARD_SOUND',
+  UPDATED_SOUNDBOARD_SOUND = 'UPDATED_SOUNDBOARD_SOUND',
+  DELETED_SOUNDBOARD_SOUND = 'DELETED_SOUNDBOARD_SOUND',
   // -------------------- CATEGORIES --------------------
   CREATED_CATEGORY = 'CREATED_CATEGORY',
   DELETED_CATEGORY = 'DELETED_CATEGORY',
@@ -164,6 +168,16 @@ export type TActivityLogDetailsMap = {
   [ActivityLogType.UPDATED_EMOJI]: {
     fromName: string;
     toName: string;
+  };
+  [ActivityLogType.CREATED_SOUNDBOARD_SOUND]: {
+    name: string;
+  };
+  [ActivityLogType.UPDATED_SOUNDBOARD_SOUND]: {
+    fromName: string;
+    toName: string;
+  };
+  [ActivityLogType.DELETED_SOUNDBOARD_SOUND]: {
+    name: string;
   };
   // -------------------- CATEGORIES --------------------
   [ActivityLogType.CREATED_CATEGORY]: {

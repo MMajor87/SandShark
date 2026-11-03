@@ -98,6 +98,8 @@ const zConfig = z.object({
     voiceTransport: zRateLimiter,
     voiceStream: zRateLimiter,
     voiceReaction: zRateLimiter,
+    soundboardPlay: zRateLimiter,
+    soundboardManage: zRateLimiter,
     useSecretToken: zRateLimiter,
     pluginExecute: zRateLimiter,
     pluginRoute: zRateLimiter,
@@ -224,6 +226,14 @@ const defaultConfig: TConfig = {
     voiceReaction: {
       maxRequests: 20,
       windowMs: 30_000
+    },
+    soundboardPlay: {
+      maxRequests: 5,
+      windowMs: 10_000
+    },
+    soundboardManage: {
+      maxRequests: 20,
+      windowMs: 60_000
     },
     useSecretToken: {
       maxRequests: 5,

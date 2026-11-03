@@ -142,5 +142,8 @@
   "failedUpdateThreadFollow": "Falha ao atualizar o acompanhamento do tópico",
   "selectThreadPrompt": "Selecione um tópico para lê-lo.",
   "loadingMessage": "Carregando mensagem...",
-  "failedLoadParentMessage": "Falha ao carregar a mensagem original"
+  "failedLoadParentMessage": "Falha ao carregar a mensagem original",
+  "soundboard": "Painel de sons",
+  "soundboardEmpty": "Ainda não há sons. Os administradores podem adicioná-los nas configurações do servidor.",
+  "failedPlaySound": "Não foi possível tocar o som"
 }

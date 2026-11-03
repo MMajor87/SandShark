@@ -142,5 +142,8 @@
   "loadingMessage": "Загрузка сообщения...",
   "failedLoadParentMessage": "Не удалось загрузить исходное сообщение",
   "typeAMessage": "Введите сообщение...",
-  "messageChannel": "Сообщение в «{{name}}»"
+  "messageChannel": "Сообщение в «{{name}}»",
+  "soundboard": "Звуковая панель",
+  "soundboardEmpty": "Пока нет звуков. Администраторы могут добавить их в настройках сервера.",
+  "failedPlaySound": "Не удалось воспроизвести звук"
 }

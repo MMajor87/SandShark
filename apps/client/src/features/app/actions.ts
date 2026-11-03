@@ -305,6 +305,11 @@ export const setMessageSentSound = (enabled: boolean) => {
   setLocalStorageItemBool(LocalStorageKey.MESSAGE_SENT_SOUND, enabled);
 };
 
+export const setSoundboardVolume = (volume: number) => {
+  store.dispatch(appSliceActions.setSoundboardVolume(volume));
+  setLocalStorageItem(LocalStorageKey.SOUNDBOARD_VOLUME, String(volume));
+};
+
 export const toggleChannelMuted = (channelId: number) => {
   const mutedChannelIds = mutedChannelIdsSelector(store.getState());
   const nextMutedChannelIds = mutedChannelIds.includes(channelId)

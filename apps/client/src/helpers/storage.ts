@@ -45,7 +45,8 @@ export enum LocalStorageKey {
   HOTKEY_BINDINGS = 'sandshark-hotkey-bindings',
   HOTKEY_BRIDGE_TOKEN = 'sandshark-hotkey-bridge-token',
   MIC_MODE = 'sandshark-mic-mode',
-  HOTKEYS_ENABLED = 'sandshark-hotkeys-enabled'
+  HOTKEYS_ENABLED = 'sandshark-hotkeys-enabled',
+  SOUNDBOARD_VOLUME = 'sandshark-soundboard-volume'
 }
 
 export enum SessionStorageKey {

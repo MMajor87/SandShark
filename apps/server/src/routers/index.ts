@@ -10,6 +10,7 @@ import { messagesRouter } from './messages';
 import { othersRouter } from './others';
 import { pluginsRouter } from './plugins';
 import { rolesRouter } from './roles';
+import { soundboardRouter } from './soundboard';
 import { threadsRouter } from './threads';
 import { usersRouter } from './users';
 import { voiceRouter } from './voice';
@@ -23,6 +24,7 @@ const appRouter = t.router({
   dms: dmsRouter,
   files: filesRouter,
   emojis: emojisRouter,
+  soundboard: soundboardRouter,
   roles: rolesRouter,
   invites: invitesRouter,
   voice: voiceRouter,

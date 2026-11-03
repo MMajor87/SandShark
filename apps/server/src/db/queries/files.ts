@@ -45,6 +45,9 @@ const getExceedingOldFiles = async (newFileSize: number) => {
       SELECT 1 FROM emojis e WHERE e.file_id = f.id
     )
     AND NOT EXISTS (
+      SELECT 1 FROM soundboard_sounds ss WHERE ss.file_id = f.id
+    )
+    AND NOT EXISTS (
       SELECT 1 FROM message_reactions mr WHERE mr.file_id = f.id
     )
     AND NOT EXISTS (
@@ -128,6 +131,7 @@ const getFileAccess = async (fileId: number) => {
     SELECT id FROM files WHERE id = ${fileId} AND (
       EXISTS (SELECT 1 FROM users WHERE avatar_id = ${fileId} OR banner_id = ${fileId})
       OR EXISTS (SELECT 1 FROM emojis WHERE file_id = ${fileId})
+      OR EXISTS (SELECT 1 FROM soundboard_sounds WHERE file_id = ${fileId})
       OR EXISTS (SELECT 1 FROM settings WHERE logo_id = ${fileId})
     )
   `);
@@ -160,6 +164,7 @@ const getAccessibleFilesByIds = async (
       SELECT f.id FROM files f WHERE f.id IN (${ids}) AND (
         EXISTS (SELECT 1 FROM users u WHERE u.avatar_id = f.id OR u.banner_id = f.id)
         OR EXISTS (SELECT 1 FROM emojis e WHERE e.file_id = f.id)
+        OR EXISTS (SELECT 1 FROM soundboard_sounds ss WHERE ss.file_id = f.id)
         OR EXISTS (SELECT 1 FROM settings s WHERE s.logo_id = f.id)
       )
     `),
@@ -229,6 +234,9 @@ const getOrphanedFileIds = async (): Promise<number[]> => {
       SELECT 1 FROM emojis e WHERE e.file_id = f.id
     )
     AND NOT EXISTS (
+      SELECT 1 FROM soundboard_sounds ss WHERE ss.file_id = f.id
+    )
+    AND NOT EXISTS (
       SELECT 1 FROM message_reactions mr WHERE mr.file_id = f.id
     )
     AND NOT EXISTS (
@@ -247,6 +255,7 @@ const isFileOrphaned = async (fileId: number): Promise<boolean> => {
         WHEN NOT EXISTS (SELECT 1 FROM message_files mf WHERE mf.file_id = ${fileId})
         AND NOT EXISTS (SELECT 1 FROM users u WHERE u.avatar_id = ${fileId} OR u.banner_id = ${fileId})
         AND NOT EXISTS (SELECT 1 FROM emojis e WHERE e.file_id = ${fileId})
+        AND NOT EXISTS (SELECT 1 FROM soundboard_sounds ss WHERE ss.file_id = ${fileId})
         AND NOT EXISTS (SELECT 1 FROM message_reactions mr WHERE mr.file_id = ${fileId})
         AND NOT EXISTS (SELECT 1 FROM settings s WHERE s.logo_id = ${fileId})
         THEN 1

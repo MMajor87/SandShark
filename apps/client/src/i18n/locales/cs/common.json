@@ -142,5 +142,8 @@
   "loadingMessage": "Načítání zprávy...",
   "failedLoadParentMessage": "Nepodařilo se načíst původní zprávu",
   "typeAMessage": "Napište zprávu...",
-  "messageChannel": "Zpráva do \"{{name}}\""
+  "messageChannel": "Zpráva do \"{{name}}\"",
+  "soundboard": "Zvukový panel",
+  "soundboardEmpty": "Zatím žádné zvuky. Správci serveru je mohou přidat v nastavení serveru.",
+  "failedPlaySound": "Zvuk se nepodařilo přehrát"
 }

@@ -1,6 +1,7 @@
 export * from './locales';
 export * from './metrics';
 export * from './permissions';
+export * from './soundboard';
 export * from './storage';
 export * from './upload';
 

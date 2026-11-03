@@ -6,7 +6,8 @@ import {
   setBrowserNotificationsForMentions,
   setBrowserNotificationsForReplies,
   setMessageSentSound,
-  setNotificationSounds
+  setNotificationSounds,
+  setSoundboardVolume
 } from '@/features/app/actions';
 import {
   useBrowserNotifications,
@@ -14,9 +15,10 @@ import {
   useBrowserNotificationsForMentions,
   useBrowserNotificationsForReplies,
   useMessageSentSound,
-  useNotificationSounds
+  useNotificationSounds,
+  useSoundboardVolume
 } from '@/features/app/hooks';
-import { Group, Switch } from '@sandshark/ui';
+import { Group, Slider, Switch } from '@sandshark/ui';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -27,6 +29,7 @@ type TNotificationsValues = {
   replies: boolean;
   sounds: boolean;
   sentSound: boolean;
+  soundboardVolume: number;
 };
 
 const Notifications = memo(() => {
@@ -37,6 +40,7 @@ const Notifications = memo(() => {
   const replies = useBrowserNotificationsForReplies();
   const sounds = useNotificationSounds();
   const sentSound = useMessageSentSound();
+  const soundboardVolume = useSoundboardVolume();
 
   const onSave = useCallback(async (values: TNotificationsValues) => {
     // TODO: refactor this later
@@ -46,10 +50,19 @@ const Notifications = memo(() => {
     setBrowserNotificationsForReplies(values.replies);
     setNotificationSounds(values.sounds);
     setMessageSentSound(values.sentSound);
+    setSoundboardVolume(values.soundboardVolume);
   }, []);
 
   const { values, onChange } = useSettingsForm<TNotificationsValues>({
-    initialValues: { all, mentions, dms, replies, sounds, sentSound },
+    initialValues: {
+      all,
+      mentions,
+      dms,
+      replies,
+      sounds,
+      sentSound,
+      soundboardVolume
+    },
     onSave,
     successMessage: t('notificationsUpdated'),
     errorMessage: t('failedUpdateNotifications')
@@ -77,6 +90,10 @@ const Notifications = memo(() => {
   );
   const handleSentSoundChange = useCallback(
     (value: boolean) => onChange('sentSound', value),
+    [onChange]
+  );
+  const handleSoundboardVolumeChange = useCallback(
+    ([value]: number[]) => onChange('soundboardVolume', value ?? 0),
     [onChange]
   );
 
@@ -120,6 +137,24 @@ const Notifications = memo(() => {
           checked={values.sentSound}
           disabled={!values.sounds}
           onCheckedChange={handleSentSoundChange}
+        />
+      </Group>
+      <Group
+        label={t('soundboardVolumeLabel')}
+        description={t('soundboardVolumeDesc')}
+      >
+        <Slider
+          className="max-w-96"
+          min={0}
+          max={100}
+          step={5}
+          value={[values.soundboardVolume]}
+          onValueChange={handleSoundboardVolumeChange}
+          rightSlot={
+            <span className="w-12 text-right text-sm text-muted-foreground">
+              {values.soundboardVolume}%
+            </span>
+          }
         />
       </Group>
     </SettingsSection>

@@ -1,5 +1,5 @@
 import { store } from '@/features/store';
-import type { TDirectMessageConversation } from '@sharkord/shared';
+import type { TDirectMessageConversation } from '@sandshark/shared';
 import { serverSliceActions } from '../slice';
 
 export const upsertDirectMessage = (

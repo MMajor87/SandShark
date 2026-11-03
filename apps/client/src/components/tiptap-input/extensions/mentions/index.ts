@@ -1,4 +1,4 @@
-import type { TJoinedPublicUser, TJoinedRole } from '@sharkord/shared';
+import type { TJoinedPublicUser, TJoinedRole } from '@sandshark/shared';
 import { Extension } from '@tiptap/core';
 import { PluginKey } from '@tiptap/pm/state';
 import Suggestion from '@tiptap/suggestion';

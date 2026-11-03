@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 
-export const VOICE_USER_DND_MIME = 'application/x-sharkord-user-id';
+export const VOICE_USER_DND_MIME = 'application/x-sandshark-user-id';
 
 export const categoryDndId = (categoryId: number) => `category:${categoryId}`;
 

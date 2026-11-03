@@ -1,4 +1,4 @@
-import { OWNER_ROLE_ID, type TInvite } from '@sharkord/shared';
+import { OWNER_ROLE_ID, type TInvite } from '@sandshark/shared';
 import { getPublicUserById } from '../../db/queries/users';
 import { createInvite, type TCreateInvite } from '../../helpers/invites';
 import { invariant } from '../../utils/invariant';

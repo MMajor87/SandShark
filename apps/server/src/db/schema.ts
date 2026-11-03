@@ -5,7 +5,7 @@ import {
   type TActivityLogDetailsMap,
   type TMessageMetadata,
   type TPluginMessageComponent
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { sql } from 'drizzle-orm';
 import {
   index,

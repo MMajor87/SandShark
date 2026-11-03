@@ -32,8 +32,8 @@ import type {
   TThreadSummary,
   TVoiceMap,
   TVoiceUserState
-} from '@sharkord/shared';
-import { DEFAULT_MESSAGES_LIMIT } from '@sharkord/shared';
+} from '@sandshark/shared';
+import { DEFAULT_MESSAGES_LIMIT } from '@sandshark/shared';
 import {
   getConversationKey,
   mergeMessagesChronologically,

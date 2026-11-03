@@ -1,4 +1,4 @@
-import { Permission } from '@sharkord/shared';
+import { Permission } from '@sandshark/shared';
 import { updater } from '../../helpers/updater';
 import { SERVER_VERSION } from '../../utils/env';
 import { protectedProcedure } from '../../utils/trpc';

@@ -1,4 +1,4 @@
-import { Permission } from '@sharkord/shared';
+import { Permission } from '@sandshark/shared';
 import { config } from '../../config';
 import { createRole } from '../../helpers/roles';
 import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';

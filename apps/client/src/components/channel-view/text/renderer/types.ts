@@ -1,4 +1,4 @@
-import type { TMessageMetadata } from '@sharkord/shared';
+import type { TMessageMetadata } from '@sandshark/shared';
 
 export type TFoundMedia = {
   key: string;

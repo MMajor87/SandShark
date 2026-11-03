@@ -15,8 +15,8 @@ import {
   prepareMessageHtml,
   TestId,
   type TJoinedMessage
-} from '@sharkord/shared';
-import { Spinner } from '@sharkord/ui';
+} from '@sandshark/shared';
+import { Spinner } from '@sandshark/ui';
 import { ArrowDown } from 'lucide-react';
 import {
   memo,

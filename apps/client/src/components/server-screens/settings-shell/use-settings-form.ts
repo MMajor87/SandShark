@@ -1,5 +1,5 @@
 import { useForm } from '@/hooks/use-form';
-import { getTrpcError } from '@sharkord/shared';
+import { getTrpcError } from '@sandshark/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useSettingsFormSlot } from './context';

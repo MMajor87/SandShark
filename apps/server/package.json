@@ -1,5 +1,5 @@
 {
-  "name": "@sharkord/server",
+  "name": "@sandshark/server",
   "version": "0.1.1",
   "module": "src/index.ts",
   "type": "module",
@@ -42,8 +42,8 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@sharkord/plugin-sdk": "workspace:*",
-    "@sharkord/shared": "workspace:*",
+    "@sandshark/plugin-sdk": "workspace:*",
+    "@sandshark/shared": "workspace:*",
     "@trpc/server": "^11.6.0",
     "bun-sfe-autoupdater": "^0.0.4",
     "chalk": "^5.6.2",

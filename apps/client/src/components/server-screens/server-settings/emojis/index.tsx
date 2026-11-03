@@ -3,7 +3,7 @@ import { useAdminEmojis } from '@/features/server/admin/hooks';
 import { uploadFiles } from '@/helpers/upload-file';
 import { useFilePicker } from '@/hooks/use-file-picker';
 import { getTRPCClient } from '@/lib/trpc';
-import { Button, LoadingCard, Spinner } from '@sharkord/ui';
+import { Button, LoadingCard, Spinner } from '@sandshark/ui';
 import { Smile, Upload } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';

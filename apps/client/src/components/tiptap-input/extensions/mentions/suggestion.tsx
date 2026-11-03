@@ -1,6 +1,6 @@
 import { UserAvatar } from '@/components/user-avatar';
 import { getRenderedUsername } from '@/helpers/get-rendered-username';
-import type { TJoinedPublicUser, TJoinedRole } from '@sharkord/shared';
+import type { TJoinedPublicUser, TJoinedRole } from '@sandshark/shared';
 import type { Editor } from '@tiptap/core';
 import { Shield } from 'lucide-react';
 import type { Ref } from 'react';

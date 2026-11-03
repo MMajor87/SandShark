@@ -6,7 +6,7 @@ import {
   ServerEvents,
   StreamKind,
   type TProducibleStreamKind
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { z } from 'zod';
 import { config } from '../../config';
 import { getCurrentVoiceRuntime } from '../../helpers/get-current-voice-runtime';

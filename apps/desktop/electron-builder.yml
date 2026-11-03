@@ -29,7 +29,6 @@ protocols:
   - name: SandShark
     schemes:
       - sandshark
-      - sharkord
 publish:
   provider: github
   owner: MMajor87

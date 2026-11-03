@@ -17,7 +17,7 @@ import {
 } from '@/helpers/storage';
 import { useForm } from '@/hooks/use-form';
 import { isBrowserClient } from '@/platform/environment';
-import { PluginSlot, TestId } from '@sharkord/shared';
+import { PluginSlot, TestId } from '@sandshark/shared';
 import {
   Alert,
   AlertDescription,
@@ -32,7 +32,7 @@ import {
   Label,
   Spinner,
   Switch
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import {
   memo,
   useCallback,

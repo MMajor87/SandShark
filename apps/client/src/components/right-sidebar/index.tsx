@@ -10,7 +10,7 @@ import {
   TestId,
   UserStatus,
   type TJoinedPublicUser
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UserPopover } from '../user-popover';

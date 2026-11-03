@@ -333,7 +333,7 @@ describe('hotkey dispatcher', () => {
 
   it('drops mouse binds saved by an earlier version', () => {
     localStorage.setItem(
-      'sharkord-hotkey-bindings',
+      'sandshark-hotkey-bindings',
       JSON.stringify([
         { actionId: MUTE.id, combo: 'ctrl+Mouse4' },
         { actionId: PTT.id, combo: 'KeyV' }

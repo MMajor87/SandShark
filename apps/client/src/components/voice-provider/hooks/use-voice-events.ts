@@ -3,7 +3,7 @@ import { useOwnUserId } from '@/features/server/users/hooks';
 import { voiceLogger } from '@/helpers/browser-logger';
 import { getTRPCClient } from '@/lib/trpc';
 import type { TRemoteUserStreamKinds } from '@/types';
-import { StreamKind } from '@sharkord/shared';
+import { StreamKind } from '@sandshark/shared';
 import type { RtpCapabilities } from 'mediasoup-client/types';
 import type { RefObject } from 'react';
 import { useEffect } from 'react';

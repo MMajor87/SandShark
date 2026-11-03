@@ -1,6 +1,6 @@
 import { SettingsListEditor } from '@/components/server-screens/settings-shell/list-editor';
 import { useAdminRoles } from '@/features/server/admin/hooks';
-import { LoadingCard } from '@sharkord/ui';
+import { LoadingCard } from '@sandshark/ui';
 import { Shield } from 'lucide-react';
 import { memo, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';

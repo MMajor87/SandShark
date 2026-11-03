@@ -4,7 +4,7 @@ import {
   REACTION_EMOJI_MAX_LENGTH,
   ServerEvents,
   StreamKind
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import { initTest } from '../../__tests__/helpers';

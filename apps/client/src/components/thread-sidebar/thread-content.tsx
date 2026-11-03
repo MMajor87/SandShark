@@ -1,6 +1,6 @@
 import { markThreadAsRead } from '@/features/server/threads/actions';
 import { useThreadReadState } from '@/features/server/threads/hooks';
-import { TestId } from '@sharkord/shared';
+import { TestId } from '@sandshark/shared';
 import { MessageSquareText } from 'lucide-react';
 import { memo, useCallback, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';

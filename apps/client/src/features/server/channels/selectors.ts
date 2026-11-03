@@ -4,7 +4,7 @@ import {
 } from '@/features/app/selectors';
 import type { IRootState } from '@/features/store';
 import { createSelector } from '@reduxjs/toolkit';
-import { ChannelType, type TChannel } from '@sharkord/shared';
+import { ChannelType, type TChannel } from '@sandshark/shared';
 import { createCachedSelector } from 're-reselect';
 import { threadsOpenSelector } from '../threads/selectors';
 

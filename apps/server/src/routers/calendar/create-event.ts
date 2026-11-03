@@ -1,4 +1,4 @@
-import { zCalendarEventInput } from '@sharkord/shared';
+import { zCalendarEventInput } from '@sandshark/shared';
 import { config } from '../../config';
 import { createCalendarEvent } from '../../db/mutations/calendar';
 import { getCalendarInviteTargets } from '../../db/queries/calendar';

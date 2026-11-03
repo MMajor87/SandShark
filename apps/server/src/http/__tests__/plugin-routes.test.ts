@@ -2,7 +2,7 @@ import {
   Permission,
   PluginCapabilityMode,
   PluginCapabilityType
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import fs from 'fs/promises';

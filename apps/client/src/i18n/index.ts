@@ -3,7 +3,7 @@ import {
   LocalStorageKey,
   setLocalStorageItem
 } from '@/helpers/storage';
-import type { TLocale } from '@sharkord/shared';
+import type { TLocale } from '@sandshark/shared';
 import type { Locale } from 'date-fns';
 import { cs, enUS, es, fr, it, ptBR, ru, zhCN } from 'date-fns/locale';
 import i18n from 'i18next';

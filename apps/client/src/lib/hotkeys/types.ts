@@ -1,4 +1,4 @@
-import type { TPluginHotkeyMode, TPluginHotkeyPhase } from '@sharkord/shared';
+import type { TPluginHotkeyMode, TPluginHotkeyPhase } from '@sandshark/shared';
 
 // the same two sets plugins see, so the client and the SDK cannot drift
 type THotkeyPhase = TPluginHotkeyPhase;

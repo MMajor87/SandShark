@@ -8,13 +8,13 @@ import type {
   TPluginSlotRequirements,
   UnloadPluginContext,
   UpgradePluginContext
-} from '@sharkord/plugin-sdk';
+} from '@sandshark/plugin-sdk';
 import {
   ServerEvents,
   StreamKind,
   type ChannelPermission,
   type Permission
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import path from 'path';
 import { channelUserCan } from '../db/queries/channels';
 import { getFileNameById } from '../db/queries/files';

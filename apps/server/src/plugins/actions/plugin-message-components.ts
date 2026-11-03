@@ -3,7 +3,7 @@ import {
   PLUGIN_MESSAGE_COMPONENTS_MAX,
   PLUGIN_MESSAGE_COMPONENTS_MAX_BYTES,
   type TPluginMessageComponent
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { invariant } from '../../utils/invariant';
 import { isPlainObject } from '../../utils/is-plain-object';
 

@@ -1,4 +1,4 @@
-import { ActivityLogType } from '@sharkord/shared';
+import { ActivityLogType } from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { publishMessage } from '../db/publishers';

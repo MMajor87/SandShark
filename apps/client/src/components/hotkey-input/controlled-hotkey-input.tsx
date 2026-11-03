@@ -1,5 +1,5 @@
 import { useHotkeyInput } from '@/hooks/use-hotkey-input';
-import { HotkeyInput as BaseHotkeyInput } from '@sharkord/ui';
+import { HotkeyInput as BaseHotkeyInput } from '@sandshark/ui';
 import { memo } from 'react';
 
 type TControlledHotkeyInputProps = {

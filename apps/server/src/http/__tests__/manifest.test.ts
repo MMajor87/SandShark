@@ -1,4 +1,4 @@
-import type { TWebAppManifest } from '@sharkord/shared';
+import type { TWebAppManifest } from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { tdb, testsBaseUrl } from '../../__tests__/setup';
 import { files, settings } from '../../db/schema';

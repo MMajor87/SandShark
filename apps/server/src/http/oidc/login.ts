@@ -2,7 +2,7 @@ import {
   getErrorMessage,
   INVITE_CODE_REGEX,
   OidcError
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import type http from 'http';
 import * as client from 'openid-client';
 import { z } from 'zod';

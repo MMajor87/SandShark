@@ -1,4 +1,4 @@
-import { Button, Slider } from '@sharkord/ui';
+import { Button, Slider } from '@sandshark/ui';
 import { memo, useCallback, type ReactNode } from 'react';
 import { NumberInput } from './number-input';
 import { FILE_SIZE_STEP, MEGABYTE } from './presets';

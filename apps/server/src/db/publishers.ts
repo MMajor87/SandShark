@@ -3,7 +3,7 @@ import {
   getErrorMessage,
   ServerEvents,
   type TChannelUserPermissionsMap
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { db } from '.';
 import { enforceVoicePermissions } from '../helpers/enforce-voice-permissions';

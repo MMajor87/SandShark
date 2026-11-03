@@ -6,7 +6,7 @@ import {
   type TPluginCapabilityAccessRule,
   type TPluginComponentsMap,
   type TPluginMetadata
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { userSettingsPluginsSelector } from '../selectors';
 

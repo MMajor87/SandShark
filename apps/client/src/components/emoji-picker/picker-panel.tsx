@@ -3,7 +3,7 @@ import {
   type TEmojiItem
 } from '@/components/tiptap-input/helpers';
 import { useCustomEmojis } from '@/features/server/emojis/hooks';
-import { Input, Tabs, TabsContent, TabsList, TabsTrigger } from '@sharkord/ui';
+import { Input, Tabs, TabsContent, TabsList, TabsTrigger } from '@sandshark/ui';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CustomEmojiTab } from './custom-emoji-tab';

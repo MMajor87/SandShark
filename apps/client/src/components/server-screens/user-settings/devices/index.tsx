@@ -25,7 +25,7 @@ import {
   VideoCodec,
   type TDeviceSettings
 } from '@/types';
-import { DEFAULT_BITRATE } from '@sharkord/shared';
+import { DEFAULT_BITRATE } from '@sandshark/shared';
 import {
   Alert,
   AlertDescription,
@@ -42,7 +42,7 @@ import {
   Separator,
   Slider,
   Switch
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { filesize } from 'filesize';
 import { Info } from 'lucide-react';
 import {

@@ -1,5 +1,5 @@
 import { RoleMentionChip } from '@/components/role-mention-chip';
-import { MessageNodeType } from '@sharkord/shared';
+import { MessageNodeType } from '@sandshark/shared';
 import { Node } from '@tiptap/core';
 import {
   NodeViewWrapper,

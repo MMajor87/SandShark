@@ -1,4 +1,4 @@
-import type { StreamKind, TStreamQuality } from '@sharkord/shared';
+import type { StreamKind, TStreamQuality } from '@sandshark/shared';
 
 export type TDevices = {
   input: {

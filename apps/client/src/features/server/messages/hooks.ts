@@ -6,7 +6,7 @@ import {
   getTrpcError,
   type TJoinedMessage,
   type TMessagesCursor
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';

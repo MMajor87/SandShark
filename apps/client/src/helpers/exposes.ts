@@ -7,18 +7,18 @@ import * as ReactJSXDev from 'react/jsx-dev-runtime';
 import * as ReactJSX from 'react/jsx-runtime';
 
 const exposeLibs = () => {
-  window.__SHARKORD_EXPOSED_LIBS__ = {
+  window.__SANDSHARK_EXPOSED_LIBS__ = {
     createSelector,
     createCachedSelector
   };
 };
 
 const exposeReact = () => {
-  window.__SHARKORD_REACT__ = React;
-  window.__SHARKORD_REACT_JSX__ = ReactJSX;
-  window.__SHARKORD_REACT_JSX_DEV__ = ReactJSXDev;
-  window.__SHARKORD_REACT_DOM__ = ReactDOM;
-  window.__SHARKORD_REACT_DOM_CLIENT__ = ReactDOMClient;
+  window.__SANDSHARK_REACT__ = React;
+  window.__SANDSHARK_REACT_JSX__ = ReactJSX;
+  window.__SANDSHARK_REACT_JSX_DEV__ = ReactJSXDev;
+  window.__SANDSHARK_REACT_DOM__ = ReactDOM;
+  window.__SANDSHARK_REACT_DOM_CLIENT__ = ReactDOMClient;
 };
 
 export { exposeLibs, exposeReact };

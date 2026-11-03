@@ -2,7 +2,7 @@ import { useInfo } from '@/features/server/hooks';
 import { getUrlFromServer } from '@/helpers/get-file-url';
 import { getOidcHandoffCode, startOidcLogin } from '@/helpers/oidc';
 import { useStrictEffect } from '@/hooks/use-strict-effect';
-import { OidcError } from '@sharkord/shared';
+import { OidcError } from '@sandshark/shared';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';

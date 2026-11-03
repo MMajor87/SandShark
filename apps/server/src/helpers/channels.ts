@@ -5,7 +5,7 @@ import {
   type TBeforeChannelCreateUpdate,
   type TBeforeChannelDeletePayload,
   type TChannel
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { asc, desc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';

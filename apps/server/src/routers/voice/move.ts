@@ -1,4 +1,4 @@
-import { ChannelPermission, Permission } from '@sharkord/shared';
+import { ChannelPermission, Permission } from '@sandshark/shared';
 import { z } from 'zod';
 import { config } from '../../config';
 import { assertChannelAccess } from '../../helpers/assert-channel-access';

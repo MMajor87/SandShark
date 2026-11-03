@@ -1,4 +1,4 @@
-import { Permission, ServerEvents, StreamKind } from '@sharkord/shared';
+import { Permission, ServerEvents, StreamKind } from '@sandshark/shared';
 import { expect, mock, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import type { Producer } from 'mediasoup/types';

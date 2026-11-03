@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
   Slider,
   type TIconButtonSize
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { Volume2, VolumeX } from 'lucide-react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { memo, useCallback } from 'react';

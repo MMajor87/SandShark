@@ -8,7 +8,7 @@ Contributions that do not align with the project’s vision, scope, or technical
 
 ## What SandShark Is
 
-SandShark is a Windows desktop client for compatible Sharkord servers. It builds on the upstream frontend and keeps the server and shared packages in this repository for compatibility and development.
+SandShark is a Windows desktop client and a self-hosted server. The server, web client, desktop app and shared packages all live in this repository.
 
 It follows the philosophy of TeamSpeak: focused, lightweight, and practical — with a clean, modern interface and an emphasis on ease of deployment.
 

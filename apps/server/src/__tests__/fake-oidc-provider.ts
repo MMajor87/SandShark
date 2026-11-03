@@ -23,8 +23,8 @@ type TPendingAuthorization = {
   freshAuthentication: boolean;
 };
 
-const CLIENT_ID = 'sharkord-test-client';
-const CLIENT_SECRET = 'sharkord-test-secret';
+const CLIENT_ID = 'sandshark-test-client';
+const CLIENT_SECRET = 'sandshark-test-secret';
 
 // a 1x1 png, served from /avatar.png so the picture claim has something real to fetch
 const TINY_PNG = Buffer.from(

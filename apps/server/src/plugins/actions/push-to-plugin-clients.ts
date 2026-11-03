@@ -2,7 +2,7 @@ import {
   PLUGIN_PUSH_MAX_BYTES,
   ServerEvents,
   type TPluginPushEvent
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { VoiceRuntime } from '../../runtimes/voice';
 import { invariant } from '../../utils/invariant';
 import { pubsub } from '../../utils/pubsub';

@@ -1,4 +1,4 @@
-import { stripZalgo } from '@sharkord/shared';
+import { stripZalgo } from '@sandshark/shared';
 import sanitize from 'sanitize-html';
 
 // the only images a message legitimately carries are emoji: custom ones served

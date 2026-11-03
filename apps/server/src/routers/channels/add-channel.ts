@@ -1,4 +1,4 @@
-import { ChannelType, Permission } from '@sharkord/shared';
+import { ChannelType, Permission } from '@sandshark/shared';
 import { z } from 'zod';
 import { createChannel, zChannelName } from '../../helpers/channels';
 import { protectedProcedure } from '../../utils/trpc';

@@ -1,4 +1,4 @@
-import { Permission } from '@sharkord/shared';
+import { Permission } from '@sandshark/shared';
 
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import {

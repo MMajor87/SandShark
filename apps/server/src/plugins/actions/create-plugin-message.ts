@@ -2,7 +2,7 @@ import {
   getPlainTextFromHtml,
   isEmptyMessage,
   type TPluginMessageComponent
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { pluginManager } from '..';
 import { db } from '../../db';

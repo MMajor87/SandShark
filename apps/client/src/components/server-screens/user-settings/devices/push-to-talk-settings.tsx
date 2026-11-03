@@ -18,7 +18,7 @@ import {
   SelectValue,
   Slider,
   Switch
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { Info, Keyboard, Mouse } from 'lucide-react';
 import { memo, useCallback, useEffect, useState } from 'react';
 

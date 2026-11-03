@@ -20,7 +20,7 @@ import {
   TYPING_MS,
   type TJoinedMessage,
   type TThreadSummary
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { markChannelAsRead } from '../actions';
 import {
   channelByIdSelector,

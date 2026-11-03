@@ -1,5 +1,5 @@
-import { TestId } from '@sharkord/shared';
-import { cn } from '@sharkord/ui';
+import { TestId } from '@sandshark/shared';
+import { cn } from '@sandshark/ui';
 import { memo } from 'react';
 
 type TUnreadCountProps = {

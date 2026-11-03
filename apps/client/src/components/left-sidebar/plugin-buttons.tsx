@@ -4,10 +4,10 @@ import {
   useFullscreenPluginIds,
   usePluginMetadata
 } from '@/features/server/plugins/hooks';
-import { cn, Tooltip } from '@sharkord/ui';
+import { cn, Tooltip } from '@sandshark/ui';
 import { Package, X } from 'lucide-react';
 import { memo, useCallback } from 'react';
-import { ImageWithFallback } from '../server-screens/server-settings/plugins/marketplace/image-with-fallback';
+import { ImageWithFallback } from '../server-screens/server-settings/plugins/image-with-fallback';
 
 type TPluginButtonsProps = {
   pluginId: string;

@@ -37,7 +37,7 @@ export default defineConfig({
       stdout: 'ignore',
       stderr: 'ignore',
       env: {
-        SHARKORD_DATA_PATH: e2eDataPath
+        SANDSHARK_DATA_PATH: e2eDataPath
       }
     },
     {

@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
   Switch
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { memo, useCallback, useEffect, useState } from 'react';
 
 type TWindowBehavior = {

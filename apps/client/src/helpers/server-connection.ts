@@ -1,6 +1,6 @@
 import { i18n } from '@/i18n';
 import { isDesktopClient } from '@/platform/environment';
-import type { TServerInfo } from '@sharkord/shared';
+import type { TServerInfo } from '@sandshark/shared';
 import {
   getLocalStorageItem,
   getLocalStorageItemAsJSON,

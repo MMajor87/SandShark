@@ -5,7 +5,7 @@ import {
   PluginSlot,
   type TPluginReactComponent,
   type TPluginSlotProps
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { memo } from 'react';
 import { PluginComponentFrame } from './plugin-component-frame';
 

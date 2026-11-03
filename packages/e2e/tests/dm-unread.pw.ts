@@ -1,4 +1,4 @@
-import { TestId } from '@sharkord/shared';
+import { TestId } from '@sandshark/shared';
 import { expect, loginAs, test } from './fixtures';
 import { openChannel } from './helpers/channels';
 import { dmItem, openDmPanel, startDmWith } from './helpers/dms';

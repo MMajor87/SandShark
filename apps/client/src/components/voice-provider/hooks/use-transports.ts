@@ -6,7 +6,7 @@ import {
   StreamKind,
   type TProducibleStreamKind,
   type TStreamQualityLayer
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { TRPCClientError } from '@trpc/client';
 import {
   type AppData,

@@ -40,7 +40,7 @@ describe('getPluginBundleUrl', () => {
 
   // the sdk reads the plugin id back out of this url, so the round trip has to hold
   test('should stay parseable back into the plugin id', async () => {
-    const { getPluginIdFromBundleUrl } = await import('@sharkord/shared');
+    const { getPluginIdFromBundleUrl } = await import('@sandshark/shared');
 
     expect(
       getPluginIdFromBundleUrl(getPluginBundleUrl('music-bot', '1.2.3'))

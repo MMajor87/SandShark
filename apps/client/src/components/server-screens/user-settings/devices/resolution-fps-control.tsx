@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { memo } from 'react';
 
 type TResolutionFpsControlProps = {

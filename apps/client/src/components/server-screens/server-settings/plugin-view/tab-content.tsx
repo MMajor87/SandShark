@@ -1,6 +1,6 @@
 import { ErrorBoundary } from '@/components/plugin-slot-renderer/error-boundary';
 import { PluginIdContext } from '@/features/server/plugins/plugin-id-context';
-import type { TPluginTab } from '@sharkord/shared';
+import type { TPluginTab } from '@sandshark/shared';
 import { memo } from 'react';
 
 type TPluginTabContentProps = {

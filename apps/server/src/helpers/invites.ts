@@ -3,7 +3,7 @@ import {
   getRandomString,
   INVITE_CODE_REGEX,
   type TInvite
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';

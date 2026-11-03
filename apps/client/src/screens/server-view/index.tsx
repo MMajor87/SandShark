@@ -20,7 +20,7 @@ import {
 import { useSwipeGestures } from '@/hooks/use-swipe-gestures';
 import { cn } from '@/lib/utils';
 import { isDesktopClient } from '@/platform/environment';
-import { Permission, TestId } from '@sharkord/shared';
+import { Permission, TestId } from '@sandshark/shared';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ContentWrapper } from './content-wrapper';
 import { PreventBrowser } from './prevent-browser';

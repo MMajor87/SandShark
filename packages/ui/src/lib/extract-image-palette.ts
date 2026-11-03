@@ -1,4 +1,4 @@
-import { kmeans, rgbToHex, type TRgb } from '@sharkord/shared';
+import { kmeans, rgbToHex, type TRgb } from '@sandshark/shared';
 
 const SWATCH_COUNT = 6;
 const SAMPLE_WIDTH = 100;

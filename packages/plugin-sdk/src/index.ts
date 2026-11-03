@@ -41,7 +41,7 @@ import type {
   TStreamQualityLayer,
   TVoiceProducerInfo,
   TVoiceUserState
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import {
   ChannelPermission,
   ChannelType,
@@ -51,7 +51,7 @@ import {
   PLUGIN_SDK_VERSION,
   PluginSlot,
   StreamKind
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { AppData, Producer, Router, RtpParameters } from 'mediasoup/types';
 
@@ -420,11 +420,11 @@ export interface PluginSettings<
  * are typed from it, names included:
  *
  * ```ts
- * type TSharkord = {
+ * type TSandShark = {
  *   actions: { roll: { payload: { sides: number }; response: number } };
  * };
  *
- * const onLoad = (ctx: PluginContext<TSharkord>) => { ... };
+ * const onLoad = (ctx: PluginContext<TSandShark>) => { ... };
  * ```
  *
  * The contract is optional, and so is every key in it: what you leave out
@@ -1021,7 +1021,7 @@ export type PluginModule<C extends TPluginContract = TPluginContract> = {
   ) => void | Promise<void>;
 };
 
-type TSharkordState = ReturnType<TPluginStore['getState']>;
+type TSandSharkState = ReturnType<TPluginStore['getState']>;
 
 // re-export mediasoup types for plugin usage
 export type {
@@ -1067,7 +1067,7 @@ export type {
   TPluginStoreState,
   TPluginTab,
   TPluginTabs,
-  TSharkordState
+  TSandSharkState
 };
 
 export * from './actions';

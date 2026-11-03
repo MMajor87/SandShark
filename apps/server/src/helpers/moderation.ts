@@ -1,4 +1,4 @@
-import { ActivityLogType, DisconnectCode } from '@sharkord/shared';
+import { ActivityLogType, DisconnectCode } from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { invalidateUserSessions } from '../db/mutations/users';

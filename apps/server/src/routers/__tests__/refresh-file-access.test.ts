@@ -1,4 +1,4 @@
-import type { TTempFile } from '@sharkord/shared';
+import type { TTempFile } from '@sandshark/shared';
 import { expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import {

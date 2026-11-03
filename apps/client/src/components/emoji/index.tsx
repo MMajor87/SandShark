@@ -1,7 +1,7 @@
 import { isTextPresentation } from '@/components/tiptap-input/helpers';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { cn } from '@/lib/utils';
-import type { TFile } from '@sharkord/shared';
+import type { TFile } from '@sandshark/shared';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { findGitHubEmoji } from './helpers';
 

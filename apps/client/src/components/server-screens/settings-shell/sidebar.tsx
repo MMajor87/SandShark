@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
-import { TestId } from '@sharkord/shared';
-import { Separator, Tooltip } from '@sharkord/ui';
+import { TestId } from '@sandshark/shared';
+import { Separator, Tooltip } from '@sandshark/ui';
 import { AlertCircle } from 'lucide-react';
 
 import { memo, useCallback } from 'react';

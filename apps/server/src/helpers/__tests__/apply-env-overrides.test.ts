@@ -141,9 +141,9 @@ describe('applyEnvOverrides', () => {
   });
 
   test('works with the full config overrides map', () => {
-    setEnv('SHARKORD_PORT_TEST', '5000');
-    setEnv('SHARKORD_DEBUG_TEST', 'false');
-    setEnv('SHARKORD_WEBRTC_PORT_TEST', '50000');
+    setEnv('SANDSHARK_PORT_TEST', '5000');
+    setEnv('SANDSHARK_DEBUG_TEST', 'false');
+    setEnv('SANDSHARK_WEBRTC_PORT_TEST', '50000');
 
     const config = {
       server: { port: 4991, debug: true, autoupdate: false },
@@ -152,10 +152,10 @@ describe('applyEnvOverrides', () => {
     };
 
     const overridesMap = {
-      'server.port': 'SHARKORD_PORT_TEST',
-      'server.debug': 'SHARKORD_DEBUG_TEST',
-      'mediasoup.webrtcPort': 'SHARKORD_WEBRTC_PORT_TEST',
-      'mediasoup.announcedAddress': 'SHARKORD_ANNOUNCED_ADDRESS_TEST'
+      'server.port': 'SANDSHARK_PORT_TEST',
+      'server.debug': 'SANDSHARK_DEBUG_TEST',
+      'mediasoup.webrtcPort': 'SANDSHARK_WEBRTC_PORT_TEST',
+      'mediasoup.announcedAddress': 'SANDSHARK_ANNOUNCED_ADDRESS_TEST'
     };
 
     const result = applyEnvOverrides(config, overridesMap);

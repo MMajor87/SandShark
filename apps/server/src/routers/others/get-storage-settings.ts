@@ -1,4 +1,4 @@
-import { Permission, type TStorageSettings } from '@sharkord/shared';
+import { Permission, type TStorageSettings } from '@sandshark/shared';
 import { getStorageUsageByPlugin } from '../../db/queries/files';
 import { getSettings } from '../../db/queries/server';
 import { getDiskMetrics } from '../../utils/metrics';

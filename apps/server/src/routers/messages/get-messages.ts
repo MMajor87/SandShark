@@ -2,7 +2,7 @@ import {
   DEFAULT_MESSAGES_LIMIT,
   zMessagesCursor,
   type TMessage
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';

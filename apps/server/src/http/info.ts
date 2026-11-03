@@ -1,4 +1,4 @@
-import type { TServerInfo } from '@sharkord/shared';
+import type { TServerInfo } from '@sandshark/shared';
 import http from 'http';
 import { getSettings } from '../db/queries/server';
 import { getOidcServerInfo } from '../helpers/oidc/settings';

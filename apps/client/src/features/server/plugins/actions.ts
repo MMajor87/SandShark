@@ -14,7 +14,7 @@ import {
   type TPluginMessageComponentsByPlugin,
   type TPluginMetadata,
   type TPluginTabsMap
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { toast } from 'sonner';
 import { serverSliceActions } from '../slice';
 import { pluginVersionByIdSelector } from './selectors';

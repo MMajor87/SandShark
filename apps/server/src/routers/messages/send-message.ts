@@ -14,7 +14,7 @@ import {
   stringifyCommandResponse,
   toDomCommand,
   type TPluginEphemeralResponse
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';

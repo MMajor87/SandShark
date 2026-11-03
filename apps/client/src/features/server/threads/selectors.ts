@@ -1,6 +1,6 @@
 import type { IRootState } from '@/features/store';
 import { createSelector } from '@reduxjs/toolkit';
-import type { TThreadReadState } from '@sharkord/shared';
+import type { TThreadReadState } from '@sandshark/shared';
 
 const NO_UNREAD: TThreadReadState = { unreadCount: 0, hasUnreadMention: false };
 

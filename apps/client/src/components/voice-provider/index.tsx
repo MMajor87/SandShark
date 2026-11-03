@@ -27,7 +27,7 @@ import {
   type ConsumerType,
   type TStreamQualityLayer,
   type TVoiceUserState
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import type { ProducerOptions, RtpCapabilities } from 'mediasoup-client/types';
 import {
   createContext,

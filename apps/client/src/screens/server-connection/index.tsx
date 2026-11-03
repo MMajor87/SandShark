@@ -24,7 +24,7 @@ import {
   DialogTitle,
   Input,
   Label
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { Pencil, Plus, RefreshCw, Server, Trash2 } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';

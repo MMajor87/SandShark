@@ -11,7 +11,7 @@ import {
   getPlainTextFromHtml,
   TestId,
   type TFollowedThread
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { memo, useCallback, useMemo } from 'react';
 import { useMessageAuthorName } from '../../channel-view/text/hooks/use-message-author-name';
 

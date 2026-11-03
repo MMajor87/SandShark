@@ -1,4 +1,4 @@
-import type { TFile } from '@sharkord/shared';
+import type { TFile } from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { findGitHubEmoji } from '../helpers';
 

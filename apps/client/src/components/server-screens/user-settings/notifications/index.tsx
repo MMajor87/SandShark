@@ -16,7 +16,7 @@ import {
   useMessageSentSound,
   useNotificationSounds
 } from '@/features/app/hooks';
-import { Group, Switch } from '@sharkord/ui';
+import { Group, Switch } from '@sandshark/ui';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 

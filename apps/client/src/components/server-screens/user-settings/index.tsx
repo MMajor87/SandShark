@@ -1,7 +1,7 @@
 import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { useCan, useUserSettingsPlugins } from '@/features/server/hooks';
 import { isDesktopClient } from '@/platform/environment';
-import { Permission, PluginSlot } from '@sharkord/shared';
+import { Permission, PluginSlot } from '@sandshark/shared';
 import {
   Bell,
   Headphones,

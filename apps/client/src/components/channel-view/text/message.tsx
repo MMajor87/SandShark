@@ -10,7 +10,7 @@ import {
   Permission,
   TestId,
   type TJoinedMessage
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { MessageActions } from './message-actions';
 import { MessageEditInline } from './message-edit-inline';

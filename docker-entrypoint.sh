@@ -2,13 +2,13 @@
 set -e
 
 # must resolve the same directory the server does (helpers/paths.ts)
-DATA_DIR="${SHARKORD_DATA_PATH:-/home/bun/.config/sharkord}"
+DATA_DIR="${SANDSHARK_DATA_PATH:-/home/bun/.config/sandshark}"
 
 # if we're already running as non-root (e.g. K8s securityContext, Podman rootless),
 # just ensure the data directory exists and run the binary directly.
 if [ "$(id -u)" -ne 0 ]; then
   mkdir -p "$DATA_DIR"
-  exec /sharkord
+  exec /sandshark
 fi
 
 # running as root: optionally remap the bun user's UID/GID via PUID/PGID env vars
@@ -29,4 +29,4 @@ mkdir -p "$DATA_DIR"
 chown -R bun:bun /home/bun/.config "$DATA_DIR"
 
 # drop privileges and exec the binary
-exec su -s /bin/sh bun -c "exec /sharkord"
+exec su -s /bin/sh bun -c "exec /sandshark"

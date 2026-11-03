@@ -1,5 +1,5 @@
 import { usePluginMetadata } from '@/features/server/plugins/hooks';
-import { type TParsedDomCommand } from '@sharkord/shared';
+import { type TParsedDomCommand } from '@sandshark/shared';
 import {
   CheckCircle2,
   ChevronDown,

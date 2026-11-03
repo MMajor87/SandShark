@@ -3,7 +3,7 @@ import {
   Permission,
   PluginCapabilityType,
   zPluginId
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import z from 'zod';
 import { config } from '../../config';
 import { assertChannelAccess } from '../../helpers/assert-channel-access';

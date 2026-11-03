@@ -1,7 +1,7 @@
 import { PluginComponentFrame } from '@/components/plugin-slot-renderer/plugin-component-frame';
 import { useCan } from '@/features/server/hooks';
 import { usePluginMessageComponent } from '@/features/server/plugins/hooks';
-import { Permission, type TPluginMessageComponent } from '@sharkord/shared';
+import { Permission, type TPluginMessageComponent } from '@sandshark/shared';
 import { memo } from 'react';
 
 const DEFAULT_PROPS: Record<string, unknown> = {};

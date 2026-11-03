@@ -1,4 +1,4 @@
-import { Group } from '@sharkord/ui';
+import { Group } from '@sandshark/ui';
 import { memo } from 'react';
 import { HotkeyInput } from '.';
 

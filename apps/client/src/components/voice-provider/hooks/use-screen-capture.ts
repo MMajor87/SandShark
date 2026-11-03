@@ -11,7 +11,7 @@ import {
   getErrorMessage,
   StreamKind,
   type TStreamQualityLayer
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import type {
   ProducerOptions,
   RtpCapabilities,

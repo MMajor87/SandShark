@@ -10,8 +10,8 @@ import {
   PluginCapabilityMode,
   PluginCapabilityType,
   type TPluginCapability
-} from '@sharkord/shared';
-import { LoadingCard } from '@sharkord/ui';
+} from '@sandshark/shared';
+import { LoadingCard } from '@sandshark/ui';
 import { Users } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';

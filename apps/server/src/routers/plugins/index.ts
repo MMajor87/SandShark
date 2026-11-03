@@ -16,7 +16,6 @@ import { getPluginLogsRoute } from './get-logs';
 import { getPluginsRoute } from './get-plugins';
 import { getSettingsRoute } from './get-settings';
 import { getUserDataRoute } from './get-user-data';
-import { installRoute } from './install-plugin';
 import { removeRoute } from './remove-plugin';
 import { resetCapabilityAccessRoute } from './reset-capability-access';
 import { setCapabilityAccessRoute } from './set-capability-access';
@@ -45,7 +44,5 @@ export const pluginsRouter = t.router({
   onMetadataChange: onMetadataChangeRoute,
   getSettings: getSettingsRoute,
   updateSetting: updateSettingRoute,
-  install: installRoute,
-  update: installRoute,
   remove: removeRoute
 });

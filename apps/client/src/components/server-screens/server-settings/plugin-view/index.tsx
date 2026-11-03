@@ -11,7 +11,7 @@ import {
   Permission,
   type TPluginInfo,
   type TPluginSettingDefinition
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import {
   Alert,
   AlertDescription,
@@ -21,12 +21,12 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { AlertCircle, Package } from 'lucide-react';
 import { memo, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { ImageWithFallback } from '../plugins/marketplace/image-with-fallback';
+import { ImageWithFallback } from '../plugins/image-with-fallback';
 import { PluginCommands } from './commands';
 import { PluginLogs } from './logs';
 import { PluginPermissions } from './permissions';

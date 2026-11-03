@@ -1,4 +1,4 @@
-import type { TLogin } from '@sharkord/shared';
+import type { TLogin } from '@sandshark/shared';
 import { desc, eq } from 'drizzle-orm';
 import { db } from '..';
 import { logins } from '../schema';

@@ -1,5 +1,5 @@
-import { Permission as EPermission } from '@sharkord/shared';
-import { Label, Switch } from '@sharkord/ui';
+import { Permission as EPermission } from '@sandshark/shared';
+import { Label, Switch } from '@sandshark/ui';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 

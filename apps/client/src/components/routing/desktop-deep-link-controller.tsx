@@ -48,7 +48,7 @@ const parseDeepLink = (value: string): TDeepLinkDestination | undefined => {
     const url = new URL(value);
 
     if (
-      (url.protocol !== 'sandshark:' && url.protocol !== 'sharkord:') ||
+      url.protocol !== 'sandshark:' ||
       url.username ||
       url.password ||
       url.search ||

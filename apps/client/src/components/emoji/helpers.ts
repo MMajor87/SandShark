@@ -1,4 +1,4 @@
-import type { TFile } from '@sharkord/shared';
+import type { TFile } from '@sandshark/shared';
 import { gitHubEmojis } from '@tiptap/extension-emoji';
 
 // a custom emoji can share a built-in's name, and only its file says which one

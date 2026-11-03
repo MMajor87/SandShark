@@ -2,7 +2,7 @@ import {
   PLUGIN_STORAGE_KEY_MAX_LENGTH,
   PLUGIN_STORAGE_LIST_MAX_LIMIT,
   PLUGIN_STORAGE_VALUE_MAX_BYTES
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import {
   deletePluginStorageValue,
   setPluginStorageValue

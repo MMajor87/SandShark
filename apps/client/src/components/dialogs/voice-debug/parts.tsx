@@ -1,5 +1,5 @@
 import type { TVoiceDebugStat } from '@/helpers/voice-debug';
-import { cn } from '@sharkord/ui';
+import { cn } from '@sandshark/ui';
 import { memo, type ReactNode } from 'react';
 import { formatValue, getScalarEntries, type TTone } from './helpers';
 

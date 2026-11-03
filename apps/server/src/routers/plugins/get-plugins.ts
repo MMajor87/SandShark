@@ -1,4 +1,4 @@
-import { Permission } from '@sharkord/shared';
+import { Permission } from '@sandshark/shared';
 import { pluginManager } from '../../plugins';
 import { protectedProcedure } from '../../utils/trpc';
 

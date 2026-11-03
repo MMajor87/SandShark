@@ -1,4 +1,4 @@
-import { DisconnectCode, OWNER_ROLE_ID } from '@sharkord/shared';
+import { DisconnectCode, OWNER_ROLE_ID } from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';

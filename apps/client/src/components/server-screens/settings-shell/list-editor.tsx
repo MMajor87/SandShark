@@ -1,4 +1,4 @@
-import { Card } from '@sharkord/ui';
+import { Card } from '@sandshark/ui';
 import type { LucideIcon } from 'lucide-react';
 import { memo, type ReactNode } from 'react';
 import { StatePanel } from './state-panel';

@@ -1,4 +1,4 @@
-import { Button, Spinner } from '@sharkord/ui';
+import { Button, Spinner } from '@sandshark/ui';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 

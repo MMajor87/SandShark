@@ -4,7 +4,7 @@ import {
   PluginCapabilityMode,
   PluginCapabilityType,
   zPluginId
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import z from 'zod';
 import { publishCapabilityAccess } from '../../db/publishers';
 import { setCapabilityAccess } from '../../db/queries/plugin-capabilities';

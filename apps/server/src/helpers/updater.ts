@@ -1,4 +1,4 @@
-import { getErrorMessage } from '@sharkord/shared';
+import { getErrorMessage } from '@sandshark/shared';
 import { BunUpdater } from 'bun-sfe-autoupdater';
 import { config } from '../config';
 import { logger } from '../logger';

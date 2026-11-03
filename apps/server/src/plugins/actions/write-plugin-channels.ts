@@ -1,4 +1,4 @@
-import type { TCategory, TChannel } from '@sharkord/shared';
+import type { TCategory, TChannel } from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { categories, channels } from '../../db/schema';

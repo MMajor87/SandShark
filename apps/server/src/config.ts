@@ -1,4 +1,4 @@
-import { getErrorMessage } from '@sharkord/shared';
+import { getErrorMessage } from '@sandshark/shared';
 import fs from 'fs/promises';
 import { parse, stringify } from 'ini';
 import z from 'zod';
@@ -100,7 +100,6 @@ const zConfig = z.object({
     voiceReaction: zRateLimiter,
     useSecretToken: zRateLimiter,
     pluginExecute: zRateLimiter,
-    pluginInstall: zRateLimiter,
     pluginRoute: zRateLimiter,
     oidc: zRateLimiter,
     reportClientError: zRateLimiter
@@ -234,10 +233,6 @@ const defaultConfig: TConfig = {
       maxRequests: 60,
       windowMs: 60_000
     },
-    pluginInstall: {
-      maxRequests: 10,
-      windowMs: 60_000
-    },
     pluginRoute: {
       maxRequests: 300,
       windowMs: 60_000
@@ -288,24 +283,24 @@ if (!configExists) {
 }
 
 const envOverridesMap: Record<string, string> = {
-  'server.host': 'SHARKORD_HOST',
-  'server.port': 'SHARKORD_PORT',
-  'server.debug': 'SHARKORD_DEBUG',
-  'server.autoupdate': 'SHARKORD_AUTOUPDATE',
-  'server.backupDatabase': 'SHARKORD_BACKUP_DATABASE',
-  'server.maxRequestBodyBytes': 'SHARKORD_MAX_REQUEST_BODY_BYTES',
-  'server.allowedOrigins': 'SHARKORD_ALLOWED_ORIGINS',
-  'server.trustedProxies': 'SHARKORD_TRUSTED_PROXIES',
-  'oidc.enabled': 'SHARKORD_OIDC_ENABLED',
-  'oidc.issuer': 'SHARKORD_OIDC_ISSUER',
-  'oidc.clientId': 'SHARKORD_OIDC_CLIENT_ID',
-  'oidc.clientSecret': 'SHARKORD_OIDC_CLIENT_SECRET',
-  'oidc.redirectUri': 'SHARKORD_OIDC_REDIRECT_URI',
-  'oidc.disableLocalLogin': 'SHARKORD_OIDC_DISABLE_LOCAL_LOGIN',
-  'webRtc.port': 'SHARKORD_WEBRTC_PORT',
-  'webRtc.announcedAddress': 'SHARKORD_WEBRTC_ANNOUNCED_ADDRESS',
-  'webRtc.maxBitrate': 'SHARKORD_WEBRTC_MAX_BITRATE',
-  'rateLimiters.enabled': 'SHARKORD_RATE_LIMITERS_ENABLED'
+  'server.host': 'SANDSHARK_HOST',
+  'server.port': 'SANDSHARK_PORT',
+  'server.debug': 'SANDSHARK_DEBUG',
+  'server.autoupdate': 'SANDSHARK_AUTOUPDATE',
+  'server.backupDatabase': 'SANDSHARK_BACKUP_DATABASE',
+  'server.maxRequestBodyBytes': 'SANDSHARK_MAX_REQUEST_BODY_BYTES',
+  'server.allowedOrigins': 'SANDSHARK_ALLOWED_ORIGINS',
+  'server.trustedProxies': 'SANDSHARK_TRUSTED_PROXIES',
+  'oidc.enabled': 'SANDSHARK_OIDC_ENABLED',
+  'oidc.issuer': 'SANDSHARK_OIDC_ISSUER',
+  'oidc.clientId': 'SANDSHARK_OIDC_CLIENT_ID',
+  'oidc.clientSecret': 'SANDSHARK_OIDC_CLIENT_SECRET',
+  'oidc.redirectUri': 'SANDSHARK_OIDC_REDIRECT_URI',
+  'oidc.disableLocalLogin': 'SANDSHARK_OIDC_DISABLE_LOCAL_LOGIN',
+  'webRtc.port': 'SANDSHARK_WEBRTC_PORT',
+  'webRtc.announcedAddress': 'SANDSHARK_WEBRTC_ANNOUNCED_ADDRESS',
+  'webRtc.maxBitrate': 'SANDSHARK_WEBRTC_MAX_BITRATE',
+  'rateLimiters.enabled': 'SANDSHARK_RATE_LIMITERS_ENABLED'
 };
 
 // validated again after the overrides, otherwise an env var could put a value

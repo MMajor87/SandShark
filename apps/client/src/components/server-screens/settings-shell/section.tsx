@@ -4,7 +4,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { memo, type ReactNode } from 'react';
 
 type TSettingsSectionProps = {

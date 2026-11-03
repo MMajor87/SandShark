@@ -6,7 +6,7 @@ import { getCurrentVersion, patchServerVersion } from '../../../build/helpers';
 test('reads and changes only the server package version', async () => {
   const packagePath = path.resolve(import.meta.dir, '../../../package.json');
   const read = spyOn(fs, 'readFile').mockResolvedValue(
-    JSON.stringify({ name: '@sharkord/server', version: '0.0.28' })
+    JSON.stringify({ name: '@sandshark/server', version: '0.0.28' })
   );
   const write = spyOn(fs, 'writeFile').mockResolvedValue();
   expect(await getCurrentVersion()).toBe('0.0.28');
@@ -15,7 +15,7 @@ test('reads and changes only the server package version', async () => {
   expect(write).toHaveBeenCalledTimes(1);
   expect(write).toHaveBeenCalledWith(
     packagePath,
-    `${JSON.stringify({ name: '@sharkord/server', version: '0.1.0' }, null, 2)}\n`,
+    `${JSON.stringify({ name: '@sandshark/server', version: '0.1.0' }, null, 2)}\n`,
     'utf8'
   );
 });

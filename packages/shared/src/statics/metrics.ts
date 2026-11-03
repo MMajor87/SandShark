@@ -2,7 +2,7 @@ export type TDiskMetrics = {
   totalSpace: number;
   usedSpace: number;
   freeSpace: number;
-  sharkordUsedSpace: number;
+  sandsharkUsedSpace: number;
 };
 
 export type TPluginStorageUsage = {

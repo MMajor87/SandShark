@@ -1,4 +1,4 @@
-import { sha256, UploadHeaders } from '@sharkord/shared';
+import { sha256, UploadHeaders } from '@sandshark/shared';
 import jwt from 'jsonwebtoken';
 import type WebSocket from 'ws';
 import { appRouter } from '../routers';

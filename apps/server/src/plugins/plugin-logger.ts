@@ -1,4 +1,4 @@
-import { ServerEvents, type TLogEntry } from '@sharkord/shared';
+import { ServerEvents, type TLogEntry } from '@sandshark/shared';
 import chalk from 'chalk';
 import { logger } from '../logger';
 import { pubsub } from '../utils/pubsub';

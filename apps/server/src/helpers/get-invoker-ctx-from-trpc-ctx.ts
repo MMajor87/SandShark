@@ -1,4 +1,4 @@
-import type { TInvokerContext, TInvokerSource } from '@sharkord/shared';
+import type { TInvokerContext, TInvokerSource } from '@sandshark/shared';
 import type { Context } from '../utils/trpc';
 
 type TInvocation = {

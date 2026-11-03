@@ -6,7 +6,7 @@ import {
   setLocalStorageItemAsJSON
 } from '@/helpers/storage';
 import type { TConversation } from '@/types';
-import { isEmptyMessage } from '@sharkord/shared';
+import { isEmptyMessage } from '@sandshark/shared';
 
 // defines the key for a draft message, channel/chat id
 type TDraftMessageKey = string;

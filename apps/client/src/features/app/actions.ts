@@ -20,7 +20,7 @@ import {
   type TMessageJumpToTarget,
   type TThreadTarget
 } from '@/types';
-import type { TServerInfo } from '@sharkord/shared';
+import type { TServerInfo } from '@sandshark/shared';
 import { toast } from 'sonner';
 import { markChannelAsRead, setInfo, switchServer } from '../server/actions';
 import { store } from '../store';

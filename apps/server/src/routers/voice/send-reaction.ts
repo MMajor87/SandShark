@@ -2,7 +2,7 @@ import {
   Permission,
   REACTION_EMOJI_MAX_LENGTH,
   ServerEvents
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { z } from 'zod';
 import { config } from '../../config';
 import { getCurrentVoiceRuntime } from '../../helpers/get-current-voice-runtime';

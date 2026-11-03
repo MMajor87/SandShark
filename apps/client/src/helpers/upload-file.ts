@@ -1,4 +1,8 @@
-import { UploadHeaders, UploadPurpose, type TTempFile } from '@sharkord/shared';
+import {
+  UploadHeaders,
+  UploadPurpose,
+  type TTempFile
+} from '@sandshark/shared';
 import i18next from 'i18next';
 import { toast } from 'sonner';
 import { getUrlFromServer } from './get-file-url';

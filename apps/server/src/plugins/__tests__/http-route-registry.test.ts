@@ -1,4 +1,4 @@
-import type { TPluginHttpMethod } from '@sharkord/plugin-sdk';
+import type { TPluginHttpMethod } from '@sandshark/plugin-sdk';
 import { describe, expect, test } from 'bun:test';
 import { PluginHttpRouteRegistry } from '../http-route-registry';
 import { PluginLogger } from '../plugin-logger';

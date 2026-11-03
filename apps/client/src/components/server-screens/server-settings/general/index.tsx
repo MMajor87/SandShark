@@ -5,7 +5,7 @@ import { useAdminGeneral } from '@/features/server/admin/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
 import type { TPickedImage } from '@/hooks/use-pick-image';
 import { getTRPCClient } from '@/lib/trpc';
-import { Group, Input, LoadingCard, Switch, Textarea } from '@sharkord/ui';
+import { Group, Input, LoadingCard, Switch, Textarea } from '@sandshark/ui';
 import { memo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 

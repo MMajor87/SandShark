@@ -4,7 +4,7 @@ import {
   Permission,
   ServerEvents,
   type TBeforeVoiceJoinPayload
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';

@@ -1,5 +1,5 @@
-import type { TCalendarTarget } from '@sharkord/shared';
-import { Switch } from '@sharkord/ui';
+import type { TCalendarTarget } from '@sandshark/shared';
+import { Switch } from '@sandshark/ui';
 import { memo, useCallback } from 'react';
 
 const InviteTarget = memo(

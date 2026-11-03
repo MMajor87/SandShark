@@ -13,7 +13,7 @@ import {
   Group,
   Separator,
   Switch
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import {
   Download,
   ExternalLink,
@@ -195,7 +195,7 @@ const Desktop = memo(() => {
       <CardHeader>
         <CardTitle>Desktop</CardTitle>
         <CardDescription>
-          SandShark is a desktop client for compatible Sharkord servers.
+          Settings for the SandShark desktop app.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -319,7 +319,7 @@ const Desktop = memo(() => {
 
         <Group
           label="About SandShark"
-          description="A Sharkord-compatible desktop client."
+          description="The SandShark desktop client for Windows."
         >
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">

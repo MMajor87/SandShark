@@ -1,4 +1,4 @@
-import { IconButton, type TIconButtonSize } from '@sharkord/ui';
+import { IconButton, type TIconButtonSize } from '@sandshark/ui';
 import { PictureInPicture2 } from 'lucide-react';
 import { memo, type RefObject } from 'react';
 import { usePictureInPicture } from './hooks/use-picture-in-picture';

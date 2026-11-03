@@ -1,4 +1,4 @@
-import { OWNER_ROLE_ID, type TJoinedRole } from '@sharkord/shared';
+import { OWNER_ROLE_ID, type TJoinedRole } from '@sandshark/shared';
 import {
   createRole,
   loadRole,

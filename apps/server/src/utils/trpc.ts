@@ -4,7 +4,7 @@ import {
   type Permission,
   type TLocale,
   type TUser
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { initTRPC, TRPCError } from '@trpc/server';
 import chalk from 'chalk';
 import type WebSocket from 'ws';

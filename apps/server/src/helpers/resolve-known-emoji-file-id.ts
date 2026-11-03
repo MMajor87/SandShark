@@ -1,4 +1,7 @@
-import { EMOJI_CHARACTER_REGEX, EMOJI_SHORTCODE_REGEX } from '@sharkord/shared';
+import {
+  EMOJI_CHARACTER_REGEX,
+  EMOJI_SHORTCODE_REGEX
+} from '@sandshark/shared';
 import { getEmojiFileIdByEmojiName } from '../db/queries/emojis';
 import { invariant } from '../utils/invariant';
 

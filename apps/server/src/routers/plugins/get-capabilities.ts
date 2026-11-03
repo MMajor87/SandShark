@@ -5,7 +5,7 @@ import {
   PluginCapabilityType,
   type TPluginCapability,
   zPluginId
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import z from 'zod';
 import { getPluginCapabilityAccess } from '../../db/queries/plugin-capabilities';
 import { getRoles } from '../../db/queries/roles';

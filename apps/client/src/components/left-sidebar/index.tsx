@@ -8,7 +8,7 @@ import {
 import { useThreadsOpen } from '@/features/server/threads/hooks';
 import { LocalStorageKey } from '@/helpers/storage';
 import { cn } from '@/lib/utils';
-import { TestId } from '@sharkord/shared';
+import { TestId } from '@sandshark/shared';
 import { memo, useCallback } from 'react';
 import { Categories } from './categories';
 import { DirectMessages } from './direct-messages';

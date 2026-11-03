@@ -1,4 +1,4 @@
-import { Input } from '@sharkord/ui';
+import { Input } from '@sandshark/ui';
 import { memo, useCallback, useState } from 'react';
 
 type TNumberInputProps = Omit<

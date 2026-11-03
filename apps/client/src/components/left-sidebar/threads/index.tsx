@@ -4,8 +4,8 @@ import {
   useFollowedThreadsList
 } from '@/features/server/threads/hooks';
 import { getTRPCClient } from '@/lib/trpc';
-import { getTrpcError } from '@sharkord/shared';
-import { Button, Spinner } from '@sharkord/ui';
+import { getTrpcError } from '@sandshark/shared';
+import { Button, Spinner } from '@sandshark/ui';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';

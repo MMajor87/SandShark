@@ -1,4 +1,4 @@
-import { ActivityLogType, OWNER_ROLE_ID, sha256 } from '@sharkord/shared';
+import { ActivityLogType, OWNER_ROLE_ID, sha256 } from '@sandshark/shared';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';

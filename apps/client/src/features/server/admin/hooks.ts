@@ -20,7 +20,7 @@ import {
   type TStorageData,
   type TStorageSettings,
   type TTrpcErrors
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';

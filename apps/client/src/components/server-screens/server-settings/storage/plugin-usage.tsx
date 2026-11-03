@@ -1,5 +1,5 @@
-import type { TPluginStorageUsage } from '@sharkord/shared';
-import { Badge } from '@sharkord/ui';
+import type { TPluginStorageUsage } from '@sandshark/shared';
+import { Badge } from '@sandshark/ui';
 import { filesize } from 'filesize';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';

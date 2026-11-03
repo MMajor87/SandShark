@@ -3,7 +3,7 @@ import {
   Permission,
   STORAGE_MAX_FILES_PER_MESSAGE,
   type TTempFile
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import {

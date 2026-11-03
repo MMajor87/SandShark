@@ -1,6 +1,6 @@
 import { logDebug } from '@/helpers/browser-logger';
 import { getTRPCClient } from '@/lib/trpc';
-import type { TJoinedEmoji } from '@sharkord/shared';
+import type { TJoinedEmoji } from '@sandshark/shared';
 import { handleSubscriptionError } from '../subscription-error';
 import { addEmoji, removeEmoji, updateEmoji } from './actions';
 

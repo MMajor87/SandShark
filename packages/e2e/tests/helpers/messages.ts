@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { TestId } from '@sharkord/shared';
+import { TestId } from '@sandshark/shared';
 
 // the seeded "Infinite Scroll" channel holds "Mock message 1" through "Mock message 1000",
 // oldest first, which is what lets a test say where in the history it is looking

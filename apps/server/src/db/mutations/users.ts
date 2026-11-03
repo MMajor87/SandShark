@@ -40,7 +40,7 @@ const createUser = async ({
   });
 
   const randomNum = Math.floor(Math.random() * 99999) + 10000; // between 10000 and 99999 to ensure it's always 5 digits, for better readability
-  const username = name || `SharkordUser${randomNum}`;
+  const username = name || `SandSharkUser${randomNum}`;
 
   const userId = db.transaction((tx) => {
     if (inviteCode) {

@@ -1,4 +1,4 @@
-import { isEmojiOnlyMessage, type TJoinedMessage } from '@sharkord/shared';
+import { isEmojiOnlyMessage, type TJoinedMessage } from '@sandshark/shared';
 import parse, {
   attributesToProps,
   domToReact,

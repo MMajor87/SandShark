@@ -14,7 +14,7 @@ import { createNsChain } from '@/helpers/audio-worklet/ns-worklet';
 import { voiceLogger } from '@/helpers/browser-logger';
 import { getPushToTalkSettings } from '@/helpers/push-to-talk';
 import { NoiseSuppression, type TDeviceSettings } from '@/types';
-import { StreamKind, type TVoiceUserState } from '@sharkord/shared';
+import { StreamKind, type TVoiceUserState } from '@sandshark/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDevices } from '../../devices-provider/hooks/use-devices';
 import { useLocalStreams } from '../hooks/use-local-streams';

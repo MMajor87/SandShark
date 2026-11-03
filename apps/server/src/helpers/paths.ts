@@ -2,17 +2,18 @@ import path from 'path';
 import {
   IS_DEVELOPMENT,
   IS_TEST,
-  SERVER_VERSION,
-  SHARKORD_MEDIASOUP_BIN_NAME
+  SANDSHARK_MEDIASOUP_BIN_NAME,
+  SERVER_VERSION
 } from '../utils/env';
 import { getAppDataPath } from '../utils/fs';
+import { migrateLegacyDataPath } from './migrate-legacy-data-path';
 
 const getDataPath = (): string => {
   if (IS_TEST) {
     return path.resolve(process.cwd(), './data-test');
   }
 
-  const INJECTED_DATA_PATH = process.env.SHARKORD_DATA_PATH;
+  const INJECTED_DATA_PATH = process.env.SANDSHARK_DATA_PATH;
 
   if (INJECTED_DATA_PATH) {
     return path.resolve(INJECTED_DATA_PATH);
@@ -22,7 +23,12 @@ const getDataPath = (): string => {
     return path.resolve(process.cwd(), './data');
   }
 
-  return path.join(getAppDataPath(), 'sharkord');
+  const appDataPath = getAppDataPath();
+
+  return migrateLegacyDataPath(
+    path.join(appDataPath, 'sharkord'),
+    path.join(appDataPath, 'sandshark')
+  );
 };
 
 const getMediasoupBinaryPath = (): string | undefined => {
@@ -33,7 +39,7 @@ const getMediasoupBinaryPath = (): string | undefined => {
   return path.join(
     getDataPath(),
     'mediasoup',
-    SHARKORD_MEDIASOUP_BIN_NAME || 'mediasoup-worker'
+    SANDSHARK_MEDIASOUP_BIN_NAME || 'mediasoup-worker'
   );
 };
 

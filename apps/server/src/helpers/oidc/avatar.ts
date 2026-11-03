@@ -1,4 +1,4 @@
-import { getErrorMessage } from '@sharkord/shared';
+import { getErrorMessage } from '@sandshark/shared';
 import dns from 'dns/promises';
 import fs from 'fs/promises';
 import { getSettings } from '../../db/queries/server';

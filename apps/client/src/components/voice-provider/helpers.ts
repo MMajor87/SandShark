@@ -8,7 +8,7 @@ import {
   StreamKind,
   type ConsumerType,
   type TStreamQualityLayer
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import type {
   RtpCapabilities,
   RtpCodecCapability

@@ -1,4 +1,4 @@
-import { ServerEvents, type TThreadFollowUpdate } from '@sharkord/shared';
+import { ServerEvents, type TThreadFollowUpdate } from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import {
   createFakeSocket,

@@ -1,4 +1,4 @@
-import type { TCommandInfo } from '@sharkord/shared';
+import type { TCommandInfo } from '@sandshark/shared';
 import type { Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SuggestionList, type TSuggestionListRef } from '../suggestion-list';

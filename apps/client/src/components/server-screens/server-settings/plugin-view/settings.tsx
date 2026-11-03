@@ -3,7 +3,7 @@ import { useSettingsForm } from '@/components/server-screens/settings-shell/use-
 import { useReferenceableChannels } from '@/features/server/hooks';
 import { useRoles } from '@/features/server/roles/hooks';
 import { getTRPCClient } from '@/lib/trpc';
-import type { TPluginSettingDefinition } from '@sharkord/shared';
+import type { TPluginSettingDefinition } from '@sandshark/shared';
 import {
   Group,
   Input,
@@ -14,7 +14,7 @@ import {
   SelectValue,
   Switch,
   Textarea
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { memo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 

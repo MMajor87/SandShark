@@ -2,7 +2,7 @@ import { ThreadRepliesSummary } from '@/components/thread-replies-summary';
 import { UnreadCount } from '@/components/unread-count';
 import { openThreadSidebar } from '@/features/app/actions';
 import { useThreadReadState } from '@/features/server/threads/hooks';
-import type { TThreadSummary } from '@sharkord/shared';
+import type { TThreadSummary } from '@sandshark/shared';
 import { memo, useCallback } from 'react';
 
 type TThreadRepliesButtonProps = TThreadSummary & {

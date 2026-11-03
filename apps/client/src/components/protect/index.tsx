@@ -1,5 +1,5 @@
 import { useCan } from '@/features/server/hooks';
-import type { Permission } from '@sharkord/shared';
+import type { Permission } from '@sandshark/shared';
 import { memo } from 'react';
 
 type TProtectProps = {

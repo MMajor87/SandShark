@@ -137,8 +137,39 @@ const startRealtimeServer = async () => {
   return { server, host: `localhost:${address.port}` };
 };
 
+// every bot test starts from a bot the admin created, with the token it was shown once
+const createTestBot = async (name = 'Helper') => {
+  const { caller } = await initTest(1);
+
+  return caller.bots.create({ name });
+};
+
+// a json request to the bot api, answered with the status and the parsed body
+const botApiRequest = async <TBody = Record<string, unknown>>(
+  path: string,
+  token: string,
+  { method = 'GET', body }: { method?: string; body?: unknown } = {}
+) => {
+  const response = await fetch(`${testsBaseUrl}/api/v10${path}`, {
+    method,
+    headers: {
+      Authorization: `Bot ${token}`,
+      ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
+    },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+  const text = await response.text();
+
+  return {
+    status: response.status,
+    body: (text ? JSON.parse(text) : undefined) as TBody
+  };
+};
+
 export {
+  botApiRequest,
   createFakeSocket,
+  createTestBot,
   getCaller,
   getMockedToken,
   initTest,

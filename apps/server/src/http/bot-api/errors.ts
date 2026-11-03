@@ -3,12 +3,14 @@ import type http from 'http';
 // the json error codes discord returns, which the libraries switch on
 enum DiscordErrorCode {
   GENERAL = 0,
+  UNKNOWN_APPLICATION = 10002,
   UNKNOWN_CHANNEL = 10003,
   UNKNOWN_GUILD = 10004,
   UNKNOWN_MEMBER = 10007,
   UNKNOWN_MESSAGE = 10008,
   UNKNOWN_USER = 10013,
   UNKNOWN_EMOJI = 10014,
+  UNKNOWN_APPLICATION_COMMAND = 10063,
   CANNOT_SEND_EMPTY_MESSAGE = 50006,
   MISSING_ACCESS = 50001,
   MISSING_PERMISSIONS = 50013,

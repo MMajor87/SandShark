@@ -16,7 +16,8 @@ enum SnowflakeTag {
   ROLE = 5,
   MESSAGE = 6,
   EMOJI = 7,
-  ATTACHMENT = 8
+  ATTACHMENT = 8,
+  COMMAND = 9
 }
 
 type TDecodedSnowflake = {

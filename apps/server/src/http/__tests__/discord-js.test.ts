@@ -1,11 +1,22 @@
 import { Permission } from '@sandshark/shared';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { Client, Events, GatewayIntentBits, type Message } from 'discord.js';
-import { and, eq } from 'drizzle-orm';
+import {
+  Client,
+  Events,
+  GatewayIntentBits,
+  SlashCommandBuilder,
+  type Message
+} from 'discord.js';
+import { and, asc, eq } from 'drizzle-orm';
 import type http from 'http';
 import { initTest, startRealtimeServer } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
-import { messageReactions, messages, rolePermissions } from '../../db/schema';
+import {
+  botCommands,
+  messageReactions,
+  messages,
+  rolePermissions
+} from '../../db/schema';
 
 // the seeded member role every new bot starts with
 const MEMBER_ROLE_ID = 2;
@@ -126,6 +137,86 @@ describe('discord.js compatibility', () => {
         );
 
       expect(reactions.map((reaction) => reaction.emoji)).toEqual(['+1']);
+    } finally {
+      await client.destroy();
+    }
+  }, 30_000);
+
+  // what a modern discord.js bot does at startup: register its slash commands, globally and
+  // for one guild, with the builder, then manage them through the cached application
+  test('a bot registers, fetches, edits and deletes its slash commands', async () => {
+    const { caller } = await initTest(1);
+    const { token, bot } = await caller.bots.create({ name: 'Command Bot' });
+    const client = new Client({
+      intents: [GatewayIntentBits.Guilds],
+      rest: { api: `http://${host}/api` }
+    });
+
+    try {
+      const ready = waitFor<Client<true>>((resolve) =>
+        client.once(Events.ClientReady, resolve)
+      );
+
+      await client.login(token);
+
+      const readyClient = await ready;
+      const roll = new SlashCommandBuilder()
+        .setName('roll')
+        .setDescription('Roll a die')
+        .addIntegerOption((option) =>
+          option
+            .setName('sides')
+            .setDescription('How many sides')
+            .setRequired(true)
+            .setMinValue(2)
+        );
+      const ping = new SlashCommandBuilder()
+        .setName('ping')
+        .setDescription('Replies with pong');
+
+      const global = await readyClient.application.commands.set([
+        roll.toJSON(),
+        ping.toJSON()
+      ]);
+
+      expect([...global.values()].map((command) => command.name)).toEqual([
+        'roll',
+        'ping'
+      ]);
+      expect(global.first()!.options[0]).toMatchObject({
+        name: 'sides',
+        required: true,
+        minValue: 2
+      });
+
+      const guild = readyClient.guilds.cache.first()!;
+      const guildCommands = await guild.commands.set([ping.toJSON()]);
+
+      expect(guildCommands.first()!.guildId).toBe(guild.id);
+
+      const fetched = await readyClient.application.commands.fetch();
+
+      expect(fetched.size).toBe(2);
+
+      const pingCommand = fetched.find((command) => command.name === 'ping')!;
+
+      await pingCommand.edit({ description: 'Pong, edited' });
+      await readyClient.application.commands.delete(
+        fetched.find((command) => command.name === 'roll')!
+      );
+
+      const rows = await tdb
+        .select()
+        .from(botCommands)
+        .where(eq(botCommands.botId, bot.id))
+        .orderBy(asc(botCommands.id));
+
+      expect(
+        rows.map((row) => [row.name, row.description, row.guildScoped])
+      ).toEqual([
+        ['ping', 'Pong, edited', false],
+        ['ping', 'Replies with pong', true]
+      ]);
     } finally {
       await client.destroy();
     }

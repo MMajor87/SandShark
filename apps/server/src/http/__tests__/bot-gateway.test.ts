@@ -4,7 +4,11 @@ import { eq } from 'drizzle-orm';
 import type http from 'http';
 import zlib from 'node:zlib';
 import WebSocket from 'ws';
-import { initTest, startRealtimeServer } from '../../__tests__/helpers';
+import {
+  createTestBot,
+  initTest,
+  startRealtimeServer
+} from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
 import { channels, users } from '../../db/schema';
 import { channelSnowflake } from '../../helpers/discord/channel';
@@ -118,14 +122,8 @@ const connect = (query = '?v=10&encoding=json') => {
   };
 };
 
-const createBot = async () => {
-  const { caller } = await initTest(1);
-
-  return caller.bots.create({ name: 'Helper' });
-};
-
 const identified = async (intents = ALL_INTENTS) => {
-  const { bot, token } = await createBot();
+  const { bot, token } = await createTestBot();
   const client = connect();
 
   await client.next((p) => p.op === 10);
@@ -144,7 +142,7 @@ const channelOne = async () =>
 
 describe('bot gateway', () => {
   test('/gateway/bot points the libraries at this server', async () => {
-    const { token } = await createBot();
+    const { token } = await createTestBot();
     const response = await fetch(`http://${baseUrl}/api/v10/gateway/bot`, {
       headers: { Authorization: `Bot ${token}` }
     });
@@ -277,7 +275,7 @@ describe('bot gateway', () => {
     });
 
     test('invalid intents, unknown opcodes and undecodable payloads', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
 
       expect(
         await closesWith((client) =>

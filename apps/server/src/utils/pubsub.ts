@@ -11,6 +11,7 @@ import type {
   TJoinedMessage,
   TJoinedPublicUser,
   TJoinedRole,
+  TJoinedSoundboardSound,
   TLogEntry,
   TPluginCapabilityAccessRule,
   TPluginEphemeralResponse,
@@ -126,6 +127,14 @@ type Events = {
   [ServerEvents.EMOJI_CREATE]: TJoinedEmoji;
   [ServerEvents.EMOJI_UPDATE]: TJoinedEmoji;
   [ServerEvents.EMOJI_DELETE]: number;
+  [ServerEvents.SOUNDBOARD_SOUND_CREATE]: TJoinedSoundboardSound;
+  [ServerEvents.SOUNDBOARD_SOUND_UPDATE]: TJoinedSoundboardSound;
+  [ServerEvents.SOUNDBOARD_SOUND_DELETE]: number;
+  [ServerEvents.SOUNDBOARD_SOUND_PLAY]: {
+    channelId: number;
+    userId: number;
+    soundId: number;
+  };
 
   [ServerEvents.ROLE_CREATE]: TJoinedRole;
   [ServerEvents.ROLE_UPDATE]: TJoinedRole;

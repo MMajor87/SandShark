@@ -32,6 +32,7 @@ const useMediaAccessRefresh = () => {
       const state = store.getState();
       const ids = new Set<number>();
       for (const emoji of state.server.emojis) ids.add(emoji.file.id);
+      for (const sound of state.server.soundboardSounds) ids.add(sound.file.id);
       for (const messages of Object.values(state.server.messagesMap)) {
         for (const message of messages) {
           for (const file of message.files) ids.add(file.id);

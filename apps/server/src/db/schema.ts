@@ -372,6 +372,27 @@ const emojis = sqliteTable(
   ]
 );
 
+const soundboardSounds = sqliteTable(
+  'soundboard_sounds',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    emoji: text('emoji'),
+    fileId: integer('file_id')
+      .notNull()
+      .references(() => files.id, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at')
+  },
+  (t) => [
+    index('soundboard_sounds_user_idx').on(t.userId),
+    index('soundboard_sounds_file_idx').on(t.fileId)
+  ]
+);
+
 const messageReactions = sqliteTable(
   'message_reactions',
   {
@@ -735,6 +756,7 @@ export {
   rolePermissions,
   roles,
   settings,
+  soundboardSounds,
   threadFollowers,
   userRoles,
   users

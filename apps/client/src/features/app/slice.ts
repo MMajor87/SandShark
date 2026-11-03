@@ -1,4 +1,5 @@
 import { getMutedNotificationChannelIds } from '@/helpers/muted-notification-channels';
+import { DEFAULT_SOUNDBOARD_VOLUME } from '@/helpers/soundboard-player';
 import {
   getLocalStorageItem,
   getLocalStorageItemAsNumber,
@@ -36,6 +37,7 @@ export interface TAppState {
   browserNotificationsForReplies: boolean;
   notificationSounds: boolean;
   messageSentSound: boolean;
+  soundboardVolume: number;
   mutedChannelIds: number[];
   messageJumpTarget: TMessageJumpToTarget | undefined;
   voiceChatSidebarOpen: boolean;
@@ -94,6 +96,11 @@ const initialState: TAppState = {
     LocalStorageKey.MESSAGE_SENT_SOUND,
     true
   ),
+  soundboardVolume:
+    getLocalStorageItemAsNumber(
+      LocalStorageKey.SOUNDBOARD_VOLUME,
+      DEFAULT_SOUNDBOARD_VOLUME
+    ) ?? DEFAULT_SOUNDBOARD_VOLUME,
   mutedChannelIds: getMutedNotificationChannelIds(),
   messageJumpTarget: undefined,
   voiceChatSidebarOpen: getLocalStorageItemBool(
@@ -201,6 +208,9 @@ export const appSlice = createSlice({
     },
     setMessageSentSound: (state, action: PayloadAction<boolean>) => {
       state.messageSentSound = action.payload;
+    },
+    setSoundboardVolume: (state, action: PayloadAction<number>) => {
+      state.soundboardVolume = action.payload;
     },
     setMutedChannelIds: (state, action: PayloadAction<number[]>) => {
       state.mutedChannelIds = action.payload;

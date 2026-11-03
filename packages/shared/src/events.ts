@@ -31,6 +31,10 @@ export enum ServerEvents {
   EMOJI_CREATE = 'emojiCreate',
   EMOJI_UPDATE = 'emojiUpdate',
   EMOJI_DELETE = 'emojiDelete',
+  SOUNDBOARD_SOUND_CREATE = 'soundboardSoundCreate',
+  SOUNDBOARD_SOUND_UPDATE = 'soundboardSoundUpdate',
+  SOUNDBOARD_SOUND_DELETE = 'soundboardSoundDelete',
+  SOUNDBOARD_SOUND_PLAY = 'soundboardSoundPlay',
 
   ROLE_CREATE = 'roleCreate',
   ROLE_UPDATE = 'roleUpdate',

@@ -27,6 +27,7 @@ import {
   selectedThreadSelector,
   serverConnectionErrorSelector,
   serverConnectionRequiredSelector,
+  soundboardVolumeSelector,
   threadSidebarDataSelector,
   voiceChatSidebarDataSelector
 } from './selectors';
@@ -102,6 +103,8 @@ export const useNotificationSounds = () =>
   useSelector(notificationSoundsSelector);
 
 export const useMessageSentSound = () => useSelector(messageSentSoundSelector);
+
+export const useSoundboardVolume = () => useSelector(soundboardVolumeSelector);
 
 export const useIsChannelMuted = (channelId: number) =>
   useSelector((state: IRootState) => isChannelMutedSelector(state, channelId));

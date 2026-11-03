@@ -28,7 +28,9 @@
     "MANAGE_PLUGINS": "Gestionar plugins",
     "MANAGE_PLUGIN_PERMISSIONS": "Gestionar permisos de plugins",
     "USE_PLUGINS": "Usar plugins",
-    "VIEW_USER_SENSITIVE_DATA": "Ver datos sensibles de usuarios"
+    "VIEW_USER_SENSITIVE_DATA": "Ver datos sensibles de usuarios",
+    "USE_SOUNDBOARD": "Usar el panel de sonidos",
+    "MANAGE_SOUNDBOARD": "Gestionar el panel de sonidos"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "Permite enviar mensajes en los canales.",
@@ -54,7 +56,9 @@
     "MANAGE_PLUGINS": "Permite gestionar los plugins.",
     "MANAGE_PLUGIN_PERMISSIONS": "Permite elegir qué roles pueden usar cada comando y acción de un plugin. Quien lo tenga puede concederse esas capacidades a sí mismo.",
     "USE_PLUGINS": "Permite usar plugins, como ejecutar comandos de plugins o ver elementos de interfaz añadidos por plugins.",
-    "VIEW_USER_SENSITIVE_DATA": "Permite ver datos sensibles de los usuarios como identidad, dirección IP y ubicación."
+    "VIEW_USER_SENSITIVE_DATA": "Permite ver datos sensibles de los usuarios como identidad, dirección IP y ubicación.",
+    "USE_SOUNDBOARD": "Permite reproducir sonidos del panel en los canales de voz.",
+    "MANAGE_SOUNDBOARD": "Permite subir, editar y eliminar sonidos del panel."
   },
   "channel": {
     "VIEW_CHANNEL": "Ver canal",

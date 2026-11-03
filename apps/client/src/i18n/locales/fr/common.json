@@ -142,5 +142,8 @@
   "loadingMessage": "Chargement du message...",
   "failedLoadParentMessage": "Impossible de charger le message d'origine",
   "typeAMessage": "Saisissez un message...",
-  "messageChannel": "Message à \"{{name}}\""
+  "messageChannel": "Message à \"{{name}}\"",
+  "soundboard": "Table de sons",
+  "soundboardEmpty": "Aucun son pour l'instant. Les administrateurs peuvent en ajouter dans les paramètres du serveur.",
+  "failedPlaySound": "Impossible de jouer le son"
 }

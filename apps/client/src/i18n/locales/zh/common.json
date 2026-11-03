@@ -142,5 +142,8 @@
   "loadingMessage": "正在加载消息...",
   "failedLoadParentMessage": "加载原始消息失败",
   "typeAMessage": "输入消息...",
-  "messageChannel": "向“{{name}}”发送消息"
+  "messageChannel": "向“{{name}}”发送消息",
+  "soundboard": "音效板",
+  "soundboardEmpty": "还没有音效。服务器管理员可以在服务器设置中添加。",
+  "failedPlaySound": "无法播放音效"
 }

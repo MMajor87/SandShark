@@ -17,6 +17,7 @@ import {
   messageReactions,
   messages,
   settings,
+  soundboardSounds,
   userRoles,
   users
 } from '../db/schema';
@@ -99,6 +100,10 @@ const deleteUserAccount = async (
         .set({ userId: deletedUserId })
         .where(eq(emojis.userId, userId))
         .run();
+      tx.update(soundboardSounds)
+        .set({ userId: deletedUserId })
+        .where(eq(soundboardSounds.userId, userId))
+        .run();
       tx.delete(messageReactions)
         .where(
           and(
@@ -152,6 +157,12 @@ const deleteUserAccount = async (
             .select({ one: sql`1` })
             .from(messageReactions)
             .where(eq(messageReactions.fileId, files.id))
+        ),
+        notExists(
+          tx
+            .select({ one: sql`1` })
+            .from(soundboardSounds)
+            .where(eq(soundboardSounds.fileId, files.id))
         ),
         notExists(
           tx

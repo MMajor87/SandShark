@@ -100,6 +100,9 @@ export const notificationSoundsSelector = (state: IRootState) =>
 export const messageSentSoundSelector = (state: IRootState) =>
   state.app.messageSentSound;
 
+export const soundboardVolumeSelector = (state: IRootState) =>
+  state.app.soundboardVolume;
+
 export const mutedChannelIdsSelector = (state: IRootState) =>
   state.app.mutedChannelIds;
 

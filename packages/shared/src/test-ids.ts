@@ -49,5 +49,13 @@ export enum TestId {
   USER_CONTEXT_MENU = 'user-context-menu',
   USER_MENU_DM = 'user-menu-dm',
   USER_MENU_MODERATE = 'user-menu-moderate',
-  DM_MENU_CLOSE = 'dm-menu-close'
+  DM_MENU_CLOSE = 'dm-menu-close',
+  CALENDAR_TOGGLE = 'calendar-toggle',
+  CALENDAR_UPCOMING_ITEM = 'calendar-upcoming-item',
+  CALENDAR_OPEN_FULL = 'calendar-open-full',
+  CALENDAR_EVENT_CARD = 'calendar-event-card',
+  CALENDAR_EVENT_EDIT = 'calendar-event-edit',
+  CALENDAR_RSVP = 'calendar-rsvp',
+  CALENDAR_SHOW_PAST = 'calendar-show-past',
+  CALENDAR_FORM_SUBMIT = 'calendar-form-submit'
 }

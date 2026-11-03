@@ -1,10 +1,13 @@
 import { useRoles } from '@/features/server/roles/hooks';
-import { useUsers } from '@/features/server/users/hooks';
+import { useOwnUserId, useUsers } from '@/features/server/users/hooks';
 import { getTRPCClient } from '@/lib/trpc';
 import {
+  DELETED_USER_IDENTITY_AND_NAME,
   getTrpcError,
+  TestId,
   zCalendarEventInput,
-  type TCalendarTarget
+  type TCalendarTarget,
+  type TJoinedCalendarEvent
 } from '@sandshark/shared';
 import {
   Button,
@@ -17,7 +20,7 @@ import {
   Label,
   Textarea
 } from '@sandshark/ui';
-import { Plus, Users } from 'lucide-react';
+import { Pencil, Plus, Users } from 'lucide-react';
 import {
   memo,
   useCallback,
@@ -35,10 +38,32 @@ const localDateTimeValue = (time: number) =>
   new Date(time - new Date(time).getTimezoneOffset() * 60_000)
     .toISOString()
     .slice(0, 16);
-const CreateEventForm = memo(
-  ({ onCreated }: { onCreated: () => Promise<void> }) => {
+const toTargets = (event: TJoinedCalendarEvent): TCalendarTarget[] =>
+  event.invitees.map(({ type, id }) => ({ type, id }));
+
+// editingEvent is set when editing, and the screen remounts the form with a new key for
+// each event so the fields start from that event
+type TEventFormProps = {
+  editingEvent?: TJoinedCalendarEvent;
+  onSaved: () => Promise<void>;
+  onCancelEdit: () => void;
+};
+
+const EventForm = memo(
+  ({ editingEvent, onSaved, onCancelEdit }: TEventFormProps) => {
     const { t } = useTranslation('calendar');
     const users = useUsers();
+    const ownUserId = useOwnUserId();
+    // the organizer always sees their own event, and a deleted account cannot attend
+    const invitableUsers = useMemo(
+      () =>
+        users.filter(
+          (user) =>
+            user.id !== ownUserId &&
+            user.name !== DELETED_USER_IDENTITY_AND_NAME
+        ),
+      [users, ownUserId]
+    );
     const roles = useRoles();
     const [submitting, setSubmitting] = useState(false);
     const active = useRef(true);
@@ -49,13 +74,19 @@ const CreateEventForm = memo(
       };
     }, []);
     const busy = useRef(false);
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [startsAt, setStartsAt] = useState(() =>
-      localDateTimeValue(Date.now() + 3_600_000)
+    const [title, setTitle] = useState(editingEvent?.title ?? '');
+    const [description, setDescription] = useState(
+      editingEvent?.description ?? ''
     );
-    const [endsAt, setEndsAt] = useState('');
-    const [targets, setTargets] = useState<TCalendarTarget[]>([]);
+    const [startsAt, setStartsAt] = useState(() =>
+      localDateTimeValue(editingEvent?.startsAt ?? Date.now() + 3_600_000)
+    );
+    const [endsAt, setEndsAt] = useState(() =>
+      editingEvent?.endsAt ? localDateTimeValue(editingEvent.endsAt) : ''
+    );
+    const [targets, setTargets] = useState<TCalendarTarget[]>(() =>
+      editingEvent ? toTargets(editingEvent) : []
+    );
     const selectedTargets = useMemo(
       () => new Set(targets.map((target) => `${target.type}:${target.id}`)),
       [targets]
@@ -85,7 +116,7 @@ const CreateEventForm = memo(
       (event: ChangeEvent<HTMLInputElement>) => setEndsAt(event.target.value),
       []
     );
-    const createEvent = useCallback(async () => {
+    const saveEvent = useCallback(async () => {
       if (busy.current) return;
       const result = zCalendarEventInput.safeParse({
         title,
@@ -102,27 +133,57 @@ const CreateEventForm = memo(
       setSubmitting(true);
       try {
         const trpc = getTRPCClient();
-        await trpc.calendar.create.mutate(result.data);
+        if (editingEvent) {
+          await trpc.calendar.update.mutate({
+            ...result.data,
+            eventId: editingEvent.id
+          });
+        } else {
+          await trpc.calendar.create.mutate(result.data);
+        }
         if (!active.current || getTRPCClient() !== trpc) return;
-        setTitle('');
-        setDescription('');
-        setEndsAt('');
-        setTargets([]);
-        await onCreated();
+        if (!editingEvent) {
+          setTitle('');
+          setDescription('');
+          setEndsAt('');
+          setTargets([]);
+        }
+        await onSaved();
         if (active.current && getTRPCClient() === trpc)
-          toast.success(t('created'));
+          toast.success(editingEvent ? t('updated') : t('created'));
       } catch (error) {
-        if (active.current) toast.error(getTrpcError(error, t('failedCreate')));
+        const fallback = editingEvent ? t('failedUpdate') : t('failedCreate');
+        if (active.current) toast.error(getTrpcError(error, fallback));
       } finally {
         busy.current = false;
         if (active.current) setSubmitting(false);
       }
-    }, [title, description, startsAt, endsAt, targets, onCreated, t]);
+    }, [
+      title,
+      description,
+      startsAt,
+      endsAt,
+      targets,
+      editingEvent,
+      onSaved,
+      t
+    ]);
+
+    let submitLabel = editingEvent ? t('save') : t('create');
+
+    if (submitting) {
+      submitLabel = editingEvent ? t('saving') : t('creating');
+    }
     return (
       <Card className="h-fit rounded-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Plus className="h-4 w-4" /> {t('create')}
+            {editingEvent ? (
+              <Pencil className="h-4 w-4" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            {editingEvent ? t('editTitle') : t('create')}
           </CardTitle>
           <CardDescription>{t('timezone')}</CardDescription>
         </CardHeader>
@@ -169,7 +230,7 @@ const CreateEventForm = memo(
               {t('invite')}
             </Label>
             <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border border-border p-2">
-              {users.map((user) => (
+              {invitableUsers.map((user) => (
                 <InviteTarget
                   key={`user:${user.id}`}
                   id={user.id}
@@ -194,13 +255,24 @@ const CreateEventForm = memo(
           <Button
             className="w-full"
             disabled={submitting}
-            onClick={createEvent}
+            onClick={saveEvent}
+            data-testid={TestId.CALENDAR_FORM_SUBMIT}
           >
-            {submitting ? t('creating') : t('create')}
+            {submitLabel}
           </Button>
+          {editingEvent && (
+            <Button
+              className="w-full"
+              variant="ghost"
+              disabled={submitting}
+              onClick={onCancelEdit}
+            >
+              {t('cancelEdit')}
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
   }
 );
-export { CreateEventForm };
+export { EventForm };

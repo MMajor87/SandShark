@@ -1,4 +1,5 @@
 import { ResizableSidebar } from '@/components/resizable-sidebar';
+import { useCalendarOpen } from '@/features/server/calendar/hooks';
 import { setSelectedChannelId } from '@/features/server/channels/actions';
 import {
   useDmsOpen,
@@ -10,6 +11,8 @@ import { LocalStorageKey } from '@/helpers/storage';
 import { cn } from '@/lib/utils';
 import { TestId } from '@sandshark/shared';
 import { memo, useCallback } from 'react';
+import { UpcomingEvents } from './calendar';
+import { CalendarButton } from './calendar/calendar-button';
 import { Categories } from './categories';
 import { DirectMessages } from './direct-messages';
 import { DmButton } from './direct-messages/dm-button';
@@ -33,6 +36,7 @@ const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
   const serverName = useServerName();
   const dmsOpen = useDmsOpen();
   const threadsOpen = useThreadsOpen();
+  const calendarOpen = useCalendarOpen();
   const publicSettings = usePublicServerSettings();
 
   const onServerNameClick = useCallback(
@@ -45,7 +49,9 @@ const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
 
   let content = <Categories />;
 
-  if (threadsOpen) {
+  if (calendarOpen) {
+    content = <UpcomingEvents />;
+  } else if (threadsOpen) {
     content = <Threads />;
   } else if (dmsOpen) {
     content = <DirectMessages />;
@@ -75,6 +81,7 @@ const LeftSidebar = memo(({ className }: TLeftSidebarProps) => {
       <nav className="space-y-1 border-b border-border px-2 py-2">
         {publicSettings?.directMessagesEnabled && <DmButton />}
         <ThreadsButton />
+        <CalendarButton />
       </nav>
       <PluginButtons />
       <div className="flex-1 overflow-y-auto">{content}</div>

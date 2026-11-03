@@ -1,4 +1,5 @@
 import {
+  CalendarResponseStatus,
   DEFAULT_PROFILE_COLOR,
   PluginCapabilityMode,
   PluginCapabilityType,
@@ -601,6 +602,7 @@ const calendarEvents = sqliteTable(
   },
   (t) => [
     index('calendar_events_starts_at_idx').on(t.startsAt),
+    index('calendar_events_ends_at_idx').on(t.endsAt),
     index('calendar_events_creator_idx').on(t.creatorId)
   ]
 );
@@ -631,6 +633,26 @@ const calendarEventInvitees = sqliteTable(
       t.eventId,
       t.roleId
     )
+  ]
+);
+
+// one answer per user, whether they were invited directly or through a role
+const calendarEventResponses = sqliteTable(
+  'calendar_event_responses',
+  {
+    eventId: integer('event_id')
+      .notNull()
+      .references(() => calendarEvents.id, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    status: text('status').$type<CalendarResponseStatus>().notNull(),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (t) => [
+    primaryKey({ columns: [t.eventId, t.userId] }),
+    index('calendar_event_responses_user_idx').on(t.userId)
   ]
 );
 
@@ -732,6 +754,7 @@ const pluginCapabilityRoles = sqliteTable(
 export {
   activityLog,
   calendarEventInvitees,
+  calendarEventResponses,
   calendarEvents,
   categories,
   channelReadStates,

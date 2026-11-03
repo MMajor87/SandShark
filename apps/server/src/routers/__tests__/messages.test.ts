@@ -2697,3 +2697,53 @@ describe('messages router', () => {
     });
   });
 });
+
+describe('messages.get after', () => {
+  test('returns the page right after a position, newest first', async () => {
+    const { caller } = await initTest(1);
+    const ids: number[] = [];
+
+    for (const content of ['a1', 'a2', 'a3', 'a4']) {
+      ids.push(await sendMessage(caller, { channelId: 2, content, files: [] }));
+    }
+
+    const first = await tdb
+      .select()
+      .from(messages)
+      .where(eq(messages.id, ids[0]!))
+      .get();
+    const page = await caller.messages.get({
+      channelId: 2,
+      limit: 2,
+      after: { createdAt: first!.createdAt, id: first!.id }
+    });
+
+    expect(page.messages.map((message) => message.id)).toEqual(
+      ids.slice(1, 3).reverse()
+    );
+    expect(page.hasNewer).toBe(true);
+  });
+
+  test('cannot be combined with a cursor or a target', async () => {
+    const { caller } = await initTest(1);
+    const after = { createdAt: 1, id: 1 };
+
+    for (const extra of [{ cursor: after }, { targetMessageId: 1 }]) {
+      await expect(
+        caller.messages.get({ channelId: 2, limit: 2, after, ...extra })
+      ).rejects.toThrow('Use only one of cursor, targetMessageId and after.');
+    }
+  });
+
+  test('still requires access to the channel', async () => {
+    const { caller } = await initTest(2);
+
+    await expect(
+      caller.messages.get({
+        channelId: 5,
+        limit: 2,
+        after: { createdAt: 1, id: 1 }
+      })
+    ).rejects.toThrow();
+  });
+});

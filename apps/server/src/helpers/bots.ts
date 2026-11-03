@@ -1,5 +1,5 @@
 import { ActivityLogType, type TJoinedBot } from '@sandshark/shared';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { publishUser } from '../db/publishers';
 import { getDefaultRole } from '../db/queries/roles';
@@ -92,18 +92,25 @@ const renameBot = async (
   });
 };
 
-// the old token stops working the moment the new hash is written
+// the old token stops working the moment the new hash is written, and the version bump
+// retires the media links handed out with it
 const resetBotToken = async (
   bot: { id: number; name: string },
   actorUserId: number
 ) => {
   const { secret, secretHash } = await createBotSecret();
+  const now = Date.now();
 
-  await db
-    .update(bots)
-    .set({ tokenHash: secretHash, tokenUpdatedAt: Date.now() })
-    .where(eq(bots.userId, bot.id))
-    .run();
+  db.transaction((tx) => {
+    tx.update(bots)
+      .set({ tokenHash: secretHash, tokenUpdatedAt: now })
+      .where(eq(bots.userId, bot.id))
+      .run();
+    tx.update(users)
+      .set({ tokenVersion: sql`${users.tokenVersion} + 1`, updatedAt: now })
+      .where(eq(users.id, bot.id))
+      .run();
+  });
 
   enqueueActivityLog({
     type: ActivityLogType.RESET_BOT_TOKEN,

@@ -8,7 +8,8 @@ import {
   createRateLimiter,
   getClientRateLimitKey
 } from '../../utils/rate-limiters/rate-limiter';
-import type { TSupportedHttpMethod } from '../helpers';
+import { getPublicOrigin } from '../helpers';
+import { DiscordRateLimitError } from './call-procedure';
 import {
   DiscordApiError,
   DiscordErrorCode,
@@ -16,7 +17,14 @@ import {
   sendDiscordJson,
   sendDiscordRateLimit
 } from './errors';
+import { addOwnReactionRoute } from './routes/add-own-reaction';
+import { createDmRoute } from './routes/create-dm';
+import { createMessageRoute } from './routes/create-message';
+import { deleteMessageRoute } from './routes/delete-message';
+import { editMessageRoute } from './routes/edit-message';
 import { getChannelRoute } from './routes/get-channel';
+import { getChannelMessageRoute } from './routes/get-channel-message';
+import { getChannelMessagesRoute } from './routes/get-channel-messages';
 import { getCurrentUserRoute } from './routes/get-current-user';
 import { getGuildRoute } from './routes/get-guild';
 import { getGuildChannelsRoute } from './routes/get-guild-channels';
@@ -24,18 +32,22 @@ import { getGuildMemberRoute } from './routes/get-guild-member';
 import { getGuildMembersRoute } from './routes/get-guild-members';
 import { getGuildRolesRoute } from './routes/get-guild-roles';
 import { getUserRoute } from './routes/get-user';
-import type { TBotRouteHandler } from './types';
+import { removeOwnReactionRoute } from './routes/remove-own-reaction';
+import { triggerTypingRoute } from './routes/trigger-typing';
+import { NO_CONTENT, type TBotRouteHandler } from './types';
 
 const BOT_API_PREFIX = '/api/v10';
 
+type TBotApiMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
 type TBotRoute = {
-  method: TSupportedHttpMethod;
+  method: TBotApiMethod;
   segments: string[];
   handler: TBotRouteHandler;
 };
 
 const route = (
-  method: TSupportedHttpMethod,
+  method: TBotApiMethod,
   path: string,
   handler: TBotRouteHandler
 ): TBotRoute => ({ method, segments: path.split('/').slice(1), handler });
@@ -50,7 +62,32 @@ const botRoutes: TBotRoute[] = [
   route('GET', '/guilds/:guildId/roles', getGuildRolesRoute),
   route('GET', '/guilds/:guildId/members', getGuildMembersRoute),
   route('GET', '/guilds/:guildId/members/:userId', getGuildMemberRoute),
-  route('GET', '/channels/:channelId', getChannelRoute)
+  route('POST', '/users/@me/channels', createDmRoute),
+  route('GET', '/channels/:channelId', getChannelRoute),
+  route('GET', '/channels/:channelId/messages', getChannelMessagesRoute),
+  route('POST', '/channels/:channelId/messages', createMessageRoute),
+  route(
+    'GET',
+    '/channels/:channelId/messages/:messageId',
+    getChannelMessageRoute
+  ),
+  route('PATCH', '/channels/:channelId/messages/:messageId', editMessageRoute),
+  route(
+    'DELETE',
+    '/channels/:channelId/messages/:messageId',
+    deleteMessageRoute
+  ),
+  route(
+    'PUT',
+    '/channels/:channelId/messages/:messageId/reactions/:emoji/@me',
+    addOwnReactionRoute
+  ),
+  route(
+    'DELETE',
+    '/channels/:channelId/messages/:messageId/reactions/:emoji/@me',
+    removeOwnReactionRoute
+  ),
+  route('POST', '/channels/:channelId/typing', triggerTypingRoute)
 ];
 
 const matchSegments = (routeSegments: string[], pathSegments: string[]) => {
@@ -62,7 +99,12 @@ const matchSegments = (routeSegments: string[], pathSegments: string[]) => {
     const value = pathSegments[index]!;
 
     if (segment.startsWith(':')) {
-      params[segment.slice(1)] = value;
+      // a reaction names its emoji in the path, url encoded
+      try {
+        params[segment.slice(1)] = decodeURIComponent(value);
+      } catch {
+        return undefined;
+      }
     } else if (segment !== value) {
       return undefined;
     }
@@ -71,7 +113,7 @@ const matchSegments = (routeSegments: string[], pathSegments: string[]) => {
   return params;
 };
 
-const findBotRoute = (method: TSupportedHttpMethod, pathname: string) => {
+const findBotRoute = (method: TBotApiMethod, pathname: string) => {
   const pathSegments = pathname
     .slice(BOT_API_PREFIX.length)
     .split('/')
@@ -142,7 +184,7 @@ const botApiRouteHandler = async (
     return;
   }
 
-  const method = req.method as TSupportedHttpMethod;
+  const method = req.method as TBotApiMethod;
   const { handler, params, methodAllowed } = findBotRoute(method, pathname);
 
   if (!handler) {
@@ -160,12 +202,30 @@ const botApiRouteHandler = async (
   }
 
   try {
-    const body = await handler({ bot, params, url, info });
+    const body = await handler({
+      req,
+      bot,
+      params,
+      url,
+      info,
+      origin: getPublicOrigin(req)
+    });
+
+    if (body === NO_CONTENT) {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
 
     sendDiscordJson(res, 200, body);
   } catch (error) {
     if (error instanceof DiscordApiError) {
       sendDiscordError(res, error);
+      return;
+    }
+
+    if (error instanceof DiscordRateLimitError) {
+      sendDiscordRateLimit(res, error.retryAfterMs);
       return;
     }
 

@@ -85,7 +85,6 @@ const routeHandlers: Partial<
       '/oidc/callback': oidcCallbackRouteHandler
     },
     prefix: {
-      [BOT_API_PREFIX]: botApiRouteHandler,
       '/public': publicRouteHandler,
       '/plugin-components': pluginsComponentsRouteHandler,
       '/plugin-bundle': pluginBundleRouteHandler
@@ -98,10 +97,8 @@ const routeHandlers: Partial<
       '/oidc/exchange': oidcExchangeRouteHandler,
       '/oidc/backchannel-logout': oidcBackchannelLogoutRouteHandler
     },
-    prefix: { [BOT_API_PREFIX]: botApiRouteHandler }
-  },
-  PATCH: { exact: {}, prefix: { [BOT_API_PREFIX]: botApiRouteHandler } },
-  DELETE: { exact: {}, prefix: { [BOT_API_PREFIX]: botApiRouteHandler } }
+    prefix: {}
+  }
 };
 
 // this http server implementation is temporary and will be moved to bun server later when things are more stable
@@ -136,6 +133,12 @@ const createHttpServer = async (
         const ctx: RouteContext = { info, pathname, url };
 
         try {
+          // the bot api answers every method itself, including the PUT discord uses for
+          // reactions, which nothing else on this server accepts
+          if (hasPrefixPathSegment(pathname, BOT_API_PREFIX)) {
+            return await botApiRouteHandler(req, res, ctx);
+          }
+
           const method =
             req.method && isSupportedHttpMethod(req.method)
               ? req.method

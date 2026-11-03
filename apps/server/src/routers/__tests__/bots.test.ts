@@ -253,6 +253,8 @@ describe('bots router', () => {
       expect(after!.tokenUpdatedAt).toBeGreaterThanOrEqual(
         before!.tokenUpdatedAt
       );
+      // media links handed out with the old token stop working too
+      expect((await getUserRow(bot.id))!.tokenVersion).toBe(1);
       expect(logs).toHaveBeenCalledWith({
         type: ActivityLogType.RESET_BOT_TOKEN,
         userId: 1,

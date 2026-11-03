@@ -1,8 +1,20 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { db } from '../../db';
-import { categories, channels, roles, users } from '../../db/schema';
-import { resolveSnowflakeId, SnowflakeTag } from './snowflake';
+import {
+  categories,
+  channels,
+  emojis,
+  messages,
+  roles,
+  users
+} from '../../db/schema';
+import {
+  decodeSnowflake,
+  encodeSnowflake,
+  resolveSnowflakeId,
+  SnowflakeTag
+} from './snowflake';
 
 type TTableWithCreatedAt = SQLiteTable & {
   id: SQLiteColumn;
@@ -32,9 +44,52 @@ const resolveCategorySnowflake = (value: string) =>
 const resolveRoleSnowflake = (value: string) =>
   resolveSnowflakeId(value, SnowflakeTag.ROLE, createdAtLookup(roles));
 
+const resolveEmojiSnowflake = (value: string) =>
+  resolveSnowflakeId(value, SnowflakeTag.EMOJI, createdAtLookup(emojis));
+
+// messages are the one table that outgrows the 18 id bits, so a miss on the primary key
+// falls back to the channel and creation time the snowflake carries, which the
+// messages_channel_created_idx index serves
+const resolveMessageSnowflake = async (value: string, channelId: number) => {
+  const decoded = decodeSnowflake(value);
+
+  if (!decoded || decoded.tag !== SnowflakeTag.MESSAGE) return undefined;
+
+  const matches = (row: { id: number; createdAt: number } | undefined) =>
+    !!row &&
+    encodeSnowflake(SnowflakeTag.MESSAGE, row.id, row.createdAt) === value;
+
+  const direct = await db
+    .select({ id: messages.id, createdAt: messages.createdAt })
+    .from(messages)
+    .where(
+      and(eq(messages.id, decoded.idBits), eq(messages.channelId, channelId))
+    )
+    .limit(1)
+    .get();
+
+  if (matches(direct)) return direct!.id;
+
+  const candidates = await db
+    .select({ id: messages.id, createdAt: messages.createdAt })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.channelId, channelId),
+        eq(messages.createdAt, decoded.timestamp)
+      )
+    )
+    .all();
+  const match = candidates.find(matches);
+
+  return match?.id;
+};
+
 export {
   resolveCategorySnowflake,
   resolveChannelSnowflake,
+  resolveEmojiSnowflake,
+  resolveMessageSnowflake,
   resolveRoleSnowflake,
   resolveUserSnowflake
 };

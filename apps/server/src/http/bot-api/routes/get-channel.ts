@@ -1,6 +1,5 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../../../db';
-import { getChannelsForUser } from '../../../db/queries/channels';
 import { getDirectMessageConversations } from '../../../db/queries/dms';
 import { getPublicUserById } from '../../../db/queries/users';
 import { categories } from '../../../db/schema';
@@ -10,22 +9,17 @@ import {
   serializeGuildChannel
 } from '../../../helpers/discord/channel';
 import { getGuildContext } from '../../../helpers/discord/guild';
-import {
-  resolveCategorySnowflake,
-  resolveChannelSnowflake
-} from '../../../helpers/discord/resolve';
+import { resolveCategorySnowflake } from '../../../helpers/discord/resolve';
 import { DiscordErrorCode, notFound } from '../errors';
+import { loadVisibleChannel } from '../helpers';
 import type { TBotRouteHandler } from '../types';
 
 const unknownChannel = () =>
   notFound(DiscordErrorCode.UNKNOWN_CHANNEL, 'Channel');
 
-// a channel the bot cannot see reads as unknown, never as forbidden, so a probe cannot
-// tell a hidden channel from one that does not exist
 const getChannelRoute: TBotRouteHandler = async ({ bot, params }) => {
   const channelParam = params.channelId!;
-  const [channelId, categoryId, guild] = await Promise.all([
-    resolveChannelSnowflake(channelParam),
+  const [categoryId, guild] = await Promise.all([
     resolveCategorySnowflake(channelParam),
     getGuildContext()
   ]);
@@ -43,12 +37,7 @@ const getChannelRoute: TBotRouteHandler = async ({ bot, params }) => {
     return serializeCategory(category, guild.guildId);
   }
 
-  if (channelId === undefined) throw unknownChannel();
-
-  const visibleChannels = await getChannelsForUser(bot.id);
-  const channel = visibleChannels.find(({ id }) => id === channelId);
-
-  if (!channel) throw unknownChannel();
+  const channel = await loadVisibleChannel(bot.id, channelParam);
 
   if (channel.isDm) {
     const [conversation] = await getDirectMessageConversations(

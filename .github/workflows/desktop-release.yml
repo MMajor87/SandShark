@@ -105,8 +105,11 @@ jobs:
       - name: Write release summary
         working-directory: apps/desktop
         shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          Copy-Item -LiteralPath RELEASE_NOTES.md -Destination release\RELEASE_NOTES.md
+          # the release page shows only this version's notes, not the whole history
+          bun ../../packages/scripts/src/latest-release-notes.ts RELEASE_NOTES.md release\RELEASE_NOTES.md $env:RELEASE_VERSION
           '${{ needs.resolve-release.outputs.sha }}' | Set-Content release\BUILD_COMMIT.txt
 
       - name: Publish GitHub release and update metadata

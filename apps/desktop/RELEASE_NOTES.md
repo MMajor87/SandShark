@@ -1,3 +1,15 @@
+# SandShark 1.2.0
+
+- Adds a soundboard. Play a server's sounds from the new soundboard button in the voice controls; everyone in the voice channel hears them and sees the sound's emoji on your voice card. Set how loud sounds play for you, or turn them off, under Notifications in your settings.
+- Adds a Soundboard tab to server settings for admins to upload, rename, preview and delete sounds and choose their emoji.
+- Fixes automatic updates. SandShark now checks for updates when it starts and asks before installing a new version; earlier versions never checked.
+
+## Upgrade notes
+
+Install this version manually: versions up to 1.1.7 cannot update themselves, so this one release has to be downloaded from GitHub. Automatic updates work from this version on.
+
+This version needs SandShark Server 0.3.0 and shows as disconnected on an older server, so upgrade the server before installing it. The Windows installer does not deploy a server. This installer remains unsigned.
+
 # SandShark 1.1.7
 
 - Renames the remaining old project identifiers to SandShark. Saved servers, logins and settings carry over automatically on first start.

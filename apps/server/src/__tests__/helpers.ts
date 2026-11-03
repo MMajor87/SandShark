@@ -1,8 +1,10 @@
 import { sha256, UploadHeaders } from '@sandshark/shared';
 import jwt from 'jsonwebtoken';
 import type WebSocket from 'ws';
+import { createHttpServer } from '../http';
 import { appRouter } from '../routers';
 import type { Context } from '../utils/trpc';
+import { createWsServer } from '../utils/wss';
 import { createMockContext, type TMockContextOptions } from './context';
 import { TEST_SECRET_TOKEN } from './seed';
 import { testsBaseUrl } from './setup';
@@ -119,6 +121,22 @@ const uploadFile = async (
     body: file
   });
 
+// the shared test server is http only. this one also runs the websocket upgrade routing,
+// which the bot gateway and the library compatibility tests need
+const startRealtimeServer = async () => {
+  const server = await createHttpServer(0);
+
+  await createWsServer(server);
+
+  const address = server.address();
+
+  if (!address || typeof address === 'string') {
+    throw new Error('Realtime test server did not bind to a TCP port');
+  }
+
+  return { server, host: `localhost:${address.port}` };
+};
+
 export {
   createFakeSocket,
   getCaller,
@@ -126,6 +144,7 @@ export {
   initTest,
   login,
   sendMessage,
+  startRealtimeServer,
   uploadFile,
   type TFakeSocket
 };

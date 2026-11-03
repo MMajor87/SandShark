@@ -25,6 +25,7 @@ import { editMessageRoute } from './routes/edit-message';
 import { getChannelRoute } from './routes/get-channel';
 import { getChannelMessageRoute } from './routes/get-channel-message';
 import { getChannelMessagesRoute } from './routes/get-channel-messages';
+import { getCurrentApplicationRoute } from './routes/get-current-application';
 import { getCurrentUserRoute } from './routes/get-current-user';
 import { getGatewayBotRoute } from './routes/get-gateway-bot';
 import { getGuildRoute } from './routes/get-guild';
@@ -57,6 +58,8 @@ const route = (
 // over /users/:userId
 const botRoutes: TBotRoute[] = [
   route('GET', '/gateway/bot', getGatewayBotRoute),
+  route('GET', '/applications/@me', getCurrentApplicationRoute),
+  route('GET', '/oauth2/applications/@me', getCurrentApplicationRoute),
   route('GET', '/users/@me', getCurrentUserRoute),
   route('GET', '/users/:userId', getUserRoute),
   route('GET', '/guilds/:guildId', getGuildRoute),
@@ -138,6 +141,23 @@ const findBotRoute = (method: TBotApiMethod, pathname: string) => {
   return { handler: undefined, params: {}, methodAllowed };
 };
 
+// discord.py reads every one of these as soon as it sees the limit, so the whole set is sent
+const setRateLimitHeaders = (
+  res: http.ServerResponse,
+  rateLimit: { remaining: number; resetAfterMs: number }
+) => {
+  const resetAfter = rateLimit.resetAfterMs / 1000;
+
+  res.setHeader('X-RateLimit-Limit', config.rateLimiters.botApi.maxRequests);
+  res.setHeader('X-RateLimit-Remaining', rateLimit.remaining);
+  res.setHeader(
+    'X-RateLimit-Reset',
+    ((Date.now() + rateLimit.resetAfterMs) / 1000).toFixed(3)
+  );
+  res.setHeader('X-RateLimit-Reset-After', resetAfter.toFixed(3));
+  res.setHeader('X-RateLimit-Bucket', 'global');
+};
+
 // one bucket per bot across every route, like discord's global limit
 const botLimiter = createRateLimiter(config.rateLimiters.botApi);
 
@@ -178,8 +198,7 @@ const botApiRouteHandler = async (
 
   const rateLimit = botLimiter.consume(`bot:${bot.id}`);
 
-  res.setHeader('X-RateLimit-Limit', config.rateLimiters.botApi.maxRequests);
-  res.setHeader('X-RateLimit-Remaining', rateLimit.remaining);
+  setRateLimitHeaders(res, rateLimit);
 
   if (!rateLimit.allowed) {
     sendDiscordRateLimit(res, rateLimit.retryAfterMs);

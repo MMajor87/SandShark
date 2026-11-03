@@ -15,7 +15,7 @@ import {
   resolveMessageSnowflake
 } from '../../helpers/discord/resolve';
 import { createMediaAccessToken } from '../../helpers/media-access-token';
-import { getJsonBody } from '../helpers';
+import { getTextBody } from '../helpers';
 import { DiscordApiError, DiscordErrorCode, notFound } from './errors';
 import type { TBotRequest } from './types';
 
@@ -69,6 +69,16 @@ const loadMessageId = async (channelId: number, snowflake: string) => {
 const invalidFormBody = (message = 'Invalid Form Body') =>
   new DiscordApiError(400, DiscordErrorCode.INVALID_FORM_BODY, message);
 
+// a json string, which is skipped as it is, or an integer too long for a javascript number
+const STRING_OR_LONG_INTEGER = /"(?:[^"\\]|\\.)*"|-?\d{16,}/g;
+
+// discord accepts snowflakes as strings or numbers and discord.py sends numbers, which
+// JSON.parse would round to a different id, so long integers are quoted before parsing
+const quoteLongIntegers = (text: string) =>
+  text.replace(STRING_OR_LONG_INTEGER, (token) =>
+    token.startsWith('"') ? token : `"${token}"`
+  );
+
 // multipart uploads are not supported yet, so anything but a json object is refused
 const readJsonBody = async (req: http.IncomingMessage) => {
   const contentType = req.headers['content-type'] ?? '';
@@ -78,7 +88,8 @@ const readJsonBody = async (req: http.IncomingMessage) => {
   }
 
   try {
-    const body: unknown = await getJsonBody(req);
+    const text = await getTextBody(req);
+    const body: unknown = text ? JSON.parse(quoteLongIntegers(text)) : {};
 
     if (typeof body !== 'object' || body === null || Array.isArray(body)) {
       throw invalidFormBody();

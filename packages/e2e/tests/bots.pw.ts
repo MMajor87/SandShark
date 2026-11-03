@@ -20,7 +20,8 @@ test('an owner creates a bot, sees its token once, and the bot is listed as a bo
 
   await page.getByTestId(TestId.BOT_CREATE).click();
 
-  const nameDialog = page.getByRole('dialog');
+  // the name prompt is an alert dialog, which has its own role
+  const nameDialog = page.getByRole('alertdialog');
 
   await nameDialog.getByRole('textbox').fill(BOT_NAME);
   await page.keyboard.press('Enter');

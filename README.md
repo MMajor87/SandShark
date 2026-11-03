@@ -57,3 +57,6 @@ Server binaries are written to `apps/server/build/out/`; Windows installers are 
 - [License](LICENSE). SandShark began as a fork of an MIT licensed project, whose copyright notice the license requires us to keep.
 
 Report SandShark problems in the [issue tracker](https://github.com/MMajor87/SandShark/issues). Include the desktop and server versions and reproduction steps, and remove credentials and private server addresses from logs.
+
+If you like what I am doing and get some use from it, feel free to add to my caffeine fund on Ko-Fi.
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/N3T82A0RF0)

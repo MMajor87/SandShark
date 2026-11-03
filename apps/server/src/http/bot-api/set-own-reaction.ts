@@ -1,3 +1,4 @@
+import { emojiToShortcode } from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { getReaction } from '../../db/queries/messages';
@@ -11,12 +12,13 @@ import { NO_CONTENT, type TBotRequest } from './types';
 
 const CUSTOM_EMOJI = /^\w{2,32}:(\d{1,20})$/;
 
-// discord names a custom emoji `name:id` and anything else by its character, which is how
-// sandshark already stores reactions that plugins add
+// discord names a custom emoji `name:id` and a built in one by its character. a built in
+// one is stored as the shortcode a member's client uses, so a bot's 👍 and a member's
+// count as the same reaction. a character the table does not know is kept as it is
 const resolveReactionEmoji = async (emoji: string) => {
   const custom = CUSTOM_EMOJI.exec(emoji);
 
-  if (!custom) return emoji;
+  if (!custom) return emojiToShortcode(emoji) ?? emoji;
 
   const emojiId = await resolveEmojiSnowflake(custom[1]!);
   const row =

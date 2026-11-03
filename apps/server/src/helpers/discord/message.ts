@@ -1,5 +1,6 @@
 import {
   getMentions,
+  shortcodeToEmoji,
   type TFile,
   type TJoinedMessage,
   type TJoinedMessageReaction
@@ -147,8 +148,9 @@ const serializeAttachment = (
   };
 };
 
-// a reaction that carries a file is a custom emoji, anything else is the shortcode or the
-// character it was stored as
+// a reaction that carries a file is a custom emoji, named by its name. a built in one is
+// stored as a shortcode, or as the character for older plugin and bot reactions, and
+// discord names it by the character, so both forms are grouped under that character
 const serializeReactions = (
   reactions: TJoinedMessageReaction[],
   lookups: TMessageLookups,
@@ -156,38 +158,42 @@ const serializeReactions = (
 ) => {
   const grouped = new Map<
     string,
-    { count: number; me: boolean; custom: boolean }
+    { count: number; me: boolean; customId: string | null }
   >();
 
   for (const reaction of reactions) {
-    const entry = grouped.get(reaction.emoji) ?? {
+    const isCustom = reaction.fileId !== null;
+    const name = isCustom
+      ? reaction.emoji
+      : (shortcodeToEmoji(reaction.emoji) ?? reaction.emoji);
+    const customEmoji = isCustom
+      ? lookups.emojisByName.get(reaction.emoji)
+      : undefined;
+    const entry = grouped.get(name) ?? {
       count: 0,
       me: false,
-      custom: reaction.fileId !== null
+      customId: customEmoji
+        ? encodeSnowflake(
+            SnowflakeTag.EMOJI,
+            customEmoji.id,
+            customEmoji.createdAt
+          )
+        : null
     };
 
     entry.count += 1;
     entry.me ||= reaction.userId === botId;
-    grouped.set(reaction.emoji, entry);
+    grouped.set(name, entry);
   }
 
-  return [...grouped.entries()].map(([name, { count, me, custom }]) => {
-    const emoji = custom ? lookups.emojisByName.get(name) : undefined;
-
-    return {
-      count,
-      count_details: { burst: 0, normal: count },
-      me,
-      me_burst: false,
-      burst_colors: [],
-      emoji: {
-        id: emoji
-          ? encodeSnowflake(SnowflakeTag.EMOJI, emoji.id, emoji.createdAt)
-          : null,
-        name
-      }
-    };
-  });
+  return [...grouped.entries()].map(([name, { count, me, customId }]) => ({
+    count,
+    count_details: { burst: 0, normal: count },
+    me,
+    me_burst: false,
+    burst_colors: [],
+    emoji: { id: customId, name }
+  }));
 };
 
 const serializeMessages = async (

@@ -373,9 +373,10 @@ describe('bot api messages', () => {
         );
       }
 
+      // stored as the shortcode a member's client uses for the same emoji
       expect(
         (await reactionRows(id)).map((row) => [row.userId, row.emoji])
-      ).toEqual([[bot.id, '👍']]);
+      ).toEqual([[bot.id, '+1']]);
 
       const read = await request(
         `/channels/${await channelId(1)}/messages/${body.id}`,
@@ -400,6 +401,47 @@ describe('bot api messages', () => {
       }
 
       expect(await reactionRows(id)).toHaveLength(0);
+    });
+
+    test('a member reaction and a bot reaction with the same emoji are one reaction', async () => {
+      const { bot, token } = await createBot();
+      const { body } = await send(token, 'shared reaction');
+      const id = await messageIdOf(body.id as string);
+      const path = `/channels/${await channelId(1)}/messages/${body.id}`;
+      const { caller } = await initTest(1);
+
+      await grantMemberRole(Permission.REACT_TO_MESSAGES);
+      await caller.messages.toggleReaction({ messageId: id, emoji: '+1' });
+
+      const before = await request(path, token);
+
+      expect(before.body.reactions).toMatchObject([
+        { count: 1, me: false, emoji: { id: null, name: '👍' } }
+      ]);
+
+      await request(
+        `${path}/reactions/${encodeURIComponent('👍')}/@me`,
+        token,
+        {
+          method: 'PUT'
+        }
+      );
+      // an older reaction stored as the raw character joins the same group
+      await tdb.insert(messageReactions).values({
+        messageId: id,
+        userId: 2,
+        emoji: '👍',
+        createdAt: Date.now()
+      });
+
+      const after = await request(path, token);
+
+      expect(after.body.reactions).toMatchObject([
+        { count: 3, me: true, emoji: { id: null, name: '👍' } }
+      ]);
+      expect(
+        (await reactionRows(id)).filter((row) => row.userId === bot.id)
+      ).toHaveLength(1);
     });
 
     test('reacting needs the react permission', async () => {

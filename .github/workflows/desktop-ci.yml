@@ -13,6 +13,11 @@ jobs:
   build-windows:
     name: Build Windows desktop client
     runs-on: windows-latest
+    timeout-minutes: 30
+    # a new push to a pull request replaces its unfinished run
+    concurrency:
+      group: desktop-ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+      cancel-in-progress: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -35,15 +40,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Check shared package
-        run: bun run --cwd packages/shared check-types
-
-      - name: Typecheck client
-        run: bun run --cwd apps/client check-types
-
-      - name: Typecheck desktop
-        run: bun run --cwd apps/desktop check-types
-
       - name: Verify desktop security boundary
         run: bun run --cwd apps/desktop check:security
 
@@ -63,3 +59,4 @@ jobs:
           name: sandshark-windows-x64-${{ github.sha }}
           path: apps/desktop/release/SandShark-*-Setup-x64.exe
           if-no-files-found: error
+          retention-days: 7

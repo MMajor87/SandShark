@@ -17,6 +17,7 @@ permissions:
 jobs:
   resolve-release:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       sha: ${{ steps.revision.outputs.sha }}
     steps:
@@ -35,11 +36,14 @@ jobs:
     uses: ./.github/workflows/ci.yml
     with:
       ref: ${{ needs.resolve-release.outputs.sha }}
+      # a desktop release ships no server binaries
+      skip_build: true
 
   release-windows:
     name: Validate and build Windows release
     needs: [resolve-release, repository-ci]
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5

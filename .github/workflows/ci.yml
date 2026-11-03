@@ -11,11 +11,26 @@ on:
         type: string
         required: false
         default: ""
+      skip_build:
+        description: Skip building the server binaries
+        type: boolean
+        required: false
+        default: false
+      upload_server_build:
+        description: Upload the built server binaries for a later job to publish
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   ci:
     name: Build & Test
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # a new push to a pull request replaces its unfinished run, every other run gets its own group
+    concurrency:
+      group: ${{ github.event_name == 'pull_request' && format('ci-{0}', github.ref) || format('ci-run-{0}', github.run_id) }}
+      cancel-in-progress: true
 
     steps:
       - name: Checkout repository
@@ -43,6 +58,17 @@ jobs:
       - name: Run tests
         run: bun run test
 
+      # inputs are empty on push and pull_request events, so those always build
       - name: Build
+        if: ${{ !inputs.skip_build }}
         working-directory: apps/server
         run: bun run build
+
+      - name: Upload server build
+        if: ${{ !inputs.skip_build && inputs.upload_server_build }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: server-build
+          path: apps/server/build/out
+          if-no-files-found: error
+          retention-days: 1

@@ -11,6 +11,8 @@ type TDeletableMessage = {
   id: number;
   channelId: number;
   parentMessageId: number | null;
+  // carried on the delete event, bot snowflakes are built from it and the row is gone
+  createdAt: number;
 };
 
 const deleteMessage = async (message: TDeletableMessage) => {

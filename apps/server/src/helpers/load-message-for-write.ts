@@ -14,6 +14,7 @@ type TMessageForWrite = {
   parentMessageId: number | null;
   editable: boolean | null;
   pinned: boolean | null;
+  createdAt: number;
 };
 
 const assertCanModifyMessage = async (
@@ -40,7 +41,8 @@ const loadMessage = async (messageId: number): Promise<TMessageForWrite> => {
       channelId: messages.channelId,
       parentMessageId: messages.parentMessageId,
       editable: messages.editable,
-      pinned: messages.pinned
+      pinned: messages.pinned,
+      createdAt: messages.createdAt
     })
     .from(messages)
     .where(eq(messages.id, messageId))

@@ -26,6 +26,7 @@ import { getChannelRoute } from './routes/get-channel';
 import { getChannelMessageRoute } from './routes/get-channel-message';
 import { getChannelMessagesRoute } from './routes/get-channel-messages';
 import { getCurrentUserRoute } from './routes/get-current-user';
+import { getGatewayBotRoute } from './routes/get-gateway-bot';
 import { getGuildRoute } from './routes/get-guild';
 import { getGuildChannelsRoute } from './routes/get-guild-channels';
 import { getGuildMemberRoute } from './routes/get-guild-member';
@@ -55,6 +56,7 @@ const route = (
 // literal segments are listed before parameters at the same depth, so /users/@me wins
 // over /users/:userId
 const botRoutes: TBotRoute[] = [
+  route('GET', '/gateway/bot', getGatewayBotRoute),
   route('GET', '/users/@me', getCurrentUserRoute),
   route('GET', '/users/:userId', getUserRoute),
   route('GET', '/guilds/:guildId', getGuildRoute),

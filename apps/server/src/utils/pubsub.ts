@@ -33,6 +33,15 @@ type Events = {
     messageId: number;
     channelId: number;
     parentMessageId: number | null;
+    createdAt: number;
+  };
+  [ServerEvents.MESSAGE_REACTION_CHANGE]: {
+    messageId: number;
+    channelId: number;
+    userId: number;
+    emoji: string;
+    custom: boolean;
+    added: boolean;
   };
   [ServerEvents.MESSAGE_TYPING]: {
     channelId: number;

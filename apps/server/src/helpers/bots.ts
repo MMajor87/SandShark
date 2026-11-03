@@ -4,6 +4,7 @@ import { db } from '../db';
 import { publishUser } from '../db/publishers';
 import { getDefaultRole } from '../db/queries/roles';
 import { bots, userRoles, users } from '../db/schema';
+import { closeBotGatewaySessions } from '../http/bot-api/gateway';
 import { enqueueActivityLog } from '../queues/activity-log';
 import { invariant } from '../utils/invariant';
 import { createBotSecret, formatBotToken } from './bot-tokens';
@@ -112,6 +113,7 @@ const resetBotToken = async (
       .run();
   });
 
+  closeBotGatewaySessions(bot.id);
   enqueueActivityLog({
     type: ActivityLogType.RESET_BOT_TOKEN,
     userId: actorUserId,

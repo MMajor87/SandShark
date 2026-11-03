@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { config } from '../../config';
 import { getBotById } from '../../db/queries/bots';
 import { deleteUserAccount } from '../../helpers/delete-user-account';
+import { closeBotGatewaySessions } from '../../http/bot-api/gateway';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
 
@@ -22,6 +23,7 @@ const deleteBotRoute = rateLimitedProcedure(protectedProcedure, {
     invariant(bot, { code: 'NOT_FOUND', message: 'Bot not found.' });
 
     await deleteUserAccount(bot.id, { wipe: false, deletedBy: ctx.user.id });
+    closeBotGatewaySessions(bot.id);
   });
 
 export { deleteBotRoute };

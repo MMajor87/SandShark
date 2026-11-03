@@ -17,6 +17,10 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { getUserById, getUserByToken } from '../db/queries/users';
 import { createPermissionChecks } from '../helpers/create-permission-checks';
 import { getWsInfo } from '../helpers/get-ws-info';
+import {
+  handleBotGatewayUpgrade,
+  isBotGatewayRequest
+} from '../http/bot-api/gateway';
 import { logger } from '../logger';
 import { eventBus } from '../plugins/event-bus';
 import { enqueueActivityLog } from '../queues/activity-log';
@@ -199,7 +203,20 @@ const handleSocketClose = async (ws: WebSocket) => {
 
 const createWsServer = async (server: http.Server) => {
   return new Promise<WebSocketServer>((resolve) => {
-    wss = new WebSocketServer({ server });
+    wss = new WebSocketServer({ noServer: true });
+
+    // discord bots connect to their own gateway on this port, everything else is the
+    // trpc websocket the clients use
+    server.on('upgrade', (req, socket, head) => {
+      if (isBotGatewayRequest(req)) {
+        handleBotGatewayUpgrade(req, socket, head);
+        return;
+      }
+
+      wss!.handleUpgrade(req, socket, head, (ws) => {
+        wss!.emit('connection', ws, req);
+      });
+    });
 
     wss.on('connection', (ws) => {
       try {

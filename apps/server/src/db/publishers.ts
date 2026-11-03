@@ -35,6 +35,7 @@ const publishMessageDelete = async (message: {
   id: number;
   channelId: number;
   parentMessageId: number | null;
+  createdAt: number;
 }) => {
   const affectedUserIds = await getAffectedOnlineUserIdsForChannel(
     message.channelId,
@@ -44,8 +45,29 @@ const publishMessageDelete = async (message: {
   pubsub.publishFor(affectedUserIds, ServerEvents.MESSAGE_DELETE, {
     messageId: message.id,
     channelId: message.channelId,
-    parentMessageId: message.parentMessageId
+    parentMessageId: message.parentMessageId,
+    createdAt: message.createdAt
   });
+};
+
+const publishReactionChange = async (change: {
+  messageId: number;
+  channelId: number;
+  userId: number;
+  emoji: string;
+  custom: boolean;
+  added: boolean;
+}) => {
+  const affectedUserIds = await getAffectedOnlineUserIdsForChannel(
+    change.channelId,
+    ChannelPermission.VIEW_CHANNEL
+  );
+
+  pubsub.publishFor(
+    affectedUserIds,
+    ServerEvents.MESSAGE_REACTION_CHANGE,
+    change
+  );
 };
 
 const publishMessage = async (
@@ -486,6 +508,7 @@ export {
   publishHiddenChannelToUser,
   publishMessage,
   publishMessageDelete,
+  publishReactionChange,
   publishReplyCount,
   publishRole,
   publishSettings,

@@ -71,6 +71,10 @@ jobs:
         run: |
           printf '%s\n' "$RELEASE_SHA" > BUILD_COMMIT.txt
           sha256sum sandshark-* release.json BUILD_COMMIT.txt > SHA256SUMS.txt
+      - name: Extract this version's release notes
+        env:
+          RELEASE_VERSION: ${{ needs.resolve-release.outputs.version }}
+        run: bun packages/scripts/src/latest-release-notes.ts apps/server/RELEASE_NOTES.md "$RUNNER_TEMP/RELEASE_NOTES.md" "$RELEASE_VERSION"
       - name: Publish versioned server image
         uses: ./.github/actions/docker-build-publish
         with:
@@ -93,7 +97,7 @@ jobs:
           prerelease: false
           make_latest: false
           fail_on_unmatched_files: true
-          body_path: apps/server/RELEASE_NOTES.md
+          body_path: ${{ runner.temp }}/RELEASE_NOTES.md
           files: |
             apps/server/build/out/sandshark-linux-x64
             apps/server/build/out/sandshark-linux-arm64

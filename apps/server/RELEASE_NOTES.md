@@ -1,3 +1,15 @@
+# SandShark Server 0.3.0
+
+- Adds a soundboard. Admins upload short sounds (MP3, OGG, WAV or WebM, up to 1 MB and 10 seconds, at most 50 per server) and people in a voice channel play them for everyone in it.
+- Adds two role permissions: "Use the soundboard", on for the default role, and "Manage soundboard". On first start, roles that can send voice reactions get "Use the soundboard" and roles that can manage emojis get "Manage soundboard".
+- Playing a sound needs the right to speak in the channel and is rate limited.
+
+## Compatibility and upgrade
+
+Use SandShark Desktop 1.2.0 with this server. Upgrade the server first: Desktop 1.2.0 cannot connect to an older server, while Desktop 1.1.7 keeps working with this one, without the soundboard. Stop the server and back up its entire data directory before upgrading. Migrations run automatically at startup. No configuration changes are needed.
+
+The release publishes Linux x64/arm64, Windows x64, and macOS arm64 binaries, plus the versioned Docker image `ghcr.io/mmajor87/sandshark-server:0.3.0`. The workflow does not move a `latest` image tag. The desktop release remains GitHub's Latest release for desktop updater compatibility.
+
 # SandShark Server 0.2.0
 
 - Renames the server's remaining old project identifiers to SandShark.

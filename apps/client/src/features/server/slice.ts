@@ -13,6 +13,7 @@ import type {
   TFile,
   TFollowedThread,
   TFollowedThreadsMap,
+  TJoinedCalendarEvent,
   TJoinedEmoji,
   TJoinedMessage,
   TJoinedPublicUser,
@@ -103,6 +104,8 @@ export interface IServerState {
   activeFullscreenPluginId: string | undefined;
   dmsOpen: boolean;
   threadsOpen: boolean;
+  calendarOpen: boolean;
+  upcomingCalendarEvents: TJoinedCalendarEvent[];
 }
 
 const initialState: IServerState = {
@@ -166,6 +169,8 @@ const initialState: IServerState = {
   activeFullscreenPluginId: undefined,
   dmsOpen: false,
   threadsOpen: false,
+  calendarOpen: false,
+  upcomingCalendarEvents: [],
   hideOwnScreenShare: getLocalStorageItemBool(
     LocalStorageKey.HIDE_OWN_SCREEN_SHARE,
     false
@@ -1095,6 +1100,10 @@ export const serverSlice = createSlice({
     },
     setThreadsOpen: (state, action: PayloadAction<boolean>) => {
       state.threadsOpen = action.payload;
+
+      if (action.payload) {
+        state.calendarOpen = false;
+      }
     },
     setDmsOpen: (state, action: PayloadAction<boolean>) => {
       state.dmsOpen = action.payload;
@@ -1103,7 +1112,18 @@ export const serverSlice = createSlice({
         state.selectedChannelId = undefined;
         state.activeFullscreenPluginId = undefined;
         state.threadsOpen = false;
+        state.calendarOpen = false;
       }
+    },
+    // the calendar only replaces the sidebar list, so whatever the main view shows stays
+    setCalendarOpen: (state, action: PayloadAction<boolean>) => {
+      state.calendarOpen = action.payload;
+    },
+    setUpcomingCalendarEvents: (
+      state,
+      action: PayloadAction<TJoinedCalendarEvent[]>
+    ) => {
+      state.upcomingCalendarEvents = action.payload;
     }
   }
 });

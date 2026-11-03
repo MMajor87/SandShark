@@ -1,4 +1,5 @@
 import { setDmsOpen } from '@/features/server/actions';
+import { useCalendarOpen } from '@/features/server/calendar/hooks';
 import { useDirectMessagesUnreadCount } from '@/features/server/channels/hooks';
 import { useDmsOpen } from '@/features/server/hooks';
 import { useThreadsOpen } from '@/features/server/threads/hooks';
@@ -13,7 +14,8 @@ const DmButton = memo(() => {
   const directMessagesUnreadCount = useDirectMessagesUnreadCount();
   const dmsOpen = useDmsOpen();
   const threadsOpen = useThreadsOpen();
-  const isActive = dmsOpen && !threadsOpen;
+  const calendarOpen = useCalendarOpen();
+  const isActive = dmsOpen && !threadsOpen && !calendarOpen;
 
   const onToggleDmMode = useCallback(() => {
     setDmsOpen(!isActive);

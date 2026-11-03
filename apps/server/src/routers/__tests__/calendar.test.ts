@@ -1,4 +1,8 @@
-import { CALENDAR_PAGE_SIZE, MAX_CALENDAR_TIMESTAMP } from '@sandshark/shared';
+import {
+  CALENDAR_PAGE_SIZE,
+  CalendarResponseStatus,
+  MAX_CALENDAR_TIMESTAMP
+} from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { eq, sql } from 'drizzle-orm';
 import { getCaller, initTest } from '../../__tests__/helpers';
@@ -6,6 +10,7 @@ import { tdb } from '../../__tests__/setup';
 import { config } from '../../config';
 import {
   calendarEventInvitees,
+  calendarEventResponses,
   calendarEvents,
   userRoles
 } from '../../db/schema';
@@ -273,5 +278,296 @@ describe('calendar pagination and access', () => {
     await expect(caller.calendar.delete({ eventId: 1 })).rejects.toThrow(
       'Too many requests. Please try again shortly.'
     );
+  });
+});
+
+describe('calendar upcoming filter and relations', () => {
+  test('returns invitees, response counts and the caller own answer', async () => {
+    const { caller } = await initTest(2);
+    const { events } = await caller.calendar.getAll();
+    const [direct, role] = events;
+    expect(direct).toMatchObject({
+      id: 2,
+      canEdit: false,
+      invitees: [{ type: 'user', id: 2, name: 'Test User' }],
+      responseCounts: { going: 1, maybe: 0, declined: 0 },
+      ownResponse: 'going'
+    });
+    expect(role).toMatchObject({
+      id: 3,
+      invitees: [{ type: 'role', id: 2, name: 'Member' }],
+      responseCounts: { going: 0, maybe: 0, declined: 0 },
+      ownResponse: null
+    });
+    const owner = await initTest();
+    expect(
+      (await owner.caller.calendar.getAll()).events.map((e) => [
+        e.id,
+        e.canEdit,
+        e.ownResponse
+      ])
+    ).toEqual([
+      [1, true, null],
+      [2, true, null],
+      [3, true, null]
+    ]);
+  });
+
+  test('from keeps events that have not finished, including ones still running', async () => {
+    const { caller } = await initTest();
+    const running = await caller.calendar.create({
+      ...input,
+      startsAt: 100,
+      endsAt: 300
+    });
+    expect(
+      (await caller.calendar.getAll({ from: 150 })).events.map((e) => e.id)
+    ).toEqual([running.id, 2, 3]);
+    expect(
+      (await caller.calendar.getAll({ from: 250 })).events.map((e) => e.id)
+    ).toEqual([running.id]);
+  });
+
+  test('from does not widen visibility and pages with the cursor', async () => {
+    const stranger = await initTest(5);
+    expect((await stranger.caller.calendar.getAll({ from: 1 })).events).toEqual(
+      []
+    );
+    const { caller } = await initTest();
+    const first = await caller.calendar.getAll({ from: 150, limit: 1 });
+    expect(first.events.map((e) => e.id)).toEqual([2]);
+    const second = await caller.calendar.getAll({
+      from: 150,
+      cursor: first.nextCursor
+    });
+    expect(second.events.map((e) => e.id)).toEqual([3]);
+  });
+
+  test('validates from', async () => {
+    const { caller } = await initTest();
+    for (const from of [0, -1, 1.5, MAX_CALENDAR_TIMESTAMP + 1]) {
+      await expect(caller.calendar.getAll({ from })).rejects.toMatchObject({
+        code: 'BAD_REQUEST'
+      });
+    }
+  });
+
+  test('a response from someone no longer invited is not counted until re-invited', async () => {
+    const { caller } = await initTest();
+    const event2 = { ...input, eventId: 2, startsAt: 200, endsAt: undefined };
+    await caller.calendar.update({
+      ...event2,
+      targets: [{ type: 'role', id: 3 }]
+    });
+    const hidden = (await caller.calendar.getAll()).events.find(
+      (e) => e.id === 2
+    );
+    expect(hidden!.responseCounts.going).toBe(0);
+    await caller.calendar.update({
+      ...event2,
+      targets: [{ type: 'user', id: 2 }]
+    });
+    const restored = (await caller.calendar.getAll()).events.find(
+      (e) => e.id === 2
+    );
+    expect(restored!.responseCounts.going).toBe(1);
+  });
+});
+
+describe('calendar update', () => {
+  const update = { ...input, eventId: 2 };
+  const eventTwo = () =>
+    tdb.select().from(calendarEvents).where(eq(calendarEvents.id, 2)).get();
+  const eventTwoInvitees = () =>
+    tdb
+      .select()
+      .from(calendarEventInvitees)
+      .where(eq(calendarEventInvitees.eventId, 2));
+
+  test('the organizer updates the fields and replaces the invitees', async () => {
+    const { caller } = await initTest();
+    await caller.calendar.update({
+      ...update,
+      title: 'Renamed',
+      description: '',
+      endsAt: undefined,
+      targets: [{ type: 'role', id: 3 }]
+    });
+    expect(await eventTwo()).toMatchObject({
+      title: 'Renamed',
+      description: null,
+      startsAt: input.startsAt,
+      endsAt: null,
+      creatorId: 1
+    });
+    expect((await eventTwoInvitees()).map((i) => [i.userId, i.roleId])).toEqual(
+      [[null, 3]]
+    );
+  });
+
+  test('an invitee who is not the organizer cannot edit', async () => {
+    const { caller } = await initTest(2);
+    await expect(caller.calendar.update(update)).rejects.toThrow(
+      'Only the event organizer can edit this event.'
+    );
+    expect((await eventTwo())?.title).toBe('Direct invite');
+  });
+
+  test('a hidden or missing event reads as not found', async () => {
+    const stranger = await initTest(5);
+    await expect(
+      stranger.caller.calendar.update({ ...update, eventId: 1 })
+    ).rejects.toThrow('Event not found.');
+    const { caller } = await initTest();
+    await expect(
+      caller.calendar.update({ ...update, eventId: 999 })
+    ).rejects.toThrow('Event not found.');
+  });
+
+  for (const type of ['user', 'role'] as const) {
+    test(`rejects nonexistent ${type} targets without changing the event`, async () => {
+      const { caller } = await initTest();
+      await expect(
+        caller.calendar.update({ ...update, targets: [{ type, id: 999 }] })
+      ).rejects.toThrow(
+        type === 'user'
+          ? 'One or more invited users no longer exist.'
+          : 'One or more invited groups no longer exist.'
+      );
+      expect((await eventTwoInvitees()).map((i) => i.userId)).toEqual([2]);
+      expect((await eventTwo())?.title).toBe('Direct invite');
+    });
+  }
+
+  test('validates the same bounds as create', async () => {
+    const { caller } = await initTest();
+    await expect(
+      caller.calendar.update({ ...update, endsAt: input.startsAt })
+    ).rejects.toThrow('The event end time must be after the start time.');
+    for (const invalid of [
+      { eventId: 0 },
+      { eventId: 1.5 },
+      { title: ' ' },
+      { targets: [] },
+      { startsAt: MAX_CALENDAR_TIMESTAMP + 1 }
+    ]) {
+      await expect(
+        caller.calendar.update({ ...update, ...invalid })
+      ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    }
+  });
+
+  test('requires authentication', async () => {
+    const { caller } = await getCaller(1, undefined, { authenticated: false });
+    await expect(caller.calendar.update(update)).rejects.toThrow(
+      'You must be authenticated'
+    );
+  });
+
+  test('rolls back the edit if the new invitations fail to persist', async () => {
+    const { caller } = await initTest();
+    tdb.run(
+      sql`CREATE TEMP TRIGGER reject_calendar_invite BEFORE INSERT ON calendar_event_invitees BEGIN SELECT RAISE(ABORT, 'invite failure'); END`
+    );
+    await expect(caller.calendar.update(update)).rejects.toThrow();
+    expect((await eventTwo())?.title).toBe('Direct invite');
+    expect(await eventTwoInvitees()).toHaveLength(1);
+  });
+
+  test('rate limits edits', async () => {
+    const { caller } = await initTest();
+    for (let i = 0; i < config.rateLimiters.calendarWrite.maxRequests; i++)
+      await caller.calendar.update(update);
+    await expect(caller.calendar.update(update)).rejects.toThrow(
+      'Too many requests. Please try again shortly.'
+    );
+  });
+});
+
+describe('calendar responses', () => {
+  const responsesFor = (eventId: number) =>
+    tdb
+      .select()
+      .from(calendarEventResponses)
+      .where(eq(calendarEventResponses.eventId, eventId));
+
+  test('a role invitee answers and can change their answer', async () => {
+    const { caller } = await initTest(6);
+    await caller.calendar.respond({
+      eventId: 3,
+      status: CalendarResponseStatus.MAYBE
+    });
+    await caller.calendar.respond({
+      eventId: 3,
+      status: CalendarResponseStatus.DECLINED
+    });
+    expect(
+      (await responsesFor(3)).map((row) => [row.userId, row.status])
+    ).toEqual([[6, CalendarResponseStatus.DECLINED]]);
+    const event = (await caller.calendar.getAll()).events.find(
+      (e) => e.id === 3
+    );
+    expect(event).toMatchObject({
+      ownResponse: CalendarResponseStatus.DECLINED,
+      responseCounts: { going: 0, maybe: 0, declined: 1 }
+    });
+  });
+
+  test('the organizer can answer their own event', async () => {
+    const { caller } = await initTest();
+    await caller.calendar.respond({
+      eventId: 1,
+      status: CalendarResponseStatus.GOING
+    });
+    expect((await responsesFor(1)).map((row) => row.userId)).toEqual([1]);
+  });
+
+  test('someone who cannot see the event gets not found and nothing is saved', async () => {
+    const { caller } = await initTest(5);
+    await expect(
+      caller.calendar.respond({
+        eventId: 1,
+        status: CalendarResponseStatus.GOING
+      })
+    ).rejects.toThrow('Event not found.');
+    expect(await responsesFor(1)).toHaveLength(0);
+  });
+
+  test('validates the event id and status', async () => {
+    const { caller } = await initTest(2);
+    for (const invalid of [
+      { eventId: 0, status: CalendarResponseStatus.GOING },
+      { eventId: 2, status: 'sure' as CalendarResponseStatus }
+    ]) {
+      await expect(caller.calendar.respond(invalid)).rejects.toMatchObject({
+        code: 'BAD_REQUEST'
+      });
+    }
+  });
+
+  test('requires authentication', async () => {
+    const { caller } = await getCaller(2, undefined, { authenticated: false });
+    await expect(
+      caller.calendar.respond({
+        eventId: 2,
+        status: CalendarResponseStatus.GOING
+      })
+    ).rejects.toThrow('You must be authenticated');
+  });
+
+  test('rate limits answers', async () => {
+    const { caller } = await initTest(2);
+    const answer = { eventId: 2, status: CalendarResponseStatus.MAYBE };
+    for (let i = 0; i < config.rateLimiters.calendarWrite.maxRequests; i++)
+      await caller.calendar.respond(answer);
+    await expect(caller.calendar.respond(answer)).rejects.toThrow(
+      'Too many requests. Please try again shortly.'
+    );
+  });
+
+  test('deleting the event removes its responses', async () => {
+    const { caller } = await initTest();
+    await caller.calendar.delete({ eventId: 2 });
+    expect(await responsesFor(2)).toHaveLength(0);
   });
 });

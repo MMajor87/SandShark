@@ -29,6 +29,8 @@ import type { Database } from 'bun:sqlite';
  *                     1    user 2 is denied viewing channel 5, overriding that grant
  *   calendarEvents    3    organizer-only, direct-invite and role-invite cases
  *   calendarEventInvitees 2 user 2 invited to event 2; Member role to event 3
+ *   calendarEventResponses
+ *                     1    user 2 is going to event 2
  *   logins            0    seeded only when seedTestDb is called with { e2e: true },
  *                          which only packages/e2e's seed-db.ts does
  *
@@ -36,6 +38,7 @@ import type { Database } from 'bun:sqlite';
  * rejections, which is the convention the router tests follow.
  */
 import {
+  CalendarResponseStatus,
   ChannelPermission,
   ChannelType,
   DEFAULT_ROLE_PERMISSIONS,
@@ -63,6 +66,7 @@ import { randomUUIDv7 } from 'bun';
 import { type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import {
   calendarEventInvitees,
+  calendarEventResponses,
   calendarEvents,
   categories,
   channelRolePermissions,
@@ -514,6 +518,13 @@ const seedTestDb = async (
       { eventId: 2, userId: 2, createdAt: 1 },
       { eventId: 3, roleId: 2, createdAt: 1 }
     ]);
+    await db.insert(calendarEventResponses).values({
+      eventId: 2,
+      userId: 2,
+      status: CalendarResponseStatus.GOING,
+      createdAt: 1,
+      updatedAt: 1
+    });
   }
 
   if (e2e) {

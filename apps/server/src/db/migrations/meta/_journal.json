@@ -162,6 +162,13 @@
       "when": 1793676248901,
       "tag": "0022_grant_soundboard_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1793683025929,
+      "tag": "0023_productive_legion",
+      "breakpoints": true
     }
   ]
 }

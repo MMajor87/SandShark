@@ -1,4 +1,8 @@
-import { CALENDAR_PAGE_SIZE, zCalendarCursor } from '@sandshark/shared';
+import {
+  CALENDAR_PAGE_SIZE,
+  zCalendarCursor,
+  zCalendarTime
+} from '@sandshark/shared';
 import { z } from 'zod';
 import { config } from '../../config';
 import { getCalendarEventsPage } from '../../db/queries/calendar';
@@ -13,6 +17,8 @@ const getEventsRoute = rateLimitedProcedure(protectedProcedure, {
     z
       .object({
         cursor: zCalendarCursor.optional(),
+        // only events that have not finished by this time, the client passes now
+        from: zCalendarTime.optional(),
         limit: z
           .number()
           .int()
@@ -23,6 +29,6 @@ const getEventsRoute = rateLimitedProcedure(protectedProcedure, {
       .default({ limit: CALENDAR_PAGE_SIZE })
   )
   .query(({ ctx, input }) =>
-    getCalendarEventsPage(ctx.user.id, input.limit, input.cursor)
+    getCalendarEventsPage(ctx.user.id, input.limit, input.cursor, input.from)
   );
 export { getEventsRoute };

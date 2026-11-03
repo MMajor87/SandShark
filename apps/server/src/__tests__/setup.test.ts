@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
   calendarEventInvitees,
+  calendarEventResponses,
   calendarEvents,
   categories,
   channelRolePermissions,
@@ -25,6 +26,7 @@ describe('tests setup', () => {
   test('seeds calendar access cases', async () => {
     expect(await tdb.select().from(calendarEvents)).toHaveLength(3);
     expect(await tdb.select().from(calendarEventInvitees)).toHaveLength(2);
+    expect(await tdb.select().from(calendarEventResponses)).toHaveLength(1);
   });
   test('should seed database with initial data', async () => {
     const [

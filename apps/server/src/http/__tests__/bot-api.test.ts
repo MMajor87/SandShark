@@ -125,6 +125,43 @@ describe('bot api', () => {
     });
   });
 
+  describe('rate limit headers', () => {
+    // discord.py reads every one of these as soon as it sees the limit header
+    test('every response carries the full discord header set', async () => {
+      const { token } = await createBot();
+      const response = await botFetch('/users/@me', token);
+
+      expect(response.headers.get('x-ratelimit-limit')).toBe('50');
+      expect(Number(response.headers.get('x-ratelimit-remaining'))).toBe(49);
+      expect(Number(response.headers.get('x-ratelimit-reset'))).toBeGreaterThan(
+        Date.now() / 1000
+      );
+      expect(
+        Number(response.headers.get('x-ratelimit-reset-after'))
+      ).toBeGreaterThan(0);
+      expect(response.headers.get('x-ratelimit-bucket')).toBe('global');
+    });
+  });
+
+  describe('application', () => {
+    test('the bot is its own application, owned by whoever created it', async () => {
+      const { token } = await createBot();
+
+      for (const path of ['/applications/@me', '/oauth2/applications/@me']) {
+        const { status, body } = await getJson(path, token);
+
+        expect(status).toBe(200);
+        expect(body).toMatchObject({
+          id: (await getJson('/users/@me', token)).body.id,
+          name: 'Helper',
+          bot_public: false,
+          bot_require_code_grant: false,
+          owner: { username: 'Test Owner' }
+        });
+      }
+    });
+  });
+
   describe('routing', () => {
     test('unknown routes and methods get discord errors', async () => {
       const { token } = await createBot();

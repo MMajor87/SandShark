@@ -52,6 +52,16 @@ bun run test
 
 (if you only run `bun test` it's gonna fail, you NEED to run `bun run test`)
 
+The bot API's discord.py compatibility test needs a Python with discord.py installed. Without one it's skipped locally (CI always runs it). To run it, install the pinned version into a virtual environment and point the test at that Python:
+
+```bash
+python -m venv .venv-bots
+.venv-bots/bin/python -m pip install -r apps/server/src/http/__tests__/fixtures/requirements.txt
+SANDSHARK_PYTHON=.venv-bots/bin/python bun run test
+```
+
+On Windows the interpreter is `.venv-bots\Scripts\python.exe`.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.

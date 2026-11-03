@@ -4,14 +4,13 @@ import { eq } from 'drizzle-orm';
 import type http from 'http';
 import zlib from 'node:zlib';
 import WebSocket from 'ws';
-import { initTest } from '../../__tests__/helpers';
+import { initTest, startRealtimeServer } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
 import { channels, users } from '../../db/schema';
 import { channelSnowflake } from '../../helpers/discord/channel';
 import { userSnowflake } from '../../helpers/discord/user';
-import { createWsServer, getUserStatus } from '../../utils/wss';
+import { getUserStatus } from '../../utils/wss';
 import { GatewayIntent } from '../bot-api/gateway/protocol';
-import { createHttpServer } from '../index';
 
 // dispatch bodies are asserted field by field, typing each one would add nothing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,17 +19,8 @@ type TPayload = { op: number; d: any; s: number | null; t: string | null };
 let server: http.Server;
 let baseUrl: string;
 
-// the shared test server is http only, this one also runs the websocket upgrade routing
-// that sends discord gateway connections to the bot gateway and everything else to trpc
 beforeAll(async () => {
-  server = await createHttpServer(0);
-  await createWsServer(server);
-
-  const address = server.address();
-
-  if (!address || typeof address === 'string') throw new Error('no port');
-
-  baseUrl = `localhost:${address.port}`;
+  ({ server, host: baseUrl } = await startRealtimeServer());
 });
 
 afterAll(() => {

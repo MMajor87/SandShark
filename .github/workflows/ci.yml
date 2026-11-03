@@ -55,8 +55,21 @@ jobs:
       - name: Typecheck
         run: bun check-types
 
+      # the discord.py compatibility test runs a real discord.py bot against the server
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install discord.py
+        run: python -m pip install -r apps/server/src/http/__tests__/fixtures/requirements.txt
+
       - name: Run tests
         run: bun run test
+        env:
+          # a missing discord.py fails the run here instead of skipping its test
+          REQUIRE_DISCORD_PY: '1'
+          SANDSHARK_PYTHON: python
 
       # inputs are empty on push and pull_request events, so those always build
       - name: Build

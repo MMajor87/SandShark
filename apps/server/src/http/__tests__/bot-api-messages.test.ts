@@ -141,6 +141,27 @@ describe('bot api messages', () => {
       );
     });
 
+    // discord.py sends snowflakes as json numbers, beyond what a javascript number holds
+    test('a reply target sent as a raw json number keeps every digit', async () => {
+      const { token } = await createBot();
+      const first = await send(token, 'first');
+      const response = await fetch(
+        `${testsBaseUrl}/api/v10/channels/${await channelId(1)}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bot ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: `{"content":"second","message_reference":{"message_id":${first.body.id}}}`
+        }
+      );
+      const reply = (await response.json()) as TJson;
+
+      expect(response.status).toBe(200);
+      expect((reply.message_reference as TJson).message_id).toBe(first.body.id);
+    });
+
     test('refuses an empty message, a bad body and an unknown reply target', async () => {
       const { token } = await createBot();
 

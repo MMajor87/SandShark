@@ -53,6 +53,7 @@ Server binaries are written to `apps/server/build/out/`; Windows installers are 
 
 - [Contribution guide](CONTRIBUTING.md), [development guide](DEVELOPMENT.md), and [roadmap](ROADMAP.md)
 - [Server 0.1.0 release verification](docs/server-0.1.0-validation.md)
+- [Bots](docs/bots.md): connecting discord.js and discord.py bots to a SandShark server
 - [License](LICENSE). SandShark began as a fork of an MIT licensed project, whose copyright notice the license requires us to keep.
 
 Report SandShark problems in the [issue tracker](https://github.com/MMajor87/SandShark/issues). Include the desktop and server versions and reproduction steps, and remove credentials and private server addresses from logs.

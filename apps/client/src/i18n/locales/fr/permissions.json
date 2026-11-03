@@ -31,7 +31,8 @@
     "EXECUTE_PLUGIN_COMMANDS": "Exécuter les commandes plugin",
     "VIEW_USER_SENSITIVE_DATA": "Afficher les données sensibles des utilisateurs",
     "USE_SOUNDBOARD": "Utiliser la table de sons",
-    "MANAGE_SOUNDBOARD": "Gérer la table de sons"
+    "MANAGE_SOUNDBOARD": "Gérer la table de sons",
+    "MANAGE_BOTS": "Gérer les bots"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "Permet d'envoyer des messages dans les canaux.",
@@ -60,7 +61,8 @@
     "EXECUTE_PLUGIN_COMMANDS": "Permet d'exécuter des commandes plugin.",
     "VIEW_USER_SENSITIVE_DATA": "Permet de consulter les données sensibles des utilisateurs, telles que leurs identités, leurs adresses IP et leurs localisations.",
     "USE_SOUNDBOARD": "Permet de jouer les sons de la table dans les salons vocaux.",
-    "MANAGE_SOUNDBOARD": "Permet d’importer, de modifier et de supprimer les sons de la table."
+    "MANAGE_SOUNDBOARD": "Permet d’importer, de modifier et de supprimer les sons de la table.",
+    "MANAGE_BOTS": "Permet de créer des bots, de réinitialiser leurs jetons et de les supprimer."
   },
   "channel": {
     "VIEW_CHANNEL": "Voir le canal",

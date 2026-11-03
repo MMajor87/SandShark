@@ -28,8 +28,13 @@ export const dialogSlice = createSlice({
       state.openDialog = action.payload.dialog;
       state.props = action.payload.props || {};
       state.isOpen = true;
+      state.closing = false;
     },
+    // runs once the fade out of a closed dialog ends. a dialog opened during that fade,
+    // such as a bot token shown right after its name prompt, cleared closing and must stay
     closeDialogs: (state) => {
+      if (!state.closing) return;
+
       state.openDialog = undefined;
       state.props = {};
       state.isOpen = false;

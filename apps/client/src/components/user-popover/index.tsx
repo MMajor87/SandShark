@@ -1,3 +1,4 @@
+import { BotBadge } from '@/components/bot-badge';
 import { useUserActions } from '@/components/context-menus/user/hooks/use-user-actions';
 import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { useUserRoles } from '@/features/server/hooks';
@@ -87,9 +88,12 @@ const UserPopover = memo(({ userId, children }: TUserPopoverProps) => {
 
         <div className="px-4 pt-12 pb-4">
           <div className="mb-3">
-            <span className="text-lg font-semibold text-foreground truncate mb-1">
-              {getRenderedUsername(user)}
-            </span>
+            <div className="mb-1 flex items-center gap-2">
+              <span className="text-lg font-semibold text-foreground truncate">
+                {getRenderedUsername(user)}
+              </span>
+              {user.isBot && <BotBadge />}
+            </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2">
                 <UserStatusBadge

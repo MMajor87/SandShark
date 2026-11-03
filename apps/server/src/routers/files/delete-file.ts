@@ -34,7 +34,8 @@ const deleteFileRoute = protectedProcedure
       await deleteMessage({
         id: message.id,
         channelId: message.channelId,
-        parentMessageId: message.parentMessageId
+        parentMessageId: message.parentMessageId,
+        createdAt: message.createdAt
       });
     }
   });

@@ -24,6 +24,7 @@ const getMessagesRoute = rateLimitedProcedure(protectedProcedure, {
       channelId: z.number(),
       cursor: zMessagesCursor.nullish(),
       targetMessageId: z.number().nullish(),
+      after: zMessagesCursor.nullish(),
       limit: z
         .number()
         .int()
@@ -36,7 +37,12 @@ const getMessagesRoute = rateLimitedProcedure(protectedProcedure, {
   .query(async ({ ctx, input }) => {
     await assertChannelAccess(ctx, input.channelId);
 
-    const { channelId, cursor, limit, targetMessageId } = input;
+    const { channelId, cursor, limit, targetMessageId, after } = input;
+
+    invariant([cursor, targetMessageId, after].filter(Boolean).length <= 1, {
+      code: 'BAD_REQUEST',
+      message: 'Use only one of cursor, targetMessageId and after.'
+    });
 
     const channel = await db
       .select({
@@ -86,7 +92,13 @@ const getMessagesRoute = rateLimitedProcedure(protectedProcedure, {
       target = targetMessage;
     }
 
-    const page = await getMessagesPage({ where, cursor, limit, target });
+    const page = await getMessagesPage({
+      where,
+      cursor,
+      limit,
+      target,
+      after
+    });
 
     const getThreadSummary = await getThreadSummaries(
       page.messages.map((message) => message.id)

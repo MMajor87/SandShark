@@ -27,6 +27,11 @@ export const closeDialogs = () => {
   setTimeout(() => {
     store.dispatch(dialogSliceActions.closeDialogs());
 
+    const { isOpen } = dialogInfoSelector(store.getState());
+
+    // a dialog opened during the fade out is still open and owns the body's pointer events
+    if (isOpen) return;
+
     setTimeout(() => {
       // https://github.com/radix-ui/primitives/issues/1241
       // remove this after radix fixes the bug

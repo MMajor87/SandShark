@@ -1,4 +1,5 @@
 export * from './command-parser';
+export * from './emoji-shortcodes';
 export * from './extract-palette';
 export * from './extract-urls';
 export * from './get-error-message';

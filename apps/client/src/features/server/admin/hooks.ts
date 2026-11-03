@@ -9,6 +9,7 @@ import {
   type TChannelUserPermission,
   type TDiskMetrics,
   type TFile,
+  type TJoinedBot,
   type TJoinedEmoji,
   type TJoinedInvite,
   type TJoinedRole,
@@ -406,4 +407,28 @@ export const useAdminInvites = () => {
     refetch: fetchInvites,
     loading
   };
+};
+
+export const useAdminBots = () => {
+  const [loading, setLoading] = useState(true);
+  const [bots, setBots] = useState<TJoinedBot[]>([]);
+
+  const fetchBots = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      const trpc = getTRPCClient();
+      const result = await trpc.bots.getAll.query();
+
+      setBots(result);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBots();
+  }, [fetchBots]);
+
+  return { bots, refetch: fetchBots, loading };
 };

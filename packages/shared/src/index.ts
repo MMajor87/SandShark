@@ -10,4 +10,5 @@ export * from './test-ids';
 export * from './trpc';
 export * from './type-utils';
 export * from './types';
+export * from './users';
 export * from './voice';

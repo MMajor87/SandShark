@@ -21,7 +21,8 @@ const deleteMessageRoute = rateLimitedProcedure(protectedProcedure, {
     await deleteMessage({
       id: input.messageId,
       channelId: targetMessage.channelId,
-      parentMessageId: targetMessage.parentMessageId
+      parentMessageId: targetMessage.parentMessageId,
+      createdAt: targetMessage.createdAt
     });
   });
 

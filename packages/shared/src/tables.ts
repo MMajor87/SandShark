@@ -1,6 +1,7 @@
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import {
   activityLog,
+  bots,
   calendarEventInvitees,
   calendarEvents,
   categories,
@@ -35,6 +36,7 @@ export type TFile = InferSelectModel<typeof files> & {
   _accessTokenExpiresAt?: number;
 };
 export type TUser = InferSelectModel<typeof users>;
+export type TBot = InferSelectModel<typeof bots>;
 export type TLogin = InferSelectModel<typeof logins>;
 export type TMessage = InferSelectModel<typeof messages>;
 export type TMessageFile = InferSelectModel<typeof messageFiles>;
@@ -117,6 +119,7 @@ type TPublicUser = Pick<
   | 'banner'
   | 'bannerId'
   | 'banned'
+  | 'isBot'
   | 'createdAt'
 > & {
   status?: UserStatus;
@@ -164,6 +167,13 @@ export type TJoinedPublicUser = TPublicUser & {
   avatar: TFile | null;
   banner: TFile | null;
   roleIds: number[];
+};
+
+// what the bots settings tab lists, never the token hash
+export type TJoinedBot = Pick<TUser, 'id' | 'name' | 'createdAt'> & {
+  roleIds: number[];
+  createdBy: number | null;
+  tokenUpdatedAt: number;
 };
 
 export type TJoinedSettings = TSettings & {

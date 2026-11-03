@@ -4,6 +4,7 @@ import { Permission } from '@sandshark/shared';
 import {
   AudioLines,
   Blocks,
+  Bot,
   Mail,
   Package,
   RefreshCw,
@@ -17,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import type { TServerScreenBaseProps } from '../screens';
 import { SettingsShell } from '../settings-shell';
 import type { TSettingsEntry } from '../settings-shell/types';
+import { Bots } from './bots';
 import { Emojis } from './emojis';
 import { General } from './general';
 import { Invites } from './invites';
@@ -91,6 +93,13 @@ const ServerSettings = memo(({ close }: TServerSettingsProps) => {
         icon: Mail,
         content: <Invites />,
         permission: Permission.MANAGE_INVITES
+      },
+      {
+        id: 'bots',
+        label: t('botsTab'),
+        icon: Bot,
+        content: <Bots />,
+        permission: Permission.MANAGE_BOTS
       },
       {
         id: 'updates',

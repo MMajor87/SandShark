@@ -34,6 +34,7 @@ const ServerDropdownMenu = memo(() => {
       Permission.MANAGE_STORAGE,
       Permission.MANAGE_USERS,
       Permission.MANAGE_INVITES,
+      Permission.MANAGE_BOTS,
       Permission.MANAGE_UPDATES
     ],
     []

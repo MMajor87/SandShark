@@ -18,7 +18,8 @@ const loadOwnPluginMessage = async (
     .select({
       pluginId: messages.pluginId,
       channelId: messages.channelId,
-      parentMessageId: messages.parentMessageId
+      parentMessageId: messages.parentMessageId,
+      createdAt: messages.createdAt
     })
     .from(messages)
     .where(eq(messages.id, messageId))

@@ -151,5 +151,6 @@
   "messageChannel": "Messaggio a \"{{name}}\"",
   "soundboard": "Soundboard",
   "soundboardEmpty": "Ancora nessun suono. Gli amministratori possono aggiungerli nelle impostazioni del server.",
-  "failedPlaySound": "Impossibile riprodurre il suono"
+  "failedPlaySound": "Impossibile riprodurre il suono",
+  "botBadge": "Bot"
 }

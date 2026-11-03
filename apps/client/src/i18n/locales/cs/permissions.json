@@ -30,7 +30,8 @@
     "USE_PLUGINS": "Používat rozšíření",
     "VIEW_USER_SENSITIVE_DATA": "Zobrazit senzitivní data uživatelů",
     "USE_SOUNDBOARD": "Používat zvukový panel",
-    "MANAGE_SOUNDBOARD": "Spravovat zvukový panel"
+    "MANAGE_SOUNDBOARD": "Spravovat zvukový panel",
+    "MANAGE_BOTS": "Spravovat boty"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "Umožňuje posílat zprávy do kanálů.",
@@ -58,7 +59,8 @@
     "USE_PLUGINS": "Umožňuje používat rozšíření, jako například spouštění příkazů a zobrazení grafických elementů přidaných rozšířeními.",
     "VIEW_USER_SENSITIVE_DATA": "Umožňuje zobrazení senzitivních dat uživatelů, jako je identita, IP adresa a geografická lokace.",
     "USE_SOUNDBOARD": "Umožňuje přehrávat zvuky ze zvukového panelu v hlasových kanálech.",
-    "MANAGE_SOUNDBOARD": "Umožňuje nahrávat, upravovat a mazat zvuky zvukového panelu."
+    "MANAGE_SOUNDBOARD": "Umožňuje nahrávat, upravovat a mazat zvuky zvukového panelu.",
+    "MANAGE_BOTS": "Umožňuje vytvářet boty, obnovovat jejich tokeny a mazat je."
   },
   "channel": {
     "VIEW_CHANNEL": "Zobrazit kanály",

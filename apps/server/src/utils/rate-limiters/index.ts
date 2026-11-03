@@ -11,6 +11,8 @@ type TRateLimitResult = {
   allowed: boolean;
   remaining: number;
   retryAfterMs: number;
+  // when the current window ends, which clients that pace themselves need even when allowed
+  resetAfterMs: number;
 };
 
 type TRateLimitEntry = {
@@ -48,7 +50,8 @@ class FixedWindowRateLimiter {
       return {
         allowed: true,
         remaining: this.maxRequests,
-        retryAfterMs: 0
+        retryAfterMs: 0,
+        resetAfterMs: this.windowMs
       };
     }
 
@@ -67,7 +70,8 @@ class FixedWindowRateLimiter {
       return {
         allowed: true,
         remaining: this.maxRequests - 1,
-        retryAfterMs: 0
+        retryAfterMs: 0,
+        resetAfterMs: this.windowMs
       };
     }
 
@@ -75,7 +79,8 @@ class FixedWindowRateLimiter {
       return {
         allowed: false,
         remaining: 0,
-        retryAfterMs: existing.resetAt - now
+        retryAfterMs: existing.resetAt - now,
+        resetAfterMs: existing.resetAt - now
       };
     }
 
@@ -84,7 +89,8 @@ class FixedWindowRateLimiter {
     return {
       allowed: true,
       remaining: this.maxRequests - existing.count,
-      retryAfterMs: 0
+      retryAfterMs: 0,
+      resetAfterMs: existing.resetAt - now
     };
   };
 

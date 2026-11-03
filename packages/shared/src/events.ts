@@ -3,6 +3,8 @@ export enum ServerEvents {
   MESSAGE_UPDATE = 'messageUpdate',
   MESSAGE_DELETE = 'messageDelete',
   MESSAGE_TYPING = 'messageTyping',
+  // server side only, the bot gateway turns it into discord reaction events
+  MESSAGE_REACTION_CHANGE = 'messageReactionChange',
   THREAD_REPLY_COUNT_UPDATE = 'threadReplyCountUpdate',
   THREAD_FOLLOW_UPDATE = 'threadFollowUpdate',
 

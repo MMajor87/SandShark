@@ -12,6 +12,7 @@ import {
   asc,
   desc,
   eq,
+  gt,
   gte,
   inArray,
   lt,
@@ -234,6 +235,8 @@ type TMessagesPageOptions = {
   cursor: TMessagesCursor | null | undefined;
   limit: number;
   target?: Pick<TMessage, 'createdAt'>;
+  // the page right after this position instead of before it, still returned newest first
+  after?: TMessagesCursor | null;
 };
 
 // one page of a conversation, newest first. where selects the conversation (a channel's root
@@ -243,7 +246,8 @@ const getMessagesPage = async ({
   where,
   cursor,
   limit,
-  target
+  target,
+  after
 }: TMessagesPageOptions) => {
   let rows: TMessage[];
   let nextCursor: TMessagesCursor | null = null;
@@ -251,7 +255,31 @@ const getMessagesPage = async ({
   // is not contiguous with the present and must offer a way back
   let hasNewer = false;
 
-  if (target) {
+  if (after) {
+    rows = await db
+      .select()
+      .from(messages)
+      .where(
+        and(
+          where,
+          or(
+            gt(messages.createdAt, after.createdAt),
+            and(
+              eq(messages.createdAt, after.createdAt),
+              gt(messages.id, after.id)
+            )
+          )
+        )
+      )
+      .orderBy(asc(messages.createdAt), asc(messages.id))
+      .limit(limit + 1);
+
+    hasNewer = rows.length > limit;
+
+    if (hasNewer) rows.pop();
+
+    rows.reverse();
+  } else if (target) {
     // a window around the target rather than everything since it: linking to a message from
     // a year ago used to load a year of history, joined with files, reactions and reply
     // previews, in one response

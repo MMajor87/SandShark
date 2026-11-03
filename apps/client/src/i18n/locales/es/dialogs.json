@@ -90,5 +90,12 @@
   "newPasswordLabel": "Nueva contraseña",
   "confirmNewPasswordLabel": "Confirmar nueva contraseña",
   "passwordsDoNotMatch": "Las contraseñas no coinciden",
-  "resetUserPasswordBtn": "Restablecer contraseña"
+  "resetUserPasswordBtn": "Restablecer contraseña",
+  "botTokenTitle": "Token de {{name}}",
+  "botTokenMsg": "Copia este token ahora y mantenlo en secreto. No se volverá a mostrar y cualquiera que lo tenga puede actuar como este bot.",
+  "botTokenLabel": "Token del bot",
+  "copyBotToken": "Copiar token",
+  "botTokenCopied": "Token copiado al portapapeles",
+  "failedCopyBotToken": "No se pudo copiar el token",
+  "botTokenDone": "Ya lo copié"
 }

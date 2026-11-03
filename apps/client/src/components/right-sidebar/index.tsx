@@ -1,3 +1,4 @@
+import { BotBadge } from '@/components/bot-badge';
 import { UserContextMenu } from '@/components/context-menus/user';
 import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { ResizableSidebar } from '@/components/resizable-sidebar';
@@ -25,10 +26,11 @@ type TUserProps = {
   userId: number;
   name: string;
   banned: boolean;
+  isBot: boolean;
   offline: boolean;
 };
 
-const User = memo(({ userId, name, banned, offline }: TUserProps) => {
+const User = memo(({ userId, name, banned, isBot, offline }: TUserProps) => {
   const pluginProps = useMemo(() => ({ userId }), [userId]);
 
   return (
@@ -50,6 +52,7 @@ const User = memo(({ userId, name, banned, offline }: TUserProps) => {
           >
             {name}
           </span>
+          {isBot && <BotBadge />}
 
           <PluginSlotRenderer
             slotId={PluginSlot.MEMBER_LIST_ITEM}
@@ -82,6 +85,7 @@ const MemberGroup = memo(({ label, users, offline }: TMemberGroupProps) => {
           userId={user.id}
           name={user.name}
           banned={user.banned}
+          isBot={user.isBot}
           offline={offline}
         />
       ))}

@@ -1080,8 +1080,18 @@ describe('message deletes', () => {
     await disconnect();
 
     expect(events).toEqual([
-      { messageId: replyId, channelId: 1, parentMessageId: parentId },
-      { messageId: parentId, channelId: 1, parentMessageId: null }
+      {
+        messageId: replyId,
+        channelId: 1,
+        parentMessageId: parentId,
+        createdAt: expect.any(Number)
+      },
+      {
+        messageId: parentId,
+        channelId: 1,
+        parentMessageId: null,
+        createdAt: expect.any(Number)
+      }
     ]);
   });
 });

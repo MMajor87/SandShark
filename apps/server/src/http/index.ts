@@ -7,6 +7,7 @@ import { getWsInfo } from '../helpers/get-ws-info';
 import { logger } from '../logger';
 import { pluginManager } from '../plugins';
 import { SERVER_VERSION } from '../utils/env';
+import { BOT_API_PREFIX, botApiRouteHandler } from './bot-api';
 import { HttpValidationError, PayloadTooLargeError } from './errors';
 import { healthRouteHandler } from './healthz';
 import {
@@ -132,6 +133,12 @@ const createHttpServer = async (
         const ctx: RouteContext = { info, pathname, url };
 
         try {
+          // the bot api answers every method itself, including the PUT discord uses for
+          // reactions, which nothing else on this server accepts
+          if (hasPrefixPathSegment(pathname, BOT_API_PREFIX)) {
+            return await botApiRouteHandler(req, res, ctx);
+          }
+
           const method =
             req.method && isSupportedHttpMethod(req.method)
               ? req.method

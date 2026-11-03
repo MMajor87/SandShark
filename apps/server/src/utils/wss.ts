@@ -1,11 +1,8 @@
 import {
   ActivityLogType,
-  ChannelPermission,
   DEFAULT_LOCALE,
   DisconnectCode,
   getErrorMessage,
-  OWNER_ROLE_ID,
-  Permission,
   ServerEvents,
   UserStatus,
   type TConnectionParams
@@ -17,10 +14,13 @@ import {
 } from '@trpc/server/adapters/ws';
 import http from 'http';
 import { WebSocket, WebSocketServer } from 'ws';
-import { channelUserCan } from '../db/queries/channels';
-import { getUserRoles } from '../db/queries/roles';
 import { getUserById, getUserByToken } from '../db/queries/users';
+import { createPermissionChecks } from '../helpers/create-permission-checks';
 import { getWsInfo } from '../helpers/get-ws-info';
+import {
+  handleBotGatewayUpgrade,
+  isBotGatewayRequest
+} from '../http/bot-api/gateway';
 import { logger } from '../logger';
 import { eventBus } from '../plugins/event-bus';
 import { enqueueActivityLog } from '../queues/activity-log';
@@ -72,6 +72,29 @@ const disconnectUser = (
 
 const getOnlineUserIds = (): number[] => Array.from(userSockets.keys());
 
+const getUserWs = (userId: number) => {
+  if (!wss) return [];
+
+  return Array.from(wss.clients).filter((client) => client.userId === userId);
+};
+
+const getUserStatus = (userId: number) =>
+  userSockets.has(userId) ? UserStatus.ONLINE : UserStatus.OFFLINE;
+
+// this mimics the zod validation error format
+const throwValidationError = (field: string, message: string): never => {
+  throw new TRPCError({
+    code: 'BAD_REQUEST',
+    message: JSON.stringify([
+      {
+        code: 'custom',
+        path: [field],
+        message
+      }
+    ])
+  });
+};
+
 const getUserWsCount = (userId: number): number =>
   userSockets.get(userId)?.size ?? 0;
 
@@ -89,47 +112,9 @@ const createContext = async ({
     message: 'Invalid authentication token'
   });
 
-  const hasPermission = async (targetPermission: Permission | Permission[]) => {
-    const user = await getUserById(decodedUser.id);
-
-    if (!user) return false;
-
-    const roles = await getUserRoles(user.id);
-
-    const hasOwnerRole = roles.some((r) => r.id === OWNER_ROLE_ID);
-
-    if (hasOwnerRole) return true; // owner always has all permissions
-
-    const permissionsSet = new Set<Permission>();
-
-    for (const role of roles) {
-      for (const permission of role.permissions) {
-        permissionsSet.add(permission);
-      }
-    }
-
-    if (Array.isArray(targetPermission)) {
-      return targetPermission.every((p) => permissionsSet.has(p));
-    }
-
-    return permissionsSet.has(targetPermission);
-  };
-
-  const hasChannelPermission = async (
-    channelId: number,
-    targetPermission: ChannelPermission
-  ) => channelUserCan(channelId, decodedUser.id, targetPermission);
+  const permissionChecks = createPermissionChecks(decodedUser.id);
 
   const getOwnWs = () => ws;
-
-  const getUserWs = (userId: number) => {
-    if (!wss) return [];
-
-    return Array.from(wss.clients).filter((client) => client.userId === userId);
-  };
-
-  const getStatusById = (userId: number) =>
-    userSockets.has(userId) ? UserStatus.ONLINE : UserStatus.OFFLINE;
 
   const setWsUserId = (userId: number) => {
     if (!ws) return;
@@ -139,39 +124,6 @@ const createContext = async ({
   };
 
   const getConnectionInfo = () => getWsInfo(ws, req);
-
-  const needsPermission = async (
-    targetPermission: Permission | Permission[]
-  ) => {
-    invariant(await hasPermission(targetPermission), {
-      code: 'FORBIDDEN',
-      message: 'Insufficient permissions'
-    });
-  };
-
-  const needsChannelPermission = async (
-    channelId: number,
-    targetPermission: ChannelPermission
-  ) => {
-    invariant(await hasChannelPermission(channelId, targetPermission), {
-      code: 'FORBIDDEN',
-      message: 'Insufficient channel permissions'
-    });
-  };
-
-  const throwValidationError = (field: string, message: string) => {
-    // this mimics the zod validation error format
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: JSON.stringify([
-        {
-          code: 'custom',
-          path: [field],
-          message
-        }
-      ])
-    });
-  };
 
   const saveUserIp = async (userId: number, ip: string) => {
     usersIpMap.set(userId, ip);
@@ -186,12 +138,9 @@ const createContext = async ({
     handshakeHash: '',
     currentVoiceChannelId: undefined,
     locale: DEFAULT_LOCALE,
-    hasPermission,
-    needsPermission,
-    hasChannelPermission,
-    needsChannelPermission,
+    ...permissionChecks,
     getOwnWs,
-    getStatusById,
+    getStatusById: getUserStatus,
     setWsUserId,
     getUserWs,
     getConnectionInfo,
@@ -254,7 +203,20 @@ const handleSocketClose = async (ws: WebSocket) => {
 
 const createWsServer = async (server: http.Server) => {
   return new Promise<WebSocketServer>((resolve) => {
-    wss = new WebSocketServer({ server });
+    wss = new WebSocketServer({ noServer: true });
+
+    // discord bots connect to their own gateway on this port, everything else is the
+    // trpc websocket the clients use
+    server.on('upgrade', (req, socket, head) => {
+      if (isBotGatewayRequest(req)) {
+        handleBotGatewayUpgrade(req, socket, head);
+        return;
+      }
+
+      wss!.handleUpgrade(req, socket, head, (ws) => {
+        wss!.emit('connection', ws, req);
+      });
+    });
 
     wss.on('connection', (ws) => {
       try {
@@ -302,7 +264,10 @@ export {
   disconnectUser,
   getOnlineUserIds,
   getUserIp,
+  getUserStatus,
+  getUserWs,
   getUserWsCount,
   handleSocketClose,
+  throwValidationError,
   trackUserSocket
 };

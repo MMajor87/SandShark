@@ -25,6 +25,7 @@ const getPublicUserById = async (
       profileColor: users.profileColor,
       bio: users.bio,
       banned: users.banned,
+      isBot: users.isBot,
       avatarId: users.avatarId,
       bannerId: users.bannerId,
       avatar: avatarFiles,
@@ -68,6 +69,7 @@ const getPublicUserById = async (
     ),
     createdAt: results.createdAt,
     banned: results.banned,
+    isBot: results.isBot,
     roleIds: roles.map((r) => r.roleId)
   };
 };
@@ -89,6 +91,7 @@ const getPublicUsers = async (
         profileColor: users.profileColor,
         bio: users.bio,
         banned: users.banned,
+        isBot: users.isBot,
         avatarId: users.avatarId,
         bannerId: users.bannerId,
         avatar: avatarFiles,
@@ -124,6 +127,7 @@ const getPublicUsers = async (
       profileColor: result.profileColor,
       bio: result.bio,
       banned: result.banned,
+      isBot: result.isBot,
       avatarId: result.avatarId,
       bannerId: result.bannerId,
       avatar: signFile(
@@ -146,6 +150,7 @@ const getPublicUsers = async (
         id: users.id,
         name: users.name,
         banned: users.banned,
+        isBot: users.isBot,
         profileColor: users.profileColor,
         bio: users.bio,
         avatarId: users.avatarId,
@@ -181,6 +186,7 @@ const getPublicUsers = async (
       id: result.id,
       name: result.name,
       banned: result.banned,
+      isBot: result.isBot,
       profileColor: result.profileColor,
       bio: result.bio,
       avatarId: result.avatarId,
@@ -240,6 +246,7 @@ const getJoinedUser = async (
       updatedAt: users.updatedAt,
       lastLoginAt: users.lastLoginAt,
       banned: users.banned,
+      isBot: users.isBot,
       banReason: users.banReason,
       bannedAt: users.bannedAt,
       tokenVersion: users.tokenVersion,
@@ -306,6 +313,9 @@ const getUserByToken = async (token: string | undefined) => {
 
     if (user?.banned) return undefined;
 
+    // bots authenticate with their own token, never with a session
+    if (user?.isBot) return undefined;
+
     // a deleted user has no row, so deletion already invalidates its tokens. this covers
     // the case where the row survives but its sessions should not, such as a password
     // change. tokens predating this mechanism carry no version and count as 0
@@ -339,6 +349,7 @@ const getUsers = async (): Promise<TJoinedUser[]> => {
           password: users.password,
           lastLoginAt: users.lastLoginAt,
           banned: users.banned,
+          isBot: users.isBot,
           banReason: users.banReason,
           bannedAt: users.bannedAt,
           tokenVersion: users.tokenVersion,
@@ -396,6 +407,7 @@ const getUsers = async (): Promise<TJoinedUser[]> => {
     password: result.password,
     lastLoginAt: result.lastLoginAt,
     banned: result.banned,
+    isBot: result.isBot,
     banReason: result.banReason,
     bannedAt: result.bannedAt,
     tokenVersion: result.tokenVersion,

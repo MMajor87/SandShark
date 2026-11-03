@@ -7,7 +7,7 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';
 import { db } from '../../db';
-import { publishMessage } from '../../db/publishers';
+import { publishMessage, publishReactionChange } from '../../db/publishers';
 import { getReaction } from '../../db/queries/messages';
 import { messageReactions } from '../../db/schema';
 import { loadMessageForWrite } from '../../helpers/load-message-for-write';
@@ -39,6 +39,9 @@ const toggleMessageReactionRoute = rateLimitedProcedure(protectedProcedure, {
       ctx.user.id
     );
 
+    // a custom emoji is a reaction with a file, which bots name by id rather than character
+    let fileId = reaction?.fileId ?? null;
+
     if (!reaction) {
       await runHook<TBeforeReactionPayload, never>({
         entries: pluginManager.getHooks('beforeReaction'),
@@ -51,6 +54,8 @@ const toggleMessageReactionRoute = rateLimitedProcedure(protectedProcedure, {
       });
 
       const emojiFileId = await resolveKnownEmojiFileId(input.emoji);
+
+      fileId = emojiFileId;
 
       await db.insert(messageReactions).values({
         messageId: input.messageId,
@@ -72,6 +77,14 @@ const toggleMessageReactionRoute = rateLimitedProcedure(protectedProcedure, {
     }
 
     publishMessage(input.messageId, message.channelId, 'update');
+    publishReactionChange({
+      messageId: input.messageId,
+      channelId: message.channelId,
+      userId: ctx.user.id,
+      emoji: input.emoji,
+      custom: fileId !== null,
+      added: !reaction
+    });
 
     eventBus.emit(reaction ? 'reaction:removed' : 'reaction:added', {
       messageId: input.messageId,

@@ -15,6 +15,10 @@ export enum ActivityLogType {
   USER_DELETED = 'USER_DELETED',
   USER_UPDATED_PASSWORD = 'USER_UPDATED_PASSWORD',
   USER_CLAIMED_OWNERSHIP = 'USER_CLAIMED_OWNERSHIP',
+  // -------------------- BOTS --------------------
+  CREATED_BOT = 'CREATED_BOT',
+  UPDATED_BOT = 'UPDATED_BOT',
+  RESET_BOT_TOKEN = 'RESET_BOT_TOKEN',
   // -------------------- ROLES --------------------
   CREATED_ROLE = 'CREATED_ROLE',
   DELETED_ROLE = 'DELETED_ROLE',
@@ -94,6 +98,20 @@ export type TActivityLogDetailsMap = {
     resetBy?: number;
   };
   [ActivityLogType.USER_CLAIMED_OWNERSHIP]: {};
+  // -------------------- BOTS --------------------
+  [ActivityLogType.CREATED_BOT]: {
+    botId: number;
+    name: string;
+  };
+  [ActivityLogType.UPDATED_BOT]: {
+    botId: number;
+    fromName: string;
+    toName: string;
+  };
+  [ActivityLogType.RESET_BOT_TOKEN]: {
+    botId: number;
+    name: string;
+  };
   // -------------------- ROLES --------------------
   [ActivityLogType.CREATED_ROLE]: {
     roleId: number;

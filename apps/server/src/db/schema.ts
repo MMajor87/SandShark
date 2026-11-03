@@ -187,6 +187,7 @@ const users = sqliteTable(
     }),
     bio: text('bio'),
     banned: integer('banned', { mode: 'boolean' }).notNull().default(false),
+    isBot: integer('is_bot', { mode: 'boolean' }).notNull().default(false),
     banReason: text('ban_reason'),
     bannedAt: integer('banned_at'),
     tokenVersion: integer('token_version').notNull().default(0),
@@ -209,6 +210,23 @@ const users = sqliteTable(
     index('users_name_idx').on(t.name),
     index('users_last_login_idx').on(t.lastLoginAt)
   ]
+);
+
+// kept apart from users so the token hash never rides along with a user row
+const bots = sqliteTable(
+  'bots',
+  {
+    userId: integer('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull(),
+    createdBy: integer('created_by').references(() => users.id, {
+      onDelete: 'set null'
+    }),
+    tokenUpdatedAt: integer('token_updated_at').notNull(),
+    createdAt: integer('created_at').notNull()
+  },
+  (t) => [index('bots_created_by_idx').on(t.createdBy)]
 );
 
 const userRoles = sqliteTable(
@@ -753,6 +771,7 @@ const pluginCapabilityRoles = sqliteTable(
 
 export {
   activityLog,
+  bots,
   calendarEventInvitees,
   calendarEventResponses,
   calendarEvents,

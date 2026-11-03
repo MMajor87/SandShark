@@ -25,19 +25,22 @@ describe('FixedWindowRateLimiter', () => {
     expect(limiter.consume('127.0.0.1')).toEqual({
       allowed: true,
       remaining: 2,
-      retryAfterMs: 0
+      retryAfterMs: 0,
+      resetAfterMs: 10_000
     });
 
     expect(limiter.consume('127.0.0.1')).toEqual({
       allowed: true,
       remaining: 1,
-      retryAfterMs: 0
+      retryAfterMs: 0,
+      resetAfterMs: 10_000
     });
 
     expect(limiter.consume('127.0.0.1')).toEqual({
       allowed: true,
       remaining: 0,
-      retryAfterMs: 0
+      retryAfterMs: 0,
+      resetAfterMs: 10_000
     });
 
     const blocked = limiter.consume('127.0.0.1');
@@ -45,6 +48,26 @@ describe('FixedWindowRateLimiter', () => {
     expect(blocked.allowed).toBe(false);
     expect(blocked.remaining).toBe(0);
     expect(blocked.retryAfterMs).toBe(10_000);
+  });
+
+  test('reports how long is left in the window, allowed or not', () => {
+    const limiter = new FixedWindowRateLimiter({
+      maxRequests: 2,
+      windowMs: 10_000
+    });
+
+    expect(limiter.consume('k').resetAfterMs).toBe(10_000);
+
+    now += 4_000;
+
+    expect(limiter.consume('k').resetAfterMs).toBe(6_000);
+
+    now += 1_000;
+
+    expect(limiter.consume('k')).toMatchObject({
+      allowed: false,
+      resetAfterMs: 5_000
+    });
   });
 
   test('resets counter after the time window expires', () => {
@@ -63,7 +86,8 @@ describe('FixedWindowRateLimiter', () => {
     expect(afterReset).toEqual({
       allowed: true,
       remaining: 0,
-      retryAfterMs: 0
+      retryAfterMs: 0,
+      resetAfterMs: 5_000
     });
   });
 
@@ -92,7 +116,8 @@ describe('FixedWindowRateLimiter', () => {
     expect(limiter.consume('ip-a')).toEqual({
       allowed: true,
       remaining: 0,
-      retryAfterMs: 0
+      retryAfterMs: 0,
+      resetAfterMs: 60_000
     });
   });
 
@@ -112,7 +137,8 @@ describe('FixedWindowRateLimiter', () => {
     expect(aAfterEviction).toEqual({
       allowed: true,
       remaining: 1,
-      retryAfterMs: 0
+      retryAfterMs: 0,
+      resetAfterMs: 60_000
     });
   });
 

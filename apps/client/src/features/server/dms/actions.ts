@@ -1,5 +1,13 @@
+import { setSelectedDmChannelId } from '@/features/app/actions';
 import { store } from '@/features/store';
-import type { TDirectMessageConversation } from '@sandshark/shared';
+import { i18n } from '@/i18n';
+import { getTRPCClient } from '@/lib/trpc';
+import {
+  getTrpcError,
+  type TDirectMessageConversation
+} from '@sandshark/shared';
+import { toast } from 'sonner';
+import { setDmsOpen } from '../actions';
 import { serverSliceActions } from '../slice';
 
 export const upsertDirectMessage = (
@@ -15,4 +23,17 @@ export const setDirectMessageActivity = (
   store.dispatch(
     serverSliceActions.setDirectMessageActivity({ channelId, lastMessageAt })
   );
+};
+
+// shared by the user popover, the user context menu and the dm list search
+export const openDirectMessage = async (userId: number) => {
+  try {
+    const trpc = getTRPCClient();
+    const result = await trpc.dms.open.mutate({ userId });
+
+    setDmsOpen(true);
+    setSelectedDmChannelId(result.channelId);
+  } catch (error) {
+    toast.error(getTrpcError(error, i18n.t('couldNotOpenDM')));
+  }
 };

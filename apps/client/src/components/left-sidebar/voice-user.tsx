@@ -1,3 +1,4 @@
+import { UserContextMenu } from '@/components/context-menus/user';
 import { UserAvatar } from '@/components/user-avatar';
 import { useStreamVolumeControl } from '@/components/voice-provider/hooks/use-stream-volume-control';
 import { useCan } from '@/features/server/hooks';
@@ -121,7 +122,11 @@ const VoiceUser = memo(
     );
 
     if (isOwnUser || !isOwnChannel) {
-      return <UserPopover userId={user.id}>{userRow}</UserPopover>;
+      return (
+        <UserContextMenu userId={user.id}>
+          <UserPopover userId={user.id}>{userRow}</UserPopover>
+        </UserContextMenu>
+      );
     }
 
     return (

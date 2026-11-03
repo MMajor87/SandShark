@@ -1,3 +1,4 @@
+import { MessageContextMenu } from '@/components/context-menus/message';
 import { useCan } from '@/features/server/hooks';
 import {
   useIsOwnUser,
@@ -79,7 +80,7 @@ const Message = memo(
       }
     }, [editingMessageId, message.id, onEditComplete]);
 
-    return (
+    const messageRow = (
       <div
         className={cn(
           'min-w-0 flex-1 ml-1 relative hover:bg-secondary/50 rounded-md px-1 py-0.5 group',
@@ -123,6 +124,24 @@ const Message = memo(
           <MessageEditInline message={message} onBlur={handleEditBlur} />
         )}
       </div>
+    );
+
+    if (disableActions) return messageRow;
+
+    return (
+      <MessageContextMenu
+        messageId={message.id}
+        channelId={message.channelId}
+        onEdit={handleEdit}
+        onReply={onReplyMessageSelect ? handleReply : undefined}
+        canManage={canManage}
+        editable={message.editable ?? false}
+        isThreadReply={isThreadReply}
+        isPinned={message.pinned ?? false}
+        disabled={isEditing}
+      >
+        {messageRow}
+      </MessageContextMenu>
     );
   }
 );

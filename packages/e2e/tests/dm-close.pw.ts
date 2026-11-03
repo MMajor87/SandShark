@@ -46,3 +46,18 @@ test('a closed dm stays hidden until the other person writes again', async ({
     await expect(conversation).toBeVisible();
   });
 });
+
+// usere and User C is a pair no other dm spec asserts on, so closing it cannot race them
+test('a dm can be closed from its context menu', async ({ browser }) => {
+  await withClients(browser, ['usere'], async ([closer]) => {
+    await startDmWith(closer!, 'User C');
+    await sendMessage(closer!, `menu close ${RUN_ID}`);
+
+    const conversation = dmItem(closer!, 'User C');
+
+    await conversation.click({ button: 'right' });
+    await closer!.getByTestId(TestId.DM_MENU_CLOSE).click();
+
+    await expect(conversation).toHaveCount(0);
+  });
+});

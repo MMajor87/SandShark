@@ -43,5 +43,11 @@ export enum TestId {
   SETTINGS_SIDEBAR_ENTRY = 'settings-sidebar-entry',
   INSTALLED_PLUGIN_ITEM = 'installed-plugin-item',
   CATEGORY_ADD_CHANNEL = 'category-add-channel',
-  CATEGORY_MENU_DELETE = 'category-menu-delete'
+  CATEGORY_MENU_DELETE = 'category-menu-delete',
+  MESSAGE_CONTEXT_MENU = 'message-context-menu',
+  MESSAGE_MENU_DELETE = 'message-menu-delete',
+  USER_CONTEXT_MENU = 'user-context-menu',
+  USER_MENU_DM = 'user-menu-dm',
+  USER_MENU_MODERATE = 'user-menu-moderate',
+  DM_MENU_CLOSE = 'dm-menu-close'
 }

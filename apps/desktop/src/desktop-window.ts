@@ -1,6 +1,7 @@
 import {
   app,
   BrowserWindow,
+  clipboard,
   dialog,
   Menu,
   nativeImage,
@@ -15,6 +16,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { writeJsonAtomically } from './atomic-json.js';
+import { buildEditMenuTemplate } from './edit-context-menu.js';
 import type {
   TDesktopNotification,
   TDesktopNotificationTarget,
@@ -659,6 +661,21 @@ const createDesktopWindow = ({
       };
       writeDesktopLog('crash', 'Renderer process exited', crashDetails);
       showCrashRecoveryDialog('renderer', crashDetails).catch(console.error);
+    });
+
+    window.webContents.on('context-menu', (_event, params) => {
+      const template = buildEditMenuTemplate(params, {
+        replaceMisspelling: (word) => window.webContents.replaceMisspelling(word),
+        addToDictionary: (word) =>
+          window.webContents.session.addWordToSpellCheckerDictionary(word),
+        copyLink: (url) => clipboard.writeText(url)
+      });
+
+      if (template.length === 0) return;
+
+      const menu = Menu.buildFromTemplate(template);
+
+      menu.popup({ window });
     });
 
     window.webContents.on('will-attach-webview', (event) => {

@@ -3,6 +3,7 @@ import {
   type TJoinedMessage
 } from '@sandshark/shared';
 import type http from 'http';
+import { getBotCommandById } from '../../db/queries/bot-commands';
 import { getChannelsForUser } from '../../db/queries/channels';
 import { getPublicUsers } from '../../db/queries/users';
 import {
@@ -12,8 +13,10 @@ import {
 import { serializeMessages } from '../../helpers/discord/message';
 import {
   resolveChannelSnowflake,
+  resolveCommandSnowflake,
   resolveMessageSnowflake
 } from '../../helpers/discord/resolve';
+import { userSnowflake } from '../../helpers/discord/user';
 import { createMediaAccessToken } from '../../helpers/media-access-token';
 import { getTextBody } from '../helpers';
 import { DiscordApiError, DiscordErrorCode, notFound } from './errors';
@@ -79,8 +82,8 @@ const quoteLongIntegers = (text: string) =>
     token.startsWith('"') ? token : `"${token}"`
   );
 
-// multipart uploads are not supported yet, so anything but a json object is refused
-const readJsonBody = async (req: http.IncomingMessage) => {
+// multipart uploads are not supported yet, so anything but json is refused
+const readJsonValue = async (req: http.IncomingMessage): Promise<unknown> => {
   const contentType = req.headers['content-type'] ?? '';
 
   if (!contentType.startsWith('application/json')) {
@@ -89,18 +92,75 @@ const readJsonBody = async (req: http.IncomingMessage) => {
 
   try {
     const text = await getTextBody(req);
-    const body: unknown = text ? JSON.parse(quoteLongIntegers(text)) : {};
 
-    if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-      throw invalidFormBody();
-    }
-
-    return body as Record<string, unknown>;
-  } catch (error) {
-    if (error instanceof DiscordApiError) throw error;
-
+    return text ? JSON.parse(quoteLongIntegers(text)) : {};
+  } catch {
     throw invalidFormBody();
   }
+};
+
+const readJsonBody = async (req: http.IncomingMessage) => {
+  const body = await readJsonValue(req);
+
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    throw invalidFormBody();
+  }
+
+  return body as Record<string, unknown>;
+};
+
+// the bulk overwrite of a bot's commands sends a bare array
+const readJsonArray = async (req: http.IncomingMessage) => {
+  const body = await readJsonValue(req);
+
+  if (!Array.isArray(body)) throw invalidFormBody();
+
+  return body as unknown[];
+};
+
+// a bot is its own application, so the application in the path has to be the bot itself.
+// a path naming a guild makes it the guild scoped list, which on a single guild server is a
+// second list of the same commands
+const loadCommandScope = async ({ bot, params }: TBotRequest) => {
+  const applicationId = userSnowflake(bot);
+
+  if (params.applicationId !== applicationId) {
+    throw new DiscordApiError(
+      403,
+      DiscordErrorCode.MISSING_ACCESS,
+      'Missing Access'
+    );
+  }
+
+  const guildScoped = params.guildId !== undefined;
+  const guild = guildScoped
+    ? await loadGuild(params.guildId)
+    : await getGuildContext();
+
+  return {
+    scope: { botId: bot.id, guildScoped },
+    context: { applicationId, guildId: guild.guildId }
+  };
+};
+
+const loadOwnCommand = async (
+  { botId, guildScoped }: { botId: number; guildScoped: boolean },
+  snowflake: string
+) => {
+  const commandId = await resolveCommandSnowflake(snowflake);
+  const command =
+    commandId === undefined
+      ? undefined
+      : await getBotCommandById(botId, guildScoped, commandId);
+
+  if (!command) {
+    throw notFound(
+      DiscordErrorCode.UNKNOWN_APPLICATION_COMMAND,
+      'application command'
+    );
+  }
+
+  return command;
 };
 
 const serializeForBot = (
@@ -118,9 +178,12 @@ const serializeForBot = (
 export {
   getGuildMembers,
   invalidFormBody,
+  loadCommandScope,
   loadGuild,
   loadMessageId,
+  loadOwnCommand,
   loadVisibleChannel,
+  readJsonArray,
   readJsonBody,
   serializeForBot
 };

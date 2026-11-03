@@ -87,6 +87,7 @@ Any library that lets you set the REST base URL can work. It should either read 
 | `PUT`, `DELETE /channels/{id}/messages/{id}/reactions/{emoji}/@me` | |
 | `POST /channels/{id}/typing` | |
 | `POST /users/@me/channels` | opens a DM, if the server allows direct messages |
+| `GET`, `POST`, `PUT /applications/{id}/commands`, and `GET`, `PATCH`, `DELETE /applications/{id}/commands/{id}` | slash commands are stored, but can't be run from the client yet. The same routes under `/applications/{id}/guilds/{id}/commands` hold the guild's own list |
 
 **Gateway (`/api/v10/gateway`)**
 
@@ -103,7 +104,8 @@ Without the **message content** intent, guild messages arrive with their content
 
 ## Not supported yet
 
-- Slash commands and interactions, embeds, buttons and other components, and webhooks
+- Running slash commands: bots can register them, but members can't use them yet, and there are no interactions (#58)
+- Embeds, buttons and other components, and webhooks
 - Uploading files from a bot (attachments can be read and downloaded)
 - Threads: replies inside a thread aren't sent or listed
 - Gateway resume: after a disconnect the bot identifies again, which the libraries do on their own

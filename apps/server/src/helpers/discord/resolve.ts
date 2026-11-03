@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { db } from '../../db';
 import {
+  botCommands,
   categories,
   channels,
   emojis,
@@ -47,6 +48,9 @@ const resolveRoleSnowflake = (value: string) =>
 const resolveEmojiSnowflake = (value: string) =>
   resolveSnowflakeId(value, SnowflakeTag.EMOJI, createdAtLookup(emojis));
 
+const resolveCommandSnowflake = (value: string) =>
+  resolveSnowflakeId(value, SnowflakeTag.COMMAND, createdAtLookup(botCommands));
+
 // messages are the one table that outgrows the 18 id bits, so a miss on the primary key
 // falls back to the channel and creation time the snowflake carries, which the
 // messages_channel_created_idx index serves
@@ -88,6 +92,7 @@ const resolveMessageSnowflake = async (value: string, channelId: number) => {
 export {
   resolveCategorySnowflake,
   resolveChannelSnowflake,
+  resolveCommandSnowflake,
   resolveEmojiSnowflake,
   resolveMessageSnowflake,
   resolveRoleSnowflake,

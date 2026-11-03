@@ -1,7 +1,12 @@
 import { Permission } from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
-import { initTest, uploadFile } from '../../__tests__/helpers';
+import {
+  botApiRequest,
+  createTestBot,
+  initTest,
+  uploadFile
+} from '../../__tests__/helpers';
 import { tdb, testsBaseUrl } from '../../__tests__/setup';
 import {
   channels,
@@ -20,33 +25,6 @@ type TJson = Record<string, unknown>;
 
 // the seeded member role every new bot starts with
 const MEMBER_ROLE_ID = 2;
-
-const createBot = async () => {
-  const { caller } = await initTest(1);
-
-  return caller.bots.create({ name: 'Helper' });
-};
-
-const request = async (
-  path: string,
-  token: string,
-  { method = 'GET', body }: { method?: string; body?: unknown } = {}
-) => {
-  const response = await fetch(`${testsBaseUrl}/api/v10${path}`, {
-    method,
-    headers: {
-      Authorization: `Bot ${token}`,
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
-    },
-    body: body === undefined ? undefined : JSON.stringify(body)
-  });
-  const text = await response.text();
-
-  return {
-    status: response.status,
-    body: (text ? JSON.parse(text) : undefined) as TJson
-  };
-};
 
 const channelId = async (id: number) =>
   channelSnowflake(
@@ -80,7 +58,7 @@ const revokeMemberRole = (permission: Permission) =>
     );
 
 const send = async (token: string, content: string, extra: TJson = {}) =>
-  request(`/channels/${await channelId(1)}/messages`, token, {
+  botApiRequest(`/channels/${await channelId(1)}/messages`, token, {
     method: 'POST',
     body: { content, ...extra }
   });
@@ -88,7 +66,7 @@ const send = async (token: string, content: string, extra: TJson = {}) =>
 describe('bot api messages', () => {
   describe('create', () => {
     test('stores the markdown as the html a member would send and answers a discord message', async () => {
-      const { bot, token } = await createBot();
+      const { bot, token } = await createTestBot();
       const userTwo = (await tdb
         .select()
         .from(users)
@@ -121,7 +99,7 @@ describe('bot api messages', () => {
     });
 
     test('a message reference becomes a reply', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const first = await send(token, 'first');
       const reply = await send(token, 'second', {
         message_reference: { message_id: first.body.id }
@@ -143,7 +121,7 @@ describe('bot api messages', () => {
 
     // discord.py sends snowflakes as json numbers, beyond what a javascript number holds
     test('a reply target sent as a raw json number keeps every digit', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const first = await send(token, 'first');
       const response = await fetch(
         `${testsBaseUrl}/api/v10/channels/${await channelId(1)}/messages`,
@@ -163,14 +141,14 @@ describe('bot api messages', () => {
     });
 
     test('refuses an empty message, a bad body and an unknown reply target', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
 
       expect(await send(token, '   ')).toMatchObject({
         status: 400,
         body: { code: 50006 }
       });
       expect(
-        await request(`/channels/${await channelId(1)}/messages`, token, {
+        await botApiRequest(`/channels/${await channelId(1)}/messages`, token, {
           method: 'POST',
           body: { content: 'x'.repeat(2001) }
         })
@@ -196,11 +174,11 @@ describe('bot api messages', () => {
     });
 
     test('a hidden channel or a foreign dm is unknown, nothing is stored', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const before = (await tdb.select().from(messages)).length;
 
       for (const id of [3, 4]) {
-        const result = await request(
+        const result = await botApiRequest(
           `/channels/${await channelId(id)}/messages`,
           token,
           { method: 'POST', body: { content: 'hello' } }
@@ -216,7 +194,7 @@ describe('bot api messages', () => {
     });
 
     test('the send procedure decides permissions, as it does for members', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
 
       await revokeMemberRole(Permission.SEND_MESSAGES);
 
@@ -229,7 +207,7 @@ describe('bot api messages', () => {
 
   describe('read', () => {
     test('pages history newest first with before, after and around', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const sent: string[] = [];
 
       for (const text of ['one', 'two', 'three', 'four']) {
@@ -240,29 +218,28 @@ describe('bot api messages', () => {
       const contents = (body: TJson) =>
         (body as unknown as TJson[]).map((message) => message.content);
 
-      expect(contents((await request(`${path}?limit=2`, token)).body)).toEqual([
-        'four',
-        'three'
-      ]);
+      expect(
+        contents((await botApiRequest(`${path}?limit=2`, token)).body)
+      ).toEqual(['four', 'three']);
       expect(
         contents(
-          (await request(`${path}?limit=2&before=${sent[2]}`, token)).body
+          (await botApiRequest(`${path}?limit=2&before=${sent[2]}`, token)).body
         )
       ).toEqual(['two', 'one']);
       expect(
         contents(
-          (await request(`${path}?limit=2&after=${sent[0]}`, token)).body
+          (await botApiRequest(`${path}?limit=2&after=${sent[0]}`, token)).body
         )
       ).toEqual(['three', 'two']);
       expect(
         contents(
-          (await request(`${path}?limit=3&around=${sent[1]}`, token)).body
+          (await botApiRequest(`${path}?limit=3&around=${sent[1]}`, token)).body
         )
       ).toEqual(['three', 'two', 'one']);
     });
 
     test('rejects conflicting or invalid paging', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const path = `/channels/${await channelId(1)}/messages`;
 
       for (const query of [
@@ -271,21 +248,23 @@ describe('bot api messages', () => {
         'before=abc',
         'before=1&after=2'
       ]) {
-        expect((await request(`${path}?${query}`, token)).status).toBe(400);
+        expect((await botApiRequest(`${path}?${query}`, token)).status).toBe(
+          400
+        );
       }
     });
 
     test('a single message by id, unknown when it is in another channel', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const { body } = await send(token, 'find me');
-      const found = await request(
+      const found = await botApiRequest(
         `/channels/${await channelId(1)}/messages/${body.id}`,
         token
       );
 
       expect(found.body.content).toBe('find me');
 
-      const elsewhere = await request(
+      const elsewhere = await botApiRequest(
         `/channels/${await channelId(5)}/messages/${body.id}`,
         token
       );
@@ -297,7 +276,7 @@ describe('bot api messages', () => {
     });
 
     test('attachments carry an absolute url the bot can download', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const { caller, mockedToken } = await initTest(1);
       const upload = await uploadFile(
         new File(['hello'], 'note.txt', { type: 'text/plain' }),
@@ -311,7 +290,7 @@ describe('bot api messages', () => {
         files: [temp.id]
       });
 
-      const { body } = await request(
+      const { body } = await botApiRequest(
         `/channels/${await channelId(1)}/messages?limit=1`,
         token
       );
@@ -331,11 +310,11 @@ describe('bot api messages', () => {
 
   describe('edit and delete', () => {
     test('the bot edits and deletes its own message', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const { body } = await send(token, 'draft');
       const path = `/channels/${await channelId(1)}/messages/${body.id}`;
       const id = await messageIdOf(body.id as string);
-      const edited = await request(path, token, {
+      const edited = await botApiRequest(path, token, {
         method: 'PATCH',
         body: { content: '*final*' }
       });
@@ -344,14 +323,14 @@ describe('bot api messages', () => {
       expect(edited.body.edited_timestamp).not.toBeNull();
       expect((await getMessageRow(id))!.content).toBe('<p><em>final</em></p>');
 
-      expect((await request(path, token, { method: 'DELETE' })).status).toBe(
-        204
-      );
+      expect(
+        (await botApiRequest(path, token, { method: 'DELETE' })).status
+      ).toBe(204);
       expect(await getMessageRow(id)).toBeUndefined();
     });
 
     test('cannot edit or delete a message someone else wrote', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const [seeded] = await tdb
         .select()
         .from(messages)
@@ -360,15 +339,15 @@ describe('bot api messages', () => {
 
       expect(
         (
-          await request(path, token, {
+          await botApiRequest(path, token, {
             method: 'PATCH',
             body: { content: 'x' }
           })
         ).status
       ).toBe(403);
-      expect((await request(path, token, { method: 'DELETE' })).status).toBe(
-        403
-      );
+      expect(
+        (await botApiRequest(path, token, { method: 'DELETE' })).status
+      ).toBe(403);
       expect(await getMessageRow(seeded!.id)).toBeDefined();
     });
   });
@@ -381,7 +360,7 @@ describe('bot api messages', () => {
         .where(eq(messageReactions.messageId, messageId));
 
     test('put and delete name the state they want, so repeating them changes nothing', async () => {
-      const { bot, token } = await createBot();
+      const { bot, token } = await createTestBot();
       const { body } = await send(token, 'react to me');
       const id = await messageIdOf(body.id as string);
       const path = `/channels/${await channelId(1)}/messages/${body.id}/reactions/${encodeURIComponent('👍')}/@me`;
@@ -389,9 +368,9 @@ describe('bot api messages', () => {
       await grantMemberRole(Permission.REACT_TO_MESSAGES);
 
       for (let i = 0; i < 2; i++) {
-        expect((await request(path, token, { method: 'PUT' })).status).toBe(
-          204
-        );
+        expect(
+          (await botApiRequest(path, token, { method: 'PUT' })).status
+        ).toBe(204);
       }
 
       // stored as the shortcode a member's client uses for the same emoji
@@ -399,7 +378,7 @@ describe('bot api messages', () => {
         (await reactionRows(id)).map((row) => [row.userId, row.emoji])
       ).toEqual([[bot.id, '+1']]);
 
-      const read = await request(
+      const read = await botApiRequest(
         `/channels/${await channelId(1)}/messages/${body.id}`,
         token
       );
@@ -416,16 +395,16 @@ describe('bot api messages', () => {
       ]);
 
       for (let i = 0; i < 2; i++) {
-        expect((await request(path, token, { method: 'DELETE' })).status).toBe(
-          204
-        );
+        expect(
+          (await botApiRequest(path, token, { method: 'DELETE' })).status
+        ).toBe(204);
       }
 
       expect(await reactionRows(id)).toHaveLength(0);
     });
 
     test('a member reaction and a bot reaction with the same emoji are one reaction', async () => {
-      const { bot, token } = await createBot();
+      const { bot, token } = await createTestBot();
       const { body } = await send(token, 'shared reaction');
       const id = await messageIdOf(body.id as string);
       const path = `/channels/${await channelId(1)}/messages/${body.id}`;
@@ -434,13 +413,13 @@ describe('bot api messages', () => {
       await grantMemberRole(Permission.REACT_TO_MESSAGES);
       await caller.messages.toggleReaction({ messageId: id, emoji: '+1' });
 
-      const before = await request(path, token);
+      const before = await botApiRequest(path, token);
 
       expect(before.body.reactions).toMatchObject([
         { count: 1, me: false, emoji: { id: null, name: '👍' } }
       ]);
 
-      await request(
+      await botApiRequest(
         `${path}/reactions/${encodeURIComponent('👍')}/@me`,
         token,
         {
@@ -455,7 +434,7 @@ describe('bot api messages', () => {
         createdAt: Date.now()
       });
 
-      const after = await request(path, token);
+      const after = await botApiRequest(path, token);
 
       expect(after.body.reactions).toMatchObject([
         { count: 3, me: true, emoji: { id: null, name: '👍' } }
@@ -466,12 +445,12 @@ describe('bot api messages', () => {
     });
 
     test('reacting needs the react permission', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const { body } = await send(token, 'no reactions');
 
       expect(
         (
-          await request(
+          await botApiRequest(
             `/channels/${await channelId(1)}/messages/${body.id}/reactions/${encodeURIComponent('👍')}/@me`,
             token,
             { method: 'PUT' }
@@ -481,13 +460,13 @@ describe('bot api messages', () => {
     });
 
     test('an unknown custom emoji is refused', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const { body } = await send(token, 'custom');
 
       await grantMemberRole(Permission.REACT_TO_MESSAGES);
 
       expect(
-        await request(
+        await botApiRequest(
           `/channels/${await channelId(1)}/messages/${body.id}/reactions/nope:123/@me`,
           token,
           { method: 'PUT' }
@@ -501,18 +480,18 @@ describe('bot api messages', () => {
 
   describe('typing', () => {
     test('signals typing in a visible channel and nowhere else', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
 
       expect(
         (
-          await request(`/channels/${await channelId(1)}/typing`, token, {
+          await botApiRequest(`/channels/${await channelId(1)}/typing`, token, {
             method: 'POST'
           })
         ).status
       ).toBe(204);
       expect(
         (
-          await request(`/channels/${await channelId(4)}/typing`, token, {
+          await botApiRequest(`/channels/${await channelId(4)}/typing`, token, {
             method: 'POST'
           })
         ).status
@@ -527,33 +506,41 @@ describe('bot api messages', () => {
       );
 
     test('opens a dm with a member', async () => {
-      const { token } = await createBot();
-      const { status, body } = await request('/users/@me/channels', token, {
-        method: 'POST',
-        body: { recipient_id: await userTwoSnowflake() }
-      });
+      const { token } = await createTestBot();
+      const { status, body } = await botApiRequest(
+        '/users/@me/channels',
+        token,
+        {
+          method: 'POST',
+          body: { recipient_id: await userTwoSnowflake() }
+        }
+      );
 
       expect(status).toBe(200);
       expect(body.type).toBe(1);
       expect((body.recipients as TJson[])[0]!.username).toBe('Test User');
 
-      const message = await request(`/channels/${body.id}/messages`, token, {
-        method: 'POST',
-        body: { content: 'hello there' }
-      });
+      const message = await botApiRequest(
+        `/channels/${body.id}/messages`,
+        token,
+        {
+          method: 'POST',
+          body: { content: 'hello there' }
+        }
+      );
 
       expect(message.status).toBe(200);
       expect(message.body).not.toHaveProperty('guild_id');
     });
 
     test('follows the server direct messages setting', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
 
       await tdb.update(settings).set({ directMessagesEnabled: false });
 
       expect(
         (
-          await request('/users/@me/channels', token, {
+          await botApiRequest('/users/@me/channels', token, {
             method: 'POST',
             body: { recipient_id: await userTwoSnowflake() }
           })
@@ -562,10 +549,10 @@ describe('bot api messages', () => {
     });
 
     test('an unknown recipient is an unknown user', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
 
       expect(
-        await request('/users/@me/channels', token, {
+        await botApiRequest('/users/@me/channels', token, {
           method: 'POST',
           body: {
             recipient_id: encodeSnowflake(SnowflakeTag.USER, 999, Date.now())

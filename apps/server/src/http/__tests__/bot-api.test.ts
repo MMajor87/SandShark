@@ -1,7 +1,7 @@
 import { OWNER_ROLE_ID } from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
-import { initTest } from '../../__tests__/helpers';
+import { createTestBot, initTest } from '../../__tests__/helpers';
 import { tdb, testsBaseUrl } from '../../__tests__/setup';
 import { config } from '../../config';
 import { categories, channels, roles, users } from '../../db/schema';
@@ -18,12 +18,6 @@ import {
 import { userSnowflake } from '../../helpers/discord/user';
 
 type TJson = Record<string, unknown>;
-
-const createBot = async () => {
-  const { caller } = await initTest(1);
-
-  return caller.bots.create({ name: 'Helper' });
-};
 
 const botFetch = (path: string, token?: string, init?: RequestInit) =>
   fetch(`${testsBaseUrl}/api/v10${path}`, {
@@ -55,7 +49,7 @@ const getGuildId = async () => {
 describe('bot api', () => {
   describe('authentication', () => {
     test('refuses a missing, malformed or wrong token with a discord 401', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const [id] = token.split('.');
 
       for (const header of [
@@ -75,7 +69,7 @@ describe('bot api', () => {
     });
 
     test('refuses a banned bot and a reset token', async () => {
-      const { bot, token } = await createBot();
+      const { bot, token } = await createTestBot();
       const { caller } = await initTest(1);
 
       await caller.bots.resetToken({ botId: bot.id });
@@ -109,7 +103,7 @@ describe('bot api', () => {
 
   describe('rate limit', () => {
     test('answers past the global budget with a discord 429', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const responses = await Promise.all(
         Array.from({ length: config.rateLimiters.botApi.maxRequests + 1 }, () =>
           botFetch('/users/@me', token)
@@ -128,7 +122,7 @@ describe('bot api', () => {
   describe('rate limit headers', () => {
     // discord.py reads every one of these as soon as it sees the limit header
     test('every response carries the full discord header set', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const response = await botFetch('/users/@me', token);
 
       expect(response.headers.get('x-ratelimit-limit')).toBe('50');
@@ -145,7 +139,7 @@ describe('bot api', () => {
 
   describe('application', () => {
     test('the bot is its own application, owned by whoever created it', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
 
       for (const path of ['/applications/@me', '/oauth2/applications/@me']) {
         const { status, body } = await getJson(path, token);
@@ -164,7 +158,7 @@ describe('bot api', () => {
 
   describe('routing', () => {
     test('unknown routes and methods get discord errors', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const missing = await botFetch('/nothing/here', token);
 
       expect(missing.status).toBe(404);
@@ -183,7 +177,7 @@ describe('bot api', () => {
 
   describe('users', () => {
     test('@me is the bot, with a snowflake that decodes to its row', async () => {
-      const { bot, token } = await createBot();
+      const { bot, token } = await createTestBot();
       const { status, body } = await getJson('/users/@me', token);
       const row = await getRow(users, bot.id);
 
@@ -202,7 +196,7 @@ describe('bot api', () => {
     });
 
     test('looks up any member by snowflake', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const { status, body } = await getJson(
         `/users/${await userId(2)}`,
         token
@@ -213,7 +207,7 @@ describe('bot api', () => {
     });
 
     test('an unknown or forged user id is an unknown user', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const row = await getRow(users, 2);
 
       for (const id of [
@@ -232,7 +226,7 @@ describe('bot api', () => {
 
   describe('guild', () => {
     test('the server is one guild owned by the owner', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const guildId = await getGuildId();
       const { status, body } = await getJson(`/guilds/${guildId}`, token);
 
@@ -245,7 +239,7 @@ describe('bot api', () => {
     });
 
     test('any other guild id is an unknown guild', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
 
       for (const path of ['/guilds/123', '/guilds/123/roles']) {
         const { status, body } = await getJson(path, token);
@@ -256,7 +250,7 @@ describe('bot api', () => {
     });
 
     test('roles include @everyone under the guild id and an administrator owner role', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const guildId = await getGuildId();
       const { body } = await getJson(`/guilds/${guildId}/roles`, token);
       const list = body as unknown as TJson[];
@@ -276,7 +270,7 @@ describe('bot api', () => {
 
   describe('channels', () => {
     test('lists categories and the guild channels the bot can see, never dms', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const guildId = await getGuildId();
       const { body } = await getJson(`/guilds/${guildId}/channels`, token);
       const names = (body as unknown as TJson[]).map((channel) => [
@@ -294,7 +288,7 @@ describe('bot api', () => {
     });
 
     test('a visible channel and a category resolve by id', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const general = await getRow(channels, 1);
       const category = (await tdb
         .select()
@@ -327,7 +321,7 @@ describe('bot api', () => {
     });
 
     test('a private channel or a dm the bot is not in reads as unknown', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
 
       for (const id of [3, 4]) {
         const { status, body } = await getJson(
@@ -343,7 +337,7 @@ describe('bot api', () => {
 
   describe('members', () => {
     test('pages members by user snowflake, leaving out the placeholder and banned accounts', async () => {
-      const { bot, token } = await createBot();
+      const { bot, token } = await createTestBot();
       const guildId = await getGuildId();
 
       await tdb.update(users).set({ banned: true }).where(eq(users.id, 3));
@@ -374,7 +368,7 @@ describe('bot api', () => {
     });
 
     test('rejects an invalid limit or cursor as an invalid form body', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const guildId = await getGuildId();
 
       for (const query of ['limit=0', 'limit=1001', 'after=abc']) {
@@ -389,7 +383,7 @@ describe('bot api', () => {
     });
 
     test('a single member carries its role snowflakes', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const guildId = await getGuildId();
       const { status, body } = await getJson(
         `/guilds/${guildId}/members/${await userId(1)}`,
@@ -402,7 +396,7 @@ describe('bot api', () => {
     });
 
     test('an unknown member is unknown', async () => {
-      const { token } = await createBot();
+      const { token } = await createTestBot();
       const guildId = await getGuildId();
       const { status, body } = await getJson(
         `/guilds/${guildId}/members/${encodeSnowflake(SnowflakeTag.USER, 999, Date.now())}`,

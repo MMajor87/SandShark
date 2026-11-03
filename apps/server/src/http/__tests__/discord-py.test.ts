@@ -1,11 +1,16 @@
 import { Permission } from '@sandshark/shared';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import type http from 'http';
 import path from 'node:path';
 import { initTest, startRealtimeServer } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
-import { messageReactions, messages, rolePermissions } from '../../db/schema';
+import {
+  botCommands,
+  messageReactions,
+  messages,
+  rolePermissions
+} from '../../db/schema';
 
 // the seeded member role every new bot starts with
 const MEMBER_ROLE_ID = 2;
@@ -127,6 +132,31 @@ describe('discord.py compatibility', () => {
         });
 
         expect(ready).toBe('READY Py Bot 1 General,Restricted Text');
+        expect(await stdout.waitForLine('SYNCED')).toBe('SYNCED roll 1');
+
+        const commands = await tdb
+          .select()
+          .from(botCommands)
+          .where(eq(botCommands.botId, bot.id))
+          .orderBy(asc(botCommands.id));
+
+        expect(
+          commands.map((command) => [command.name, command.guildScoped])
+        ).toEqual([
+          ['roll', false],
+          ['roll', true]
+        ]);
+        expect(commands[0]!.options).toEqual([
+          {
+            type: 4,
+            name: 'sides',
+            // discord.py's placeholder for an option with no description
+            description: '…',
+            required: true,
+            minValue: 2,
+            maxValue: 100
+          }
+        ]);
 
         const pingId = await caller.messages.send({
           channelId: 1,

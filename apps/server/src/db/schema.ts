@@ -3,7 +3,9 @@ import {
   DEFAULT_PROFILE_COLOR,
   PluginCapabilityMode,
   PluginCapabilityType,
+  type BotCommandType,
   type TActivityLogDetailsMap,
+  type TBotCommandOption,
   type TMessageMetadata,
   type TPluginMessageComponent
 } from '@sandshark/shared';
@@ -227,6 +229,38 @@ const bots = sqliteTable(
     createdAt: integer('created_at').notNull()
   },
   (t) => [index('bots_created_by_idx').on(t.createdBy)]
+);
+
+// discord keeps a bot's global commands and its commands for a guild as two separate lists,
+// and a bot can register the same name in both, so the scope is part of the key
+const botCommands = sqliteTable(
+  'bot_commands',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    botId: integer('bot_id')
+      .notNull()
+      .references(() => bots.userId, { onDelete: 'cascade' }),
+    guildScoped: integer('guild_scoped', { mode: 'boolean' }).notNull(),
+    type: integer('type').$type<BotCommandType>().notNull(),
+    name: text('name').notNull(),
+    description: text('description').notNull(),
+    options: text('options', { mode: 'json' })
+      .$type<TBotCommandOption[]>()
+      .notNull(),
+    // a discord permission bitfield as a decimal string, or null for everyone
+    defaultMemberPermissions: text('default_member_permissions'),
+    nsfw: integer('nsfw', { mode: 'boolean' }).notNull(),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull()
+  },
+  (t) => [
+    uniqueIndex('bot_commands_bot_scope_type_name_idx').on(
+      t.botId,
+      t.guildScoped,
+      t.type,
+      t.name
+    )
+  ]
 );
 
 const userRoles = sqliteTable(
@@ -771,6 +805,7 @@ const pluginCapabilityRoles = sqliteTable(
 
 export {
   activityLog,
+  botCommands,
   bots,
   calendarEventInvitees,
   calendarEventResponses,

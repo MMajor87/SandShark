@@ -183,6 +183,13 @@
       "when": 1793685766464,
       "tag": "0025_grant_manage_bots",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1793747461210,
+      "tag": "0026_chunky_nextwave",
+      "breakpoints": true
     }
   ]
 }

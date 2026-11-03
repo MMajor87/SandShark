@@ -10,6 +10,7 @@ import sys
 
 import discord
 import yarl
+from discord import app_commands
 from discord import http as discord_http
 from discord.gateway import DiscordWebSocket
 
@@ -22,6 +23,12 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 client = discord.Client(intents=intents)
+tree = app_commands.CommandTree(client)
+
+
+@tree.command(name="roll", description="Roll a die")
+async def roll(interaction: discord.Interaction, sides: app_commands.Range[int, 2, 100]):
+    await interaction.response.send_message(str(sides))
 
 
 @client.event
@@ -29,6 +36,12 @@ async def on_ready():
     guild = client.guilds[0]
     names = sorted(channel.name for channel in guild.text_channels)
 
+    # how a discord.py bot registers its slash commands: globally, and copied to one guild
+    synced = await tree.sync()
+    tree.copy_global_to(guild=guild)
+    guild_synced = await tree.sync(guild=guild)
+
+    print(f"SYNCED {','.join(c.name for c in synced)} {len(guild_synced)}", flush=True)
     print(f"READY {client.user.name} {len(client.guilds)} {','.join(names)}", flush=True)
 
 

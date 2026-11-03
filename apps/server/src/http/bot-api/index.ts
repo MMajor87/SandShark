@@ -18,10 +18,16 @@ import {
   sendDiscordRateLimit
 } from './errors';
 import { addOwnReactionRoute } from './routes/add-own-reaction';
+import { bulkOverwriteApplicationCommandsRoute } from './routes/bulk-overwrite-application-commands';
+import { createApplicationCommandRoute } from './routes/create-application-command';
 import { createDmRoute } from './routes/create-dm';
 import { createMessageRoute } from './routes/create-message';
+import { deleteApplicationCommandRoute } from './routes/delete-application-command';
 import { deleteMessageRoute } from './routes/delete-message';
+import { editApplicationCommandRoute } from './routes/edit-application-command';
 import { editMessageRoute } from './routes/edit-message';
+import { getApplicationCommandRoute } from './routes/get-application-command';
+import { getApplicationCommandsRoute } from './routes/get-application-commands';
 import { getChannelRoute } from './routes/get-channel';
 import { getChannelMessageRoute } from './routes/get-channel-message';
 import { getChannelMessagesRoute } from './routes/get-channel-messages';
@@ -60,6 +66,20 @@ const botRoutes: TBotRoute[] = [
   route('GET', '/gateway/bot', getGatewayBotRoute),
   route('GET', '/applications/@me', getCurrentApplicationRoute),
   route('GET', '/oauth2/applications/@me', getCurrentApplicationRoute),
+  // the global commands and the guild's commands are two lists served by the same handlers
+  ...[
+    '/applications/:applicationId',
+    '/applications/:applicationId/guilds/:guildId'
+  ]
+    .map((base) => `${base}/commands`)
+    .flatMap((commands) => [
+      route('GET', commands, getApplicationCommandsRoute),
+      route('POST', commands, createApplicationCommandRoute),
+      route('PUT', commands, bulkOverwriteApplicationCommandsRoute),
+      route('GET', `${commands}/:commandId`, getApplicationCommandRoute),
+      route('PATCH', `${commands}/:commandId`, editApplicationCommandRoute),
+      route('DELETE', `${commands}/:commandId`, deleteApplicationCommandRoute)
+    ]),
   route('GET', '/users/@me', getCurrentUserRoute),
   route('GET', '/users/:userId', getUserRoute),
   route('GET', '/guilds/:guildId', getGuildRoute),

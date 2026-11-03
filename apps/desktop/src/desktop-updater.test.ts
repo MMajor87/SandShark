@@ -287,3 +287,35 @@ test('a manual check from settings does not prompt', async () => {
     service.dispose();
   }
 });
+
+test('logs and reports an updater module that provides no updater', async () => {
+  const logs: string[] = [];
+  const service = createDesktopUpdater({
+    getMainWindow: () => null,
+    preferences: {
+      getUpdateSettings: () => ({
+        automaticallyCheck: true,
+        automaticallyDownload: true
+      })
+    },
+    isDevelopment: false,
+    isPackagedSmokeTest: false,
+    writeDesktopLog: (_category: string, message: string) => {
+      logs.push(message);
+    },
+    loadUpdater: async () => undefined
+  } as unknown as Parameters<typeof createDesktopUpdater>[0]);
+
+  expect(await service.configureAutoUpdater()).toBeUndefined();
+  expect(logs).toContain('Electron updater module failed to load');
+});
+
+// node only exposes commonjs getters through the default export, which is where the
+// loader reads autoUpdater from. the getter is not called, it needs a running electron app
+test('electron-updater defines autoUpdater on its default export', async () => {
+  const { default: electronUpdater } = await import('electron-updater');
+
+  expect(
+    Object.getOwnPropertyDescriptor(electronUpdater, 'autoUpdater')
+  ).toBeDefined();
+});

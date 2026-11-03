@@ -18,6 +18,15 @@ type TUpdaterOptions = {
   dialog: Pick<Dialog, 'showMessageBox'>;
   loadUpdater?: () => Promise<typeof ElectronAutoUpdater>;
 };
+
+const loadElectronUpdater = async () => {
+  // electron-updater is commonjs and defines autoUpdater with a getter, which node cannot
+  // detect as a named export, so it is only reachable through the default export
+  const { default: electronUpdater } = await import('electron-updater');
+
+  return electronUpdater.autoUpdater;
+};
+
 const createDesktopUpdater = ({
   getMainWindow,
   writeDesktopLog,
@@ -25,8 +34,7 @@ const createDesktopUpdater = ({
   isDevelopment,
   isPackagedSmokeTest,
   dialog,
-  loadUpdater = () =>
-    import('electron-updater').then(({ autoUpdater }) => autoUpdater)
+  loadUpdater = loadElectronUpdater
 }: TUpdaterOptions) => {
   let disposed = false;
   const removeListeners: (() => void)[] = [];
@@ -136,16 +144,23 @@ const createDesktopUpdater = ({
     }
 
     if (!autoUpdaterLoadPromise) {
-      autoUpdaterLoadPromise = loadUpdater().catch((error) => {
-        writeDesktopLog('updates', 'Electron updater module failed to load', {
-          error: error instanceof Error ? error.message : String(error)
+      autoUpdaterLoadPromise = loadUpdater()
+        .then((loaded) => {
+          // a missing updater used to skip every check without a trace
+          if (!loaded) throw new Error('electron-updater has no autoUpdater.');
+
+          return loaded;
+        })
+        .catch((error) => {
+          writeDesktopLog('updates', 'Electron updater module failed to load', {
+            error: error instanceof Error ? error.message : String(error)
+          });
+          publishUpdateStatus({
+            state: 'error',
+            message: 'Automatic updates are unavailable in this build.'
+          });
+          return undefined;
         });
-        publishUpdateStatus({
-          state: 'error',
-          message: 'Automatic updates are unavailable in this build.'
-        });
-        return undefined;
-      });
     }
 
     const loadedAutoUpdater = await autoUpdaterLoadPromise;

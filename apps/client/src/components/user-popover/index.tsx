@@ -1,19 +1,15 @@
+import { useUserActions } from '@/components/context-menus/user/hooks/use-user-actions';
 import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
-import { setModViewOpen, setSelectedDmChannelId } from '@/features/app/actions';
-import { setDmsOpen } from '@/features/server/actions';
-import { usePublicServerSettings, useUserRoles } from '@/features/server/hooks';
-import { useIsOwnUser, useUserById } from '@/features/server/users/hooks';
+import { useUserRoles } from '@/features/server/hooks';
+import { useUserById } from '@/features/server/users/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { getRenderedUsername } from '@/helpers/get-rendered-username';
 import { useDateLocale } from '@/hooks/use-date-locale';
-import { getTRPCClient } from '@/lib/trpc';
 import {
   DELETED_USER_IDENTITY_AND_NAME,
-  Permission,
   PluginSlot,
   TestId,
-  UserStatus,
-  getTrpcError
+  UserStatus
 } from '@sandshark/shared';
 import {
   IconButton,
@@ -23,10 +19,8 @@ import {
 } from '@sandshark/ui';
 import { format } from 'date-fns';
 import { MessageSquare, ShieldCheck, Trash, UserCog } from 'lucide-react';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { Protect } from '../protect';
 import { RoleBadge } from '../role-badge';
 import { UserAvatar } from '../user-avatar';
 import { UserStatusBadge } from '../user-status';
@@ -41,29 +35,14 @@ const UserPopover = memo(({ userId, children }: TUserPopoverProps) => {
   const dateLocale = useDateLocale();
   const user = useUserById(userId);
   const roles = useUserRoles(userId);
-  const settings = usePublicServerSettings();
-  const isOwnUser = useIsOwnUser(userId);
+  const { canDirectMessage, canModerate, onDirectMessage, onModerate } =
+    useUserActions(userId);
 
   const pluginProps = useMemo(() => ({ userId }), [userId]);
-
-  const onDirectMessageClick = useCallback(async () => {
-    const trpc = getTRPCClient();
-
-    try {
-      const result = await trpc.dms.open.mutate({ userId });
-
-      setDmsOpen(true);
-      setSelectedDmChannelId(result.channelId);
-    } catch (error) {
-      toast.error(getTrpcError(error, t('couldNotOpenDM')));
-    }
-  }, [userId, t]);
 
   if (!user) return <>{children}</>;
 
   const isDeleted = user.name === DELETED_USER_IDENTITY_AND_NAME;
-  const showDmButton =
-    settings?.directMessagesEnabled && !isDeleted && !isOwnUser;
 
   return (
     <Popover>
@@ -154,29 +133,27 @@ const UserPopover = memo(({ userId, children }: TUserPopoverProps) => {
                 props={pluginProps}
               />
 
-              {showDmButton && (
+              {canDirectMessage && (
                 <IconButton
                   data-testid={TestId.USER_POPOVER_DM}
                   icon={MessageSquare}
                   variant="ghost"
                   size="sm"
                   title={t('directMessage')}
-                  onClick={onDirectMessageClick}
+                  onClick={onDirectMessage}
                 />
               )}
 
-              {
-                <Protect permission={Permission.MANAGE_USERS}>
-                  <IconButton
-                    data-testid={TestId.USER_POPOVER_MODERATE}
-                    icon={UserCog}
-                    variant="ghost"
-                    size="sm"
-                    title={t('moderationView')}
-                    onClick={() => setModViewOpen(true, user.id)}
-                  />
-                </Protect>
-              }
+              {canModerate && (
+                <IconButton
+                  data-testid={TestId.USER_POPOVER_MODERATE}
+                  icon={UserCog}
+                  variant="ghost"
+                  size="sm"
+                  title={t('moderationView')}
+                  onClick={onModerate}
+                />
+              )}
             </div>
           </div>
         </div>

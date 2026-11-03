@@ -1,7 +1,9 @@
+import { DirectMessageContextMenu } from '@/components/context-menus/direct-message';
 import { UnreadCount } from '@/components/unread-count';
 import { UserAvatar } from '@/components/user-avatar';
 import { setSelectedDmChannelId } from '@/features/app/actions';
 import { useSelectedDmChannelId } from '@/features/app/hooks';
+import { openDirectMessage } from '@/features/server/dms/actions';
 import { useVisibleDirectMessages } from '@/features/server/dms/hooks';
 import { useUnreadMessagesCount } from '@/features/server/hooks';
 import {
@@ -9,6 +11,7 @@ import {
   useUserById,
   useUsers
 } from '@/features/server/users/hooks';
+import { getRenderedUsername } from '@/helpers/get-rendered-username';
 import { getTRPCClient } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 import {
@@ -56,32 +59,37 @@ const DirectMessageItem = memo(({ dm, selected }: TDirectMessageItemProps) => {
   }
 
   return (
-    <div
-      data-testid={TestId.DM_ITEM}
-      className={cn(
-        'group flex w-full items-center rounded text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-        selected && 'bg-accent text-accent-foreground'
-      )}
+    <DirectMessageContextMenu
+      name={getRenderedUsername(user)}
+      onClose={onClose}
     >
-      <button
-        type="button"
-        className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5"
-        onClick={onSelect}
+      <div
+        data-testid={TestId.DM_ITEM}
+        className={cn(
+          'group flex w-full items-center rounded text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+          selected && 'bg-accent text-accent-foreground'
+        )}
       >
-        <UserAvatar userId={user.id} className="h-6 w-6" showUserPopover />
-        <span className="truncate flex-1 text-left">{user.name}</span>
-        <UnreadCount count={unreadCount} />
-      </button>
-      <IconButton
-        icon={X}
-        variant="ghost"
-        size="sm"
-        title={t('closeConversation')}
-        onClick={onClose}
-        data-testid={TestId.DM_CLOSE}
-        className="mr-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-      />
-    </div>
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5"
+          onClick={onSelect}
+        >
+          <UserAvatar userId={user.id} className="h-6 w-6" showUserPopover />
+          <span className="truncate flex-1 text-left">{user.name}</span>
+          <UnreadCount count={unreadCount} />
+        </button>
+        <IconButton
+          icon={X}
+          variant="ghost"
+          size="sm"
+          title={t('closeConversation')}
+          onClick={onClose}
+          data-testid={TestId.DM_CLOSE}
+          className="mr-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+        />
+      </div>
+    </DirectMessageContextMenu>
   );
 });
 
@@ -106,21 +114,6 @@ const DirectMessages = memo(() => {
     );
   }, [conversations, ownUserId, query, users]);
 
-  const onStartDm = useCallback(
-    async (userId: number) => {
-      const trpc = getTRPCClient();
-
-      try {
-        const result = await trpc.dms.open.mutate({ userId });
-
-        setSelectedDmChannelId(result.channelId);
-      } catch {
-        toast.error(t('couldNotOpenDM'));
-      }
-    },
-    [t]
-  );
-
   return (
     <div className="flex-1 overflow-y-auto p-2">
       <SectionHeader title={t('directMessages')}>
@@ -128,7 +121,7 @@ const DirectMessages = memo(() => {
           query={query}
           setQuery={setQuery}
           usersToStartDm={usersToStartDm}
-          onStartDm={onStartDm}
+          onStartDm={openDirectMessage}
         />
       </SectionHeader>
 

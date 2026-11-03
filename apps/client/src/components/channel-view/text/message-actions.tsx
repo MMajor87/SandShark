@@ -7,11 +7,7 @@ import {
   withoutShadowedEmojis,
   type TEmojiItem
 } from '@/components/tiptap-input/helpers';
-import { openThreadSidebar } from '@/features/app/actions';
-import { useIsShiftHeld } from '@/features/app/hooks';
-import { requestConfirmation } from '@/features/dialogs/actions';
 import { useCustomEmojis } from '@/features/server/emojis/hooks';
-import { getTRPCClient } from '@/lib/trpc';
 import { Permission, PluginSlot, TestId } from '@sandshark/shared';
 import { IconButton } from '@sandshark/ui';
 import {
@@ -26,7 +22,7 @@ import {
 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
+import { useMessageActions } from './hooks/use-message-actions';
 
 const MAX_QUICK_EMOJIS = 4;
 
@@ -98,69 +94,18 @@ const MessageActions = memo(
       return reachableEmojis.slice(0, MAX_QUICK_EMOJIS);
     }, [recentEmojis, customEmojis]);
 
-    const isShiftHeld = useIsShiftHeld();
+    const {
+      isShiftHeld,
+      onDelete,
+      onToggleReaction,
+      onReplyInThread,
+      onTogglePin
+    } = useMessageActions(messageId, channelId);
 
     const pluginProps = useMemo(
       () => ({ messageId, channelId }),
       [messageId, channelId]
     );
-
-    const onDeleteClick = useCallback(async () => {
-      if (!isShiftHeld) {
-        const choice = await requestConfirmation({
-          title: t('deleteMessageTitle'),
-          message: t('deleteMessageConfirm'),
-          confirmLabel: t('deleteLabel'),
-          cancelLabel: t('cancel')
-        });
-
-        if (!choice) return;
-      }
-
-      const trpc = getTRPCClient();
-      try {
-        await trpc.messages.delete.mutate({ messageId });
-        toast.success(t('messageDeleted'));
-      } catch {
-        toast.error(t('failedDeleteMessage'));
-      }
-    }, [isShiftHeld, messageId, t]);
-
-    const onEmojiSelect = useCallback(
-      async (emoji: TEmojiItem) => {
-        const trpc = getTRPCClient();
-
-        try {
-          await trpc.messages.toggleReaction.mutate({
-            messageId,
-            emoji: emoji.shortcodes[0]
-          });
-        } catch (error) {
-          toast.error(t('failedAddReaction'));
-
-          console.error('Error adding reaction:', error);
-        }
-      },
-      [messageId, t]
-    );
-
-    const onReplyClick = useCallback(() => {
-      openThreadSidebar(messageId, channelId);
-    }, [messageId, channelId]);
-
-    const onPinClick = useCallback(async () => {
-      const trpc = getTRPCClient();
-
-      try {
-        await trpc.messages.togglePin.mutate({ messageId });
-
-        toast.success(t('messagePinToggled'));
-      } catch (error) {
-        toast.error(t('failedTogglePin'));
-
-        console.error('Error toggling pin status:', error);
-      }
-    }, [messageId, t]);
 
     return (
       <div className="gap-1 absolute right-0 -top-6 z-10 hidden group-hover:flex [&:has([data-state=open])]:flex items-center space-x-1 rounded-lg shadow-lg border border-border p-2 transition-all bg-background">
@@ -178,7 +123,7 @@ const MessageActions = memo(
             size="sm"
             variant="ghost"
             icon={MessageSquareText}
-            onClick={onReplyClick}
+            onClick={onReplyInThread}
             title={t('replyInThread')}
             data-testid={TestId.MESSAGE_REPLY_IN_THREAD}
           />
@@ -199,7 +144,7 @@ const MessageActions = memo(
               variant="ghost"
               icon={isShiftHeld ? Trash2 : Trash}
               className={isShiftHeld ? 'text-destructive' : ''}
-              onClick={onDeleteClick}
+              onClick={onDelete}
               title={t('deleteMessageTitle')}
               data-testid={TestId.MESSAGE_DELETE}
             />
@@ -211,7 +156,7 @@ const MessageActions = memo(
               size="sm"
               variant="ghost"
               icon={isPinned ? PinOff : Pin}
-              onClick={onPinClick}
+              onClick={onTogglePin}
               title={isPinned ? t('unpinMessage') : t('pinMessage')}
             />
           </Protect>
@@ -228,11 +173,11 @@ const MessageActions = memo(
               <QuickReactionButton
                 key={emoji.name}
                 emoji={emoji}
-                onSelect={onEmojiSelect}
+                onSelect={onToggleReaction}
               />
             ))}
 
-            <EmojiPicker onEmojiSelect={onEmojiSelect}>
+            <EmojiPicker onEmojiSelect={onToggleReaction}>
               <IconButton
                 variant="ghost"
                 icon={Smile}

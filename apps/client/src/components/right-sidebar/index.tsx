@@ -1,3 +1,4 @@
+import { UserContextMenu } from '@/components/context-menus/user';
 import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { ResizableSidebar } from '@/components/resizable-sidebar';
 import { UserAvatar } from '@/components/user-avatar';
@@ -31,30 +32,32 @@ const User = memo(({ userId, name, banned, offline }: TUserProps) => {
   const pluginProps = useMemo(() => ({ userId }), [userId]);
 
   return (
-    <UserPopover userId={userId}>
-      <div
-        data-testid={TestId.MEMBER_ITEM}
-        className={cn(
-          'flex min-w-0 select-none items-center gap-3 rounded-md px-2 py-1.5 transition-opacity hover:bg-accent hover:opacity-100',
-          offline && 'opacity-40'
-        )}
-      >
-        <UserAvatar userId={userId} className="h-8 w-8 shrink-0" />
-        <span
+    <UserContextMenu userId={userId}>
+      <UserPopover userId={userId}>
+        <div
+          data-testid={TestId.MEMBER_ITEM}
           className={cn(
-            'text-sm text-foreground truncate',
-            banned && 'line-through text-muted-foreground'
+            'flex min-w-0 select-none items-center gap-3 rounded-md px-2 py-1.5 transition-opacity hover:bg-accent hover:opacity-100',
+            offline && 'opacity-40'
           )}
         >
-          {name}
-        </span>
+          <UserAvatar userId={userId} className="h-8 w-8 shrink-0" />
+          <span
+            className={cn(
+              'text-sm text-foreground truncate',
+              banned && 'line-through text-muted-foreground'
+            )}
+          >
+            {name}
+          </span>
 
-        <PluginSlotRenderer
-          slotId={PluginSlot.MEMBER_LIST_ITEM}
-          props={pluginProps}
-        />
-      </div>
-    </UserPopover>
+          <PluginSlotRenderer
+            slotId={PluginSlot.MEMBER_LIST_ITEM}
+            props={pluginProps}
+          />
+        </div>
+      </UserPopover>
+    </UserContextMenu>
   );
 });
 

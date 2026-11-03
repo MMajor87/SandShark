@@ -1,3 +1,4 @@
+import { UserMenuItems } from '@/components/context-menus/user/user-menu-items';
 import { UserAvatar } from '@/components/user-avatar';
 import { useStreamVolumeControl } from '@/components/voice-provider/hooks/use-stream-volume-control';
 import {
@@ -109,6 +110,7 @@ const StreamContextMenu = (props: TStreamContextMenuProps) => {
             <span className="text-xs text-muted-foreground">{volume}%</span>
           </div>
         </div>
+        {props.type === 'user' && <UserMenuItems userId={props.userId} />}
       </ContextMenuContent>
     </ContextMenu>
   );

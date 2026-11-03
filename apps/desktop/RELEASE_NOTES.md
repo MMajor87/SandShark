@@ -1,3 +1,14 @@
+# SandShark 1.1.7
+
+- Renames the remaining old project identifiers to SandShark. Saved servers, logins and settings carry over automatically on first start.
+- Removes the plugin marketplace. Server admins install plugins by copying them into the server's plugins folder.
+- Drops the legacy deep link scheme; links use `sandshark://`.
+- Removes the Bridge docs link from the hotkey settings.
+
+## Upgrade notes
+
+Upgrade the paired SandShark server to 0.2.0 at the same time: the storage usage metric and the plugin routes changed on both sides. Plugins built against the older plugin SDK need rebuilding. The Windows installer does not deploy a server. This installer remains unsigned.
+
 # SandShark 1.1.6
 
 - Stops screen share audio from ever falling back to whole system capture, which could include SandShark's own voice playback.

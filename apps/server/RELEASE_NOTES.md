@@ -1,4 +1,4 @@
-# SandShark Server (unreleased)
+# SandShark Server 0.2.0
 
 - Renames the server's remaining old project identifiers to SandShark.
 - Removes the plugin marketplace and the install and update plugin routes. To add a plugin, copy its folder into the `plugins` folder in the server's data directory.
@@ -10,6 +10,12 @@
 - Docker: change the volume mount to `-v sandshark-data:/home/bun/.config/sandshark`. A volume still mounted at the old path keeps working but cannot be moved from inside the container.
 - Release binaries are now named `sandshark-linux-x64`, `sandshark-linux-arm64`, `sandshark-windows-x64.exe` and `sandshark-macos-arm64`. Update any install scripts that download them by name.
 - The version header is now `X-SandShark-Version`.
+
+## Compatibility and upgrade
+
+Use SandShark Desktop 1.1.7 with this server, and upgrade both together: the storage usage metric and the plugin routes changed on both sides. Stop the server and back up its entire data directory before upgrading. Migrations run automatically at startup. Plugins built against the older plugin SDK need rebuilding against `@sandshark/plugin-sdk`.
+
+The release publishes Linux x64/arm64, Windows x64, and macOS arm64 binaries, plus the versioned Docker image `ghcr.io/mmajor87/sandshark-server:0.2.0`. The workflow does not move a `latest` image tag. The desktop release remains GitHub's Latest release for desktop updater compatibility.
 
 # SandShark Server 0.1.1
 

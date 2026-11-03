@@ -1,3 +1,4 @@
+import { BotBadge } from '@/components/bot-badge';
 import { MessageAuthorAvatar } from '@/components/message-author-avatar';
 import { RelativeTime } from '@/components/relative-time';
 import { useIsOwnUser, useUserById } from '@/features/server/users/hooks';
@@ -67,11 +68,7 @@ const MessagesGroup = memo(
             >
               {authorName}
             </span>
-            {isPluginMessage && (
-              <span className="inline-flex items-center rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary/60 uppercase tracking-wide">
-                bot
-              </span>
-            )}
+            {(isPluginMessage || user?.isBot) && <BotBadge />}
             <RelativeTime date={date}>
               {(relativeTime) => (
                 <span

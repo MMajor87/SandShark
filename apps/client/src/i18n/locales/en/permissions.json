@@ -30,7 +30,8 @@
     "USE_PLUGINS": "Use plugins",
     "VIEW_USER_SENSITIVE_DATA": "View user sensitive data",
     "USE_SOUNDBOARD": "Use the soundboard",
-    "MANAGE_SOUNDBOARD": "Manage soundboard"
+    "MANAGE_SOUNDBOARD": "Manage soundboard",
+    "MANAGE_BOTS": "Manage bots"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "Grants the ability to send messages in channels.",
@@ -58,7 +59,8 @@
     "USE_PLUGINS": "Grants the ability to use plugins, such as executing plugin commands or seeing UI elements added by plugins.",
     "VIEW_USER_SENSITIVE_DATA": "Grants the ability to view user sensitive data like identity, IP address, and location.",
     "USE_SOUNDBOARD": "Grants the ability to play soundboard sounds in voice channels.",
-    "MANAGE_SOUNDBOARD": "Grants the ability to upload, edit and delete soundboard sounds."
+    "MANAGE_SOUNDBOARD": "Grants the ability to upload, edit and delete soundboard sounds.",
+    "MANAGE_BOTS": "Grants the ability to create bots, reset their tokens and delete them."
   },
   "channel": {
     "VIEW_CHANNEL": "View Channel",

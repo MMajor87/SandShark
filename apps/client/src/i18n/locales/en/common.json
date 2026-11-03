@@ -151,5 +151,6 @@
   "failedLoadParentMessage": "Failed to load the original message",
   "soundboard": "Soundboard",
   "soundboardEmpty": "No sounds yet. Server admins can add them in server settings.",
-  "failedPlaySound": "Failed to play sound"
+  "failedPlaySound": "Failed to play sound",
+  "botBadge": "Bot"
 }

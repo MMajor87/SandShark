@@ -90,5 +90,12 @@
   "newPasswordLabel": "Nové heslo",
   "confirmNewPasswordLabel": "Potvrďte nové heslo",
   "passwordsDoNotMatch": "Hesla se neshodují",
-  "resetUserPasswordBtn": "Obnovit heslo"
+  "resetUserPasswordBtn": "Obnovit heslo",
+  "botTokenTitle": "Token pro {{name}}",
+  "botTokenMsg": "Zkopírujte si tento token hned a uchovejte ho v tajnosti. Znovu se nezobrazí a kdokoli, kdo ho má, může jednat jako tento bot.",
+  "botTokenLabel": "Token bota",
+  "copyBotToken": "Kopírovat token",
+  "botTokenCopied": "Token zkopírován do schránky",
+  "failedCopyBotToken": "Token se nepodařilo zkopírovat",
+  "botTokenDone": "Zkopírováno"
 }

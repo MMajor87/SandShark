@@ -90,5 +90,12 @@
   "newPasswordLabel": "Новый пароль",
   "confirmNewPasswordLabel": "Подтвердите новый пароль",
   "passwordsDoNotMatch": "Пароли не совпадают",
-  "resetUserPasswordBtn": "Сбросить пароль"
+  "resetUserPasswordBtn": "Сбросить пароль",
+  "botTokenTitle": "Токен для {{name}}",
+  "botTokenMsg": "Скопируйте этот токен сейчас и храните его в секрете. Он больше не будет показан, и любой, у кого он есть, может действовать от имени этого бота.",
+  "botTokenLabel": "Токен бота",
+  "copyBotToken": "Копировать токен",
+  "botTokenCopied": "Токен скопирован в буфер обмена",
+  "failedCopyBotToken": "Не удалось скопировать токен",
+  "botTokenDone": "Я скопировал"
 }

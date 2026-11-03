@@ -1,7 +1,6 @@
 import {
-  DELETED_USER_IDENTITY_AND_NAME,
   HEX_COLOR_REGEX,
-  MAX_USER_NAME_LENGTH,
+  zUserName,
   type TBeforeProfileUpdatePayload,
   type TBeforeProfileUpdateUpdate
 } from '@sandshark/shared';
@@ -17,21 +16,12 @@ import { runHook } from '../../plugins/run-hook';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
 
-const zName = z
-  .string()
-  .trim()
-  .min(1)
-  .max(MAX_USER_NAME_LENGTH)
-  .refine((val) => val !== DELETED_USER_IDENTITY_AND_NAME, {
-    message: 'Protected username'
-  });
-
 const zBio = z.string().max(160).optional();
 
 const updateUserRoute = protectedProcedure
   .input(
     z.object({
-      name: zName,
+      name: zUserName,
       profileColor: z.string().regex(HEX_COLOR_REGEX, 'Invalid hex color'),
       bio: zBio
     })
@@ -44,7 +34,7 @@ const updateUserRoute = protectedProcedure
       entries: pluginManager.getHooks('beforeProfileUpdate'),
       payload: { userId: ctx.userId, name: input.name, bio: input.bio },
       normalize: (payload, pluginId) => {
-        const parsedName = zName.safeParse(payload.name);
+        const parsedName = zUserName.safeParse(payload.name);
         const parsedBio = zBio.safeParse(payload.bio);
 
         invariant(parsedName.success && parsedBio.success, {

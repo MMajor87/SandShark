@@ -90,5 +90,12 @@
   "newPasswordLabel": "新密码",
   "confirmNewPasswordLabel": "确认新密码",
   "passwordsDoNotMatch": "两次输入的密码不一致",
-  "resetUserPasswordBtn": "重置密码"
+  "resetUserPasswordBtn": "重置密码",
+  "botTokenTitle": "{{name}} 的令牌",
+  "botTokenMsg": "请立即复制此令牌并妥善保密。它不会再次显示，任何持有它的人都可以以此机器人的身份操作。",
+  "botTokenLabel": "机器人令牌",
+  "copyBotToken": "复制令牌",
+  "botTokenCopied": "令牌已复制到剪贴板",
+  "failedCopyBotToken": "复制令牌失败",
+  "botTokenDone": "我已复制"
 }

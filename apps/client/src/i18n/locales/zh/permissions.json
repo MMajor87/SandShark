@@ -30,7 +30,8 @@
     "USE_PLUGINS": "使用插件",
     "VIEW_USER_SENSITIVE_DATA": "查看用户敏感数据",
     "USE_SOUNDBOARD": "使用音效板",
-    "MANAGE_SOUNDBOARD": "管理音效板"
+    "MANAGE_SOUNDBOARD": "管理音效板",
+    "MANAGE_BOTS": "管理机器人"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "授予在频道中发送消息的权限。",
@@ -58,7 +59,8 @@
     "USE_PLUGINS": "授予使用插件的权限，例如执行插件命令或查看插件添加的 UI 元素。",
     "VIEW_USER_SENSITIVE_DATA": "授予查看用户敏感数据（如身份标识、IP 地址和位置）的权限。",
     "USE_SOUNDBOARD": "允许在语音频道中播放音效板中的音效。",
-    "MANAGE_SOUNDBOARD": "允许上传、编辑和删除音效板中的音效。"
+    "MANAGE_SOUNDBOARD": "允许上传、编辑和删除音效板中的音效。",
+    "MANAGE_BOTS": "允许创建机器人、重置其令牌以及删除机器人。"
   },
   "channel": {
     "VIEW_CHANNEL": "查看频道",

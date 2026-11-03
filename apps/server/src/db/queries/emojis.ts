@@ -15,6 +15,7 @@ const emojiSelectFields = {
     bio: users.bio,
     createdAt: users.createdAt,
     banned: users.banned,
+    isBot: users.isBot,
     avatarId: users.avatarId,
     bannerId: users.bannerId
   }

@@ -57,5 +57,10 @@ export enum TestId {
   CALENDAR_EVENT_EDIT = 'calendar-event-edit',
   CALENDAR_RSVP = 'calendar-rsvp',
   CALENDAR_SHOW_PAST = 'calendar-show-past',
-  CALENDAR_FORM_SUBMIT = 'calendar-form-submit'
+  CALENDAR_FORM_SUBMIT = 'calendar-form-submit',
+  BOT_CREATE = 'bot-create',
+  BOT_ROW = 'bot-row',
+  BOT_RESET_TOKEN = 'bot-reset-token',
+  BOT_TOKEN_VALUE = 'bot-token-value',
+  BOT_BADGE = 'bot-badge'
 }

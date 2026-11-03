@@ -197,6 +197,12 @@ const loginRouteHandler = async (
     }
   }
 
+  // a bot has no password anyone knows, its token is the only way in. refused before the
+  // hash check so its placeholder password never reaches the legacy upgrade path
+  if (existingUser.isBot) {
+    throw invalidCredentialsError(lockoutKey);
+  }
+
   // temporary logic to migrate old SHA256 password hashes to argon2 on login
   const isPasswordArgon = existingUser.password.startsWith('$argon2');
 

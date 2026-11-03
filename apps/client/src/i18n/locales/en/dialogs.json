@@ -90,5 +90,12 @@
   "inThread": "In thread",
   "jumpToThreadMessage": "Jump to thread original message",
   "jumpToMessage": "Jump to message",
-  "searchTruncated": "Showing the most recent matches only. Refine your search to narrow it down."
+  "searchTruncated": "Showing the most recent matches only. Refine your search to narrow it down.",
+  "botTokenTitle": "Token for {{name}}",
+  "botTokenMsg": "Copy this token now and keep it secret. It will not be shown again, and anyone who has it can act as this bot.",
+  "botTokenLabel": "Bot token",
+  "copyBotToken": "Copy token",
+  "botTokenCopied": "Token copied to clipboard",
+  "failedCopyBotToken": "Failed to copy the token",
+  "botTokenDone": "I've copied it"
 }

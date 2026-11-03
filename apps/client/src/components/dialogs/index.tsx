@@ -2,6 +2,7 @@ import { closeDialogs } from '@/features/dialogs/actions';
 import { useDialogInfo } from '@/features/dialogs/hooks';
 import { createElement, memo } from 'react';
 import { AssignRoleDialog } from './assign-role';
+import { BotTokenDialog } from './bot-token';
 import { ConfirmActionDialog } from './confirm-action';
 import { CreateCategoryDialog } from './create-category';
 import { CreateChannelDialog } from './create-channel';
@@ -30,7 +31,8 @@ const DialogsMap: any = {
   [Dialog.RESET_USER_PASSWORD]: ResetUserPasswordDialog,
   [Dialog.SEARCH]: SearchDialog,
   [Dialog.WELCOME_PROFILE_SETUP]: WelcomeProfileSetupDialog,
-  [Dialog.VOICE_DEBUG]: VoiceDebugDialog
+  [Dialog.VOICE_DEBUG]: VoiceDebugDialog,
+  [Dialog.BOT_TOKEN]: BotTokenDialog
 };
 
 const DialogsProvider = memo(() => {

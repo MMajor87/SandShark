@@ -90,5 +90,12 @@
   "newPasswordLabel": "Nouveau mot de passe",
   "confirmNewPasswordLabel": "Confirmer le nouveau mot de passe",
   "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
-  "resetUserPasswordBtn": "Réinitialiser le mot de passe"
+  "resetUserPasswordBtn": "Réinitialiser le mot de passe",
+  "botTokenTitle": "Jeton de {{name}}",
+  "botTokenMsg": "Copiez ce jeton maintenant et gardez-le secret. Il ne sera plus affiché, et toute personne qui le possède peut agir en tant que ce bot.",
+  "botTokenLabel": "Jeton du bot",
+  "copyBotToken": "Copier le jeton",
+  "botTokenCopied": "Jeton copié dans le presse-papiers",
+  "failedCopyBotToken": "Impossible de copier le jeton",
+  "botTokenDone": "Je l'ai copié"
 }

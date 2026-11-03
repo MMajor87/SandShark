@@ -30,7 +30,8 @@
     "USE_PLUGINS": "Usar plugins",
     "VIEW_USER_SENSITIVE_DATA": "Ver dados sensíveis de usuários",
     "USE_SOUNDBOARD": "Usar o painel de sons",
-    "MANAGE_SOUNDBOARD": "Gerenciar o painel de sons"
+    "MANAGE_SOUNDBOARD": "Gerenciar o painel de sons",
+    "MANAGE_BOTS": "Gerenciar bots"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "Concede a habilidade de enviar mensagens em canais.",
@@ -58,7 +59,8 @@
     "USE_PLUGINS": "Concede a habilidade de usar plugins, como executar comandos de plugin ou ver elementos de UI adicionados por plugins.",
     "VIEW_USER_SENSITIVE_DATA": "Concede a habilidade de visualizar dados sensíveis de usuários, como identidade, endereço IP e localização.",
     "USE_SOUNDBOARD": "Permite tocar sons do painel nos canais de voz.",
-    "MANAGE_SOUNDBOARD": "Permite enviar, editar e excluir sons do painel."
+    "MANAGE_SOUNDBOARD": "Permite enviar, editar e excluir sons do painel.",
+    "MANAGE_BOTS": "Permite criar bots, redefinir seus tokens e excluí-los."
   },
   "channel": {
     "VIEW_CHANNEL": "Ver Canal",

@@ -1,7 +1,7 @@
 import { MessageAuthorAvatar } from '@/components/message-author-avatar';
 import { useParentMessage } from '@/features/server/messages/hooks';
-import type { TJoinedMessage } from '@sharkord/shared';
-import { Spinner } from '@sharkord/ui';
+import type { TJoinedMessage } from '@sandshark/shared';
+import { Spinner } from '@sandshark/ui';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMessageAuthorName } from '../channel-view/text/hooks/use-message-author-name';

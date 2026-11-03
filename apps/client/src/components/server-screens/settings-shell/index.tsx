@@ -3,7 +3,7 @@ import { requestConfirmation } from '@/features/dialogs/actions';
 import { useDialogInfo } from '@/features/dialogs/hooks';
 import { usePreventExit } from '@/hooks/use-prevent-exit';
 import { cn } from '@/lib/utils';
-import { Button, IconButton } from '@sharkord/ui';
+import { Button, IconButton } from '@sandshark/ui';
 import { ChevronLeft, Menu } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';

@@ -10,7 +10,7 @@ import {
   type TVoiceMap,
   type TVoiceProducerInfo,
   type TVoiceUserState
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import type {
   AppData,
   Consumer,

@@ -37,7 +37,7 @@ import {
   type TIRole,
   type TISettings,
   type TIUser
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { randomUUIDv7 } from 'bun';
 import { Database } from 'bun:sqlite';
 import { eq } from 'drizzle-orm';
@@ -250,7 +250,7 @@ const chatLine = () => {
 
 const seedSettings = async (db: BunSQLiteDatabase) => {
   const initialSettings: TISettings = {
-    name: 'Sharkord Dev',
+    name: 'SandShark Dev',
     description: 'Local development server, full of imaginary people.',
     password: '',
     onlyAskForPasswordOnFirstJoin: false,

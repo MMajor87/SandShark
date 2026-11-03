@@ -4,7 +4,7 @@ import {
   MAX_USER_NAME_LENGTH,
   OidcError,
   type TJoinedUser
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { randomBytes } from 'crypto';
 import { createUser, linkOidcSub } from '../../db/mutations/users';
 import { publishUser } from '../../db/publishers';

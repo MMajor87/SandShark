@@ -7,9 +7,8 @@ Desktop and server releases share this repository but have independent versions.
 | Desktop | `apps/desktop/package.json` and `apps/client/package.json` | `sandshark-v<version>` | `latest.yml` |
 | Server | `apps/server/package.json` | `sandshark-server-v<version>` | `release.json` |
 
-Use semantic versions for each product. The root workspace version records the
-upstream Sharkord baseline; shared packages and the plugin SDK keep their own
-versions. A server version bump changes only the server package.
+Use semantic versions for each product. The root workspace version is not a
+product version; shared packages and the plugin SDK keep their own versions. A server version bump changes only the server package.
 
 ## Update sources
 
@@ -34,7 +33,7 @@ The new desktop selection code takes effect when the next desktop build is shipp
 
 ## Server releases
 
-The first independent server version is `0.1.0`, based on Sharkord `0.0.28`.
+The first independent server version is `0.1.0`.
 Prepare a new server version from the repository root:
 
 ```powershell
@@ -68,7 +67,6 @@ container `latest` tag. The manually dispatched development image workflow publi
 For a local build, run `bun run --cwd apps/server build`. Outputs live in
 `apps/server/build/out`; generated binaries are not committed. The server manifest
 uses the server package version, never the desktop or root workspace version.
-The retained `sharkord-*` filenames support existing installation scripts.
 
 ## Desktop releases
 

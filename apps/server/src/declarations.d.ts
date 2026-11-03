@@ -27,13 +27,13 @@ declare global {
 
 declare module 'bun' {
   interface Env {
-    // SHARKORD_ prefixed environment variables
-    SHARKORD_PORT?: string;
-    SHARKORD_DEBUG?: string;
-    SHARKORD_AUTOUPDATE?: string;
-    SHARKORD_WEBRTC_PORT?: string;
-    SHARKORD_WEBRTC_ANNOUNCED_ADDRESS?: string;
-    SHARKORD_DATA_PATH?: string;
+    // SANDSHARK_ prefixed environment variables
+    SANDSHARK_PORT?: string;
+    SANDSHARK_DEBUG?: string;
+    SANDSHARK_AUTOUPDATE?: string;
+    SANDSHARK_WEBRTC_PORT?: string;
+    SANDSHARK_WEBRTC_ANNOUNCED_ADDRESS?: string;
+    SANDSHARK_DATA_PATH?: string;
   }
 }
 

@@ -1,4 +1,4 @@
-import { OWNER_ROLE_ID } from '@sharkord/shared';
+import { OWNER_ROLE_ID } from '@sandshark/shared';
 import { getRole } from '../../db/queries/roles';
 import { assignRole, removeRole } from '../../helpers/user-roles';
 import { invariant } from '../../utils/invariant';

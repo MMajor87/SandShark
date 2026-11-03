@@ -1,4 +1,4 @@
-import { DisconnectCode, getErrorMessage } from '@sharkord/shared';
+import { DisconnectCode, getErrorMessage } from '@sandshark/shared';
 import type http from 'http';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
 import { config } from '../../config';

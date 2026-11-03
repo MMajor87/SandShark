@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test';
-import { TestId } from '@sharkord/shared';
+import { TestId } from '@sandshark/shared';
 
 const dmItem = (page: Page, name: string) =>
   page.getByTestId(TestId.DM_ITEM).filter({ hasText: name });

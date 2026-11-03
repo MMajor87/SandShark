@@ -3,10 +3,10 @@ import type {
   TContractActions,
   TPluginActions,
   TPluginContract
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 // deep import: the barrel is tree shakeable now that the package declares
 // itself side effect free, and this does not rely on the bundler honouring it
-import { getPluginIdFromBundleUrl } from '@sharkord/shared/src/plugins/client-sdk';
+import { getPluginIdFromBundleUrl } from '@sandshark/shared/src/plugins/client-sdk';
 
 type TypedCallAction<TActions extends TActionContract> = <
   K extends keyof TActions & string
@@ -22,7 +22,7 @@ const getOwnPluginId = (): string => {
 
   if (!pluginId) {
     throw new Error(
-      'createCallAction can only be used from plugin client code served by Sharkord.'
+      'createCallAction can only be used from plugin client code served by SandShark.'
     );
   }
 

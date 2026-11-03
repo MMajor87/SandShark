@@ -3,7 +3,7 @@ import {
   Permission,
   STORAGE_MAX_QUOTA_PER_USER,
   STORAGE_MIN_QUOTA_PER_USER
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { z } from 'zod';
 import { loadRole, updateRole } from '../../helpers/roles';
 import { invariant } from '../../utils/invariant';

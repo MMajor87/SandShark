@@ -33,14 +33,14 @@ describe('security and cors headers', () => {
   test('sets the server version on every response', async () => {
     const response = await fetch(`${testsBaseUrl}/healthz`);
 
-    expect(response.headers.get('X-Sharkord-Version')).toBe(SERVER_VERSION);
+    expect(response.headers.get('X-SandShark-Version')).toBe(SERVER_VERSION);
   });
 
   test('sets the server version on a not found response', async () => {
     const response = await fetch(`${testsBaseUrl}/public/does-not-exist.txt`);
 
     expect(response.status).toBe(404);
-    expect(response.headers.get('X-Sharkord-Version')).toBe(SERVER_VERSION);
+    expect(response.headers.get('X-SandShark-Version')).toBe(SERVER_VERSION);
   });
 
   test('sets the server version on a failed request', async () => {
@@ -51,7 +51,7 @@ describe('security and cors headers', () => {
     });
 
     expect(response.status).toBe(400);
-    expect(response.headers.get('X-Sharkord-Version')).toBe(SERVER_VERSION);
+    expect(response.headers.get('X-SandShark-Version')).toBe(SERVER_VERSION);
   });
 
   test('allows any origin with the default config', async () => {

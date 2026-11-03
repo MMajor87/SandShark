@@ -3,7 +3,7 @@ import {
   OWNER_ROLE_ID,
   PluginCapabilityType,
   type TPluginCapabilityAccessRule
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { canUsePluginCapabilitySelector } from '../selectors';
 

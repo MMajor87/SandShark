@@ -1,4 +1,4 @@
-import type { TJoinedRole } from '@sharkord/shared';
+import type { TJoinedRole } from '@sandshark/shared';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../db';
 import { publishChannelListChange, publishUser } from '../db/publishers';

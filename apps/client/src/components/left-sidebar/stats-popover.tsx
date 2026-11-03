@@ -9,7 +9,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { filesize } from 'filesize';
 import { Stethoscope } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';

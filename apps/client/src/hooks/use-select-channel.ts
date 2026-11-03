@@ -5,7 +5,7 @@ import { joinVoice, leaveVoice } from '@/features/server/voice/actions';
 import { useVoice } from '@/features/server/voice/hooks';
 import { store } from '@/features/store';
 import { LocalStorageKey, setLocalStorageItem } from '@/helpers/storage';
-import { ChannelType } from '@sharkord/shared';
+import { ChannelType } from '@sandshark/shared';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';

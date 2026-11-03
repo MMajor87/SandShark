@@ -5,7 +5,7 @@ import type {
   PluginModule,
   TPluginHttpMethod,
   TUpgradeInfo
-} from '@sharkord/plugin-sdk';
+} from '@sandshark/plugin-sdk';
 import {
   assertSdkVersionCompatibility,
   getErrorMessage,
@@ -22,7 +22,7 @@ import {
   type TPluginMetadata,
   type TPluginSettingDefinition,
   type TPluginSlotRequirements
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { watch } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
@@ -87,7 +87,6 @@ class PluginManager {
   // is not in here is public
   private componentRequirements = new Map<string, TPluginSlotRequirements>();
 
-  private installing = new Set<string>();
   private watchDebounce?: NodeJS.Timeout;
 
   private readonly stateStore = new PluginStateStore();
@@ -459,17 +458,8 @@ class PluginManager {
     }
   };
 
-  public markInstalling = (pluginId: string) => {
-    this.installing.add(pluginId);
-  };
-
-  public clearInstalling = (pluginId: string) => {
-    this.installing.delete(pluginId);
-  };
-
   public reconcileRemovedPlugins = async () => {
     for (const pluginId of this.stateStore.knownPluginIds()) {
-      if (this.installing.has(pluginId)) continue;
       if (await fs.exists(getPluginPath(pluginId))) continue;
 
       logger.warn(

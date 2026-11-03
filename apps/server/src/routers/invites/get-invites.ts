@@ -1,4 +1,4 @@
-import { Permission } from '@sharkord/shared';
+import { Permission } from '@sandshark/shared';
 import { getInvites } from '../../db/queries/invites';
 import { protectedProcedure } from '../../utils/trpc';
 

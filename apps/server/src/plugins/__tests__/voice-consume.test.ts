@@ -1,4 +1,4 @@
-import { StreamKind } from '@sharkord/shared';
+import { StreamKind } from '@sandshark/shared';
 import {
   afterEach,
   beforeAll,

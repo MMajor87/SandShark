@@ -1,4 +1,4 @@
-import { PluginCapabilityMode, PluginCapabilityType } from '@sharkord/shared';
+import { PluginCapabilityMode, PluginCapabilityType } from '@sandshark/shared';
 import type http from 'http';
 import { config } from '../config';
 import { getCapabilityAccess } from '../db/queries/plugin-capabilities';

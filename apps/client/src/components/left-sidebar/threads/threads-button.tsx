@@ -4,8 +4,8 @@ import {
   useFollowedThreadsReadState,
   useThreadsOpen
 } from '@/features/server/threads/hooks';
-import { TestId } from '@sharkord/shared';
-import { cn, Tooltip } from '@sharkord/ui';
+import { TestId } from '@sandshark/shared';
+import { cn, Tooltip } from '@sandshark/ui';
 import { MessageSquareText, X } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';

@@ -1,13 +1,13 @@
 import { SettingsSection } from '@/components/server-screens/settings-shell/section';
 import { getTRPCClient } from '@/lib/trpc';
-import type { TLogEntry } from '@sharkord/shared';
+import type { TLogEntry } from '@sandshark/shared';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { AlertCircle, Bug, Info } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';

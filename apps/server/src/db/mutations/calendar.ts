@@ -1,4 +1,4 @@
-import type { TCalendarEventInput } from '@sharkord/shared';
+import type { TCalendarEventInput } from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { db } from '..';
 import { calendarEventInvitees, calendarEvents } from '../schema';

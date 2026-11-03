@@ -14,7 +14,7 @@ export type TCommandContract = Record<
  * What a plugin declares about itself, written once and read by both halves.
  *
  * ```ts
- * export type TSharkord = {
+ * export type TSandShark = {
  *   actions: { roll: { payload: { sides: number }; response: number } };
  *   commands: { roll: { args: { sides: number }; response: string } };
  *   push: { rolled: number };
@@ -22,9 +22,9 @@ export type TCommandContract = Record<
  * };
  * ```
  *
- * The server reads it through `PluginContext<TSharkord>`, the client through
- * `createCallAction<TSharkord>()`, `usePush<TSharkord>()` and
- * `useUserData<TSharkord>()`.
+ * The server reads it through `PluginContext<TSandShark>`, the client through
+ * `createCallAction<TSandShark>()`, `usePush<TSandShark>()` and
+ * `useUserData<TSandShark>()`.
  *
  * Every key is optional and an omitted one stays as loose as it is today, so a
  * plugin can type its commands and leave the rest alone, or declare nothing at

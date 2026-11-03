@@ -1,7 +1,7 @@
 import { usePickImage, type TPickedImage } from '@/hooks/use-pick-image';
 import { cn } from '@/lib/utils';
-import { UploadPurpose } from '@sharkord/shared';
-import { Button, buttonVariants, Group } from '@sharkord/ui';
+import { UploadPurpose } from '@sandshark/shared';
+import { Button, buttonVariants, Group } from '@sandshark/ui';
 import { Upload } from 'lucide-react';
 import { memo, useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';

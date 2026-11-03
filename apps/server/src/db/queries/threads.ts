@@ -3,7 +3,7 @@ import type {
   TFollowedThreadsMap,
   TMessagesCursor,
   TThreadSummary
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { and, count, desc, eq, inArray, lt, or, sql } from 'drizzle-orm';
 import { db } from '..';
 import { messages, threadFollowers } from '../schema';

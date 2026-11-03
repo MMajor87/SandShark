@@ -1,4 +1,4 @@
-import type { TJoinedMessage } from '@sharkord/shared';
+import type { TJoinedMessage } from '@sandshark/shared';
 
 // static values for ChatInputDivider component
 const MAX_VH = 80;

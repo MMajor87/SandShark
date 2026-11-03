@@ -514,13 +514,13 @@ const useTransportStats = () => {
   }, [stats]);
 
   useEffect(() => {
-    window.sharkordDebug = {
-      ...window.sharkordDebug,
+    window.sandsharkDebug = {
+      ...window.sandsharkDebug,
       printVoiceStats: printStats
     };
 
     return () => {
-      delete window.sharkordDebug?.printVoiceStats;
+      delete window.sandsharkDebug?.printVoiceStats;
     };
   }, [printStats]);
 

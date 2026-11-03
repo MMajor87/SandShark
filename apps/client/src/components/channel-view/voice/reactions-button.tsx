@@ -6,14 +6,14 @@ import {
 import type { TEmojiItem } from '@/components/tiptap-input/helpers';
 import { QUICK_VOICE_REACTION_EMOJIS } from '@/features/server/voice/statics';
 import { getTRPCClient } from '@/lib/trpc';
-import { getTrpcError } from '@sharkord/shared';
+import { getTrpcError } from '@sandshark/shared';
 import {
   Button,
   Popover,
   PopoverContent,
   PopoverTrigger,
   Tooltip
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { Plus, Smile } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';

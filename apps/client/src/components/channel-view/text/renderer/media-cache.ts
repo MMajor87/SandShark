@@ -5,7 +5,7 @@ import {
   videoExtensions,
   type TJoinedMessage,
   type TMessageMetadata
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { normalizeComparableUrl } from './helpers';
 import { readFromCache, writeToCache } from './lru-cache';
 import type { TFoundMedia } from './types';

@@ -1,4 +1,4 @@
-import { StreamKind } from '@sharkord/shared';
+import { StreamKind } from '@sandshark/shared';
 import { z } from 'zod';
 import { getSettings } from '../../db/queries/server';
 import { getCurrentVoiceRuntime } from '../../helpers/get-current-voice-runtime';

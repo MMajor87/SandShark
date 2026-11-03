@@ -1,4 +1,4 @@
-import type { TCommandArg } from '@sharkord/shared';
+import type { TCommandArg } from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { serializePluginCommandText } from '../helpers';
 

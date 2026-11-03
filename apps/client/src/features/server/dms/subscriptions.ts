@@ -1,6 +1,6 @@
 import { logDebug } from '@/helpers/browser-logger';
 import { getTRPCClient } from '@/lib/trpc';
-import type { TDirectMessageConversation } from '@sharkord/shared';
+import type { TDirectMessageConversation } from '@sandshark/shared';
 import { handleSubscriptionError } from '../subscription-error';
 import { upsertDirectMessage } from './actions';
 

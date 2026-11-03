@@ -67,70 +67,70 @@ describe('env overrides are validated', () => {
   });
 
   test('should accept a valid override', () => {
-    setEnv('SHARKORD_PORT', '8080');
+    setEnv('SANDSHARK_PORT', '8080');
 
     expect(applyOverrides().server.port).toBe(8080);
   });
 
   test('should reject a port that is not a number', () => {
-    setEnv('SHARKORD_PORT', 'not-a-port');
+    setEnv('SANDSHARK_PORT', 'not-a-port');
 
     expect(applyOverrides).toThrow();
   });
 
   test('should set the listen host from the env', () => {
-    setEnv('SHARKORD_HOST', '127.0.0.1');
+    setEnv('SANDSHARK_HOST', '127.0.0.1');
 
     expect(applyOverrides().server.host).toBe('127.0.0.1');
 
-    setEnv('SHARKORD_HOST', '::1');
+    setEnv('SANDSHARK_HOST', '::1');
 
     expect(applyOverrides().server.host).toBe('::1');
   });
 
   test('should turn the database backup off from the env', () => {
-    setEnv('SHARKORD_BACKUP_DATABASE', 'false');
+    setEnv('SANDSHARK_BACKUP_DATABASE', 'false');
 
     expect(applyOverrides().server.backupDatabase).toBe(false);
   });
 
   test('should turn the rate limiters off from the env', () => {
-    setEnv('SHARKORD_RATE_LIMITERS_ENABLED', 'false');
+    setEnv('SANDSHARK_RATE_LIMITERS_ENABLED', 'false');
 
     expect(applyOverrides().rateLimiters.enabled).toBe(false);
   });
 
   test('should reject a port outside the allowed range', () => {
-    setEnv('SHARKORD_PORT', '-1');
+    setEnv('SANDSHARK_PORT', '-1');
 
     expect(applyOverrides).toThrow();
 
-    setEnv('SHARKORD_PORT', '0');
+    setEnv('SANDSHARK_PORT', '0');
 
     expect(applyOverrides).toThrow();
   });
 
   test('should reject a fractional port', () => {
-    setEnv('SHARKORD_PORT', '80.5');
+    setEnv('SANDSHARK_PORT', '80.5');
 
     expect(applyOverrides).toThrow();
   });
 
   test('should reject a structurally wrong value', () => {
     // JSON.parse succeeds here, so the value reaches the schema as an object
-    setEnv('SHARKORD_PORT', '{"nested":true}');
+    setEnv('SANDSHARK_PORT', '{"nested":true}');
 
     expect(applyOverrides).toThrow();
   });
 
   test('should reject an invalid webRtc override', () => {
-    setEnv('SHARKORD_WEBRTC_MAX_BITRATE', '0');
+    setEnv('SANDSHARK_WEBRTC_MAX_BITRATE', '0');
 
     expect(applyOverrides).toThrow();
   });
 
   test('should coerce a comma separated list into an array', () => {
-    setEnv('SHARKORD_TRUSTED_PROXIES', '10.0.0.1,10.0.0.2');
+    setEnv('SANDSHARK_TRUSTED_PROXIES', '10.0.0.1,10.0.0.2');
 
     expect(applyOverrides().server.trustedProxies).toEqual([
       '10.0.0.1',
@@ -139,7 +139,7 @@ describe('env overrides are validated', () => {
   });
 
   test('should reject a list whose entries are empty', () => {
-    setEnv('SHARKORD_ALLOWED_ORIGINS', ',');
+    setEnv('SANDSHARK_ALLOWED_ORIGINS', ',');
 
     expect(applyOverrides).toThrow();
   });
@@ -149,7 +149,7 @@ describe('env overrides are validated', () => {
   });
 
   test('should not mutate defaultConfig', () => {
-    setEnv('SHARKORD_PORT', '8080');
+    setEnv('SANDSHARK_PORT', '8080');
 
     applyOverrides();
 

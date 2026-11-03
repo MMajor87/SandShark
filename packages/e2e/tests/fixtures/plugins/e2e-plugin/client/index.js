@@ -1,6 +1,6 @@
 // a real browser bundle: no bare imports, because nothing resolves them in a
 // page. the host exposes its own React so hooks and context work
-const React = window.__SHARKORD_REACT__;
+const React = window.__SANDSHARK_REACT__;
 
 const testable = (testId, label) => () =>
   React.createElement('div', { 'data-testid': testId }, label);
@@ -8,7 +8,7 @@ const testable = (testId, label) => () =>
 // mirrors what a real plugin does: ask whether the user may run the action and
 // disable the control rather than let the call fail
 const ActionButtons = () => {
-  const { useCanUse } = window.__SHARKORD_STORE__.hooks;
+  const { useCanUse } = window.__SANDSHARK_STORE__.hooks;
 
   return React.createElement(
     'div',
@@ -82,7 +82,7 @@ const ChannelHeader = ({ channelId }) =>
   );
 
 const UserSettings = () => {
-  const { data, loading, save } = window.__SHARKORD_STORE__.hooks.useUserData();
+  const { data, loading, save } = window.__SANDSHARK_STORE__.hooks.useUserData();
 
   return React.createElement(
     'div',

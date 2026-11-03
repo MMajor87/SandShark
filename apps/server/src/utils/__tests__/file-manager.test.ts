@@ -3,7 +3,7 @@ import {
   StorageOverflowAction,
   type TBeforeFileSavePayload,
   type TTempFile
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import fs from 'fs/promises';

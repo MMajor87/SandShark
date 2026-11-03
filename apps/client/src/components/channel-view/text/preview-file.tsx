@@ -1,8 +1,8 @@
 import { FullScreenImage } from '@/components/fullscreen-image/content';
 import type { TDisplayItem } from '@/hooks/use-upload-files';
 import { cn } from '@/lib/utils';
-import { FileCategory, getFileCategory } from '@sharkord/shared';
-import { Button } from '@sharkord/ui';
+import { FileCategory, getFileCategory } from '@sandshark/shared';
+import { Button } from '@sandshark/ui';
 import { filesize } from 'filesize';
 import {
   File,

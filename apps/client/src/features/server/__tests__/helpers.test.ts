@@ -2,7 +2,7 @@ import {
   ChannelPermission,
   type TChannelUserPermissionsMap,
   type TJoinedMessage
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { canViewChannel, mergeMessagesChronologically } from '../helpers';
 

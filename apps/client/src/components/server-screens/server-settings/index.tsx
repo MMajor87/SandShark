@@ -1,6 +1,6 @@
 import { useAdminPlugins } from '@/features/server/admin/hooks';
 import { useCan, usePluginsEnabled } from '@/features/server/hooks';
-import { Permission } from '@sharkord/shared';
+import { Permission } from '@sandshark/shared';
 import {
   Blocks,
   Mail,

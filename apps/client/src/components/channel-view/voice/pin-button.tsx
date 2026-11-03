@@ -1,4 +1,4 @@
-import { IconButton, type TIconButtonSize } from '@sharkord/ui';
+import { IconButton, type TIconButtonSize } from '@sandshark/ui';
 import { Pin, PinOff } from 'lucide-react';
 import { memo } from 'react';
 

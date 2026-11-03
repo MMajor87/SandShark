@@ -1,4 +1,4 @@
-import { FileSaveType, Permission } from '@sharkord/shared';
+import { FileSaveType, Permission } from '@sandshark/shared';
 import { z } from 'zod';
 import { config } from '../../config';
 import { getUniqueEmojiName } from '../../db/queries/emojis';

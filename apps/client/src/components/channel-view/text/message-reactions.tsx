@@ -6,8 +6,8 @@ import {
   getTrpcError,
   type TFile,
   type TJoinedMessageReaction
-} from '@sharkord/shared';
-import { Button, Tooltip } from '@sharkord/ui';
+} from '@sandshark/shared';
+import { Button, Tooltip } from '@sandshark/ui';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';

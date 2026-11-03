@@ -3,7 +3,7 @@ import {
   type Permission,
   type TJoinedRole,
   type TRole
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { and, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import { db } from '..';
 import { rolePermissions, roles, userRoles } from '../schema';

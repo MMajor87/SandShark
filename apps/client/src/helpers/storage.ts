@@ -1,57 +1,57 @@
 export enum LocalStorageKey {
-  IDENTITY = 'sharkord-identity',
-  USER_PASSWORD = 'sharkord-user-password',
+  IDENTITY = 'sandshark-identity',
+  USER_PASSWORD = 'sandshark-user-password',
   VITE_UI_THEME = 'vite-ui-theme',
-  DEVICES_SETTINGS = 'sharkord-devices-settings',
-  FLOATING_CARD_POSITION = 'sharkord-floating-card-position',
-  RIGHT_SIDEBAR_STATE = 'sharkord-right-sidebar-state',
-  VOICE_CHAT_SIDEBAR_STATE = 'sharkord-voice-chat-sidebar-state',
-  VOICE_CHAT_SIDEBAR_CHANNEL_ID = 'sharkord-voice-chat-sidebar-channel-id',
-  VOICE_CHAT_SIDEBAR_WIDTH = 'sharkord-voice-chat-sidebar-width',
-  VOICE_CHAT_SHOW_USER_BANNERS = 'sharkord-voice-chat-show-user-banners',
-  VOLUME_SETTINGS = 'sharkord-volume-settings',
-  STREAM_QUALITY_SETTINGS = 'sharkord-stream-quality-settings',
-  RECENT_EMOJIS = 'sharkord-recent-emojis',
-  DEBUG = 'sharkord-debug',
-  DRAFT_MESSAGES = 'sharkord-draft-messages',
-  HIDE_NON_VIDEO_PARTICIPANTS = 'sharkord-hide-non-video-participants',
-  THREAD_SIDEBAR_WIDTH = 'sharkord-thread-sidebar-width',
-  LEFT_SIDEBAR_WIDTH = 'sharkord-left-sidebar-width',
-  RIGHT_SIDEBAR_WIDTH = 'sharkord-right-sidebar-width',
-  CATEGORIES_EXPANDED = 'sharkord-categories-expanded',
-  AUTO_LOGIN = 'sharkord-auto-login',
-  AUTO_LOGIN_TOKEN = 'sharkord-auto-login-token',
-  LAST_SELECTED_CHANNEL = 'sharkord-last-selected-channel',
-  AUTO_JOIN_LAST_CHANNEL = 'sharkord-auto-join-last-channel',
-  BROWSER_NOTIFICATIONS = 'sharkord-browser-notifications',
-  BROWSER_NOTIFICATIONS_FOR_MENTIONS = 'sharkord-browser-notifications-for-mentions',
-  BROWSER_NOTIFICATIONS_FOR_DMS = 'sharkord-browser-notifications-for-dms',
-  CHAT_INPUT_HEIGHT_VH = 'sharkord-chat-input-height-vh',
-  THREAD_INPUT_HEIGHT_VH = 'sharkord-thread-input-height-vh',
-  BROWSER_NOTIFICATIONS_FOR_REPLIES = 'sharkord-browser-notifications-for-replies',
-  LANGUAGE = 'sharkord-language',
-  PLUGIN_SLOT_DEBUG = 'sharkord-plugin-slot-debug',
-  HIDE_OWN_SCREEN_SHARE = 'sharkord-hide-own-screen-share',
-  ALWAYS_SHOW_VOICE_CONTROLS = 'sharkord-always-show-voice-controls',
+  DEVICES_SETTINGS = 'sandshark-devices-settings',
+  FLOATING_CARD_POSITION = 'sandshark-floating-card-position',
+  RIGHT_SIDEBAR_STATE = 'sandshark-right-sidebar-state',
+  VOICE_CHAT_SIDEBAR_STATE = 'sandshark-voice-chat-sidebar-state',
+  VOICE_CHAT_SIDEBAR_CHANNEL_ID = 'sandshark-voice-chat-sidebar-channel-id',
+  VOICE_CHAT_SIDEBAR_WIDTH = 'sandshark-voice-chat-sidebar-width',
+  VOICE_CHAT_SHOW_USER_BANNERS = 'sandshark-voice-chat-show-user-banners',
+  VOLUME_SETTINGS = 'sandshark-volume-settings',
+  STREAM_QUALITY_SETTINGS = 'sandshark-stream-quality-settings',
+  RECENT_EMOJIS = 'sandshark-recent-emojis',
+  DEBUG = 'sandshark-debug',
+  DRAFT_MESSAGES = 'sandshark-draft-messages',
+  HIDE_NON_VIDEO_PARTICIPANTS = 'sandshark-hide-non-video-participants',
+  THREAD_SIDEBAR_WIDTH = 'sandshark-thread-sidebar-width',
+  LEFT_SIDEBAR_WIDTH = 'sandshark-left-sidebar-width',
+  RIGHT_SIDEBAR_WIDTH = 'sandshark-right-sidebar-width',
+  CATEGORIES_EXPANDED = 'sandshark-categories-expanded',
+  AUTO_LOGIN = 'sandshark-auto-login',
+  AUTO_LOGIN_TOKEN = 'sandshark-auto-login-token',
+  LAST_SELECTED_CHANNEL = 'sandshark-last-selected-channel',
+  AUTO_JOIN_LAST_CHANNEL = 'sandshark-auto-join-last-channel',
+  BROWSER_NOTIFICATIONS = 'sandshark-browser-notifications',
+  BROWSER_NOTIFICATIONS_FOR_MENTIONS = 'sandshark-browser-notifications-for-mentions',
+  BROWSER_NOTIFICATIONS_FOR_DMS = 'sandshark-browser-notifications-for-dms',
+  CHAT_INPUT_HEIGHT_VH = 'sandshark-chat-input-height-vh',
+  THREAD_INPUT_HEIGHT_VH = 'sandshark-thread-input-height-vh',
+  BROWSER_NOTIFICATIONS_FOR_REPLIES = 'sandshark-browser-notifications-for-replies',
+  LANGUAGE = 'sandshark-language',
+  PLUGIN_SLOT_DEBUG = 'sandshark-plugin-slot-debug',
+  HIDE_OWN_SCREEN_SHARE = 'sandshark-hide-own-screen-share',
+  ALWAYS_SHOW_VOICE_CONTROLS = 'sandshark-always-show-voice-controls',
   SERVER_CONNECTION = 'sandshark-server-connection',
   SERVER_SESSIONS = 'sandshark-server-sessions',
   SERVER_PROFILES = 'sandshark-server-profiles',
   ACTIVE_SERVER_PROFILE_ID = 'sandshark-active-server-profile-id',
   PUSH_TO_TALK_SETTINGS = 'sandshark-push-to-talk-settings',
   MUTED_NOTIFICATION_CHANNELS = 'sandshark-muted-notification-channels',
-  NOTIFICATION_SOUNDS = 'sharkord-notification-sounds',
-  MESSAGE_SENT_SOUND = 'sharkord-message-sent-sound',
-  MUTED_CHANNEL_IDS = 'sharkord-muted-channel-ids',
-  HOTKEY_BINDINGS = 'sharkord-hotkey-bindings',
-  HOTKEY_BRIDGE_TOKEN = 'sharkord-hotkey-bridge-token',
-  MIC_MODE = 'sharkord-mic-mode',
-  HOTKEYS_ENABLED = 'sharkord-hotkeys-enabled'
+  NOTIFICATION_SOUNDS = 'sandshark-notification-sounds',
+  MESSAGE_SENT_SOUND = 'sandshark-message-sent-sound',
+  MUTED_CHANNEL_IDS = 'sandshark-muted-channel-ids',
+  HOTKEY_BINDINGS = 'sandshark-hotkey-bindings',
+  HOTKEY_BRIDGE_TOKEN = 'sandshark-hotkey-bridge-token',
+  MIC_MODE = 'sandshark-mic-mode',
+  HOTKEYS_ENABLED = 'sandshark-hotkeys-enabled'
 }
 
 export enum SessionStorageKey {
-  TOKEN = 'sharkord-token',
+  TOKEN = 'sandshark-token',
   SERVER_SESSION_KEY = 'sandshark-server-session-key',
-  OIDC_NO_AUTO_REDIRECT = 'sharkord-oidc-no-auto-redirect'
+  OIDC_NO_AUTO_REDIRECT = 'sandshark-oidc-no-auto-redirect'
 }
 
 // librewolf and firefox private mode throw SecurityError when privacy hardening
@@ -85,6 +85,37 @@ const deleteItem = (kind: 'local' | 'session', key: string) => {
     // storage is unavailable, nothing to remove
   }
 };
+
+const KEY_PREFIX = 'sandshark-';
+// keys used to carry the name of the project this client was forked from
+const LEGACY_KEY_PREFIX = 'sharkord-';
+
+const migrateLegacyKeys = (kind: 'local' | 'session', keys: string[]) => {
+  for (const key of keys) {
+    if (!key.startsWith(KEY_PREFIX)) continue;
+
+    const legacyKey = `${LEGACY_KEY_PREFIX}${key.slice(KEY_PREFIX.length)}`;
+    const legacyValue = readItem(kind, legacyKey);
+
+    if (legacyValue === null) continue;
+
+    // a value saved under the new key is newer than the legacy one, keep it
+    if (readItem(kind, key) === null) {
+      writeItem(kind, key, legacyValue);
+    }
+
+    deleteItem(kind, legacyKey);
+  }
+};
+
+const migrateLegacyStorageKeys = () => {
+  migrateLegacyKeys('local', Object.values(LocalStorageKey));
+  migrateLegacyKeys('session', Object.values(SessionStorageKey));
+};
+
+// runs on import, before any module can read a key, so upgraded clients keep
+// their saved logins, devices and settings
+migrateLegacyStorageKeys();
 
 const getLocalStorageItem = (key: LocalStorageKey): string | null => {
   return readItem('local', key);
@@ -172,6 +203,7 @@ export {
   getLocalStorageItemAsNumber,
   getLocalStorageItemBool,
   getSessionStorageItem,
+  migrateLegacyStorageKeys,
   removeLocalStorageItem,
   removeSessionStorageItem,
   setLocalStorageItem,

@@ -3,7 +3,7 @@ import {
   UploadHeaders,
   UploadPurpose,
   type TTempFile
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import fs from 'fs/promises';

@@ -6,7 +6,7 @@ import {
   PluginSlot,
   type TJoinedRole,
   type TPluginStoreState
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { createCachedSelector } from 're-reselect';
 import {
   hotkeysEnabledSelector,

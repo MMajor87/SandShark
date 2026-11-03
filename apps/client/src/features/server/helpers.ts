@@ -5,7 +5,7 @@ import {
   type TDirectMessageConversation,
   type TFollowedThread,
   type TJoinedMessage
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import type { channelPermissionsSelector } from './channels/selectors';
 
 const canViewChannel = (

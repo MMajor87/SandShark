@@ -1,6 +1,6 @@
 import { disconnectFromServer } from '@/features/server/actions';
 import { useReconnectState } from '@/features/server/hooks';
-import { Button } from '@sharkord/ui';
+import { Button } from '@sandshark/ui';
 import { Loader2, WifiOff } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';

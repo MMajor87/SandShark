@@ -1,4 +1,4 @@
-import { OidcError } from '@sharkord/shared';
+import { OidcError } from '@sandshark/shared';
 import type http from 'http';
 import { config } from '../../config';
 import { isOidcEnabled } from '../../helpers/oidc/settings';
@@ -10,7 +10,7 @@ import {
 } from '../../utils/rate-limiters/rate-limiter';
 import { getPublicOrigin, isSecureRequest, sendJsonError } from '../helpers';
 
-const OIDC_STATE_COOKIE_PREFIX = 'sharkord_oidc_state_';
+const OIDC_STATE_COOKIE_PREFIX = 'sandshark_oidc_state_';
 
 const oidcRateLimiter = createRateLimiter({
   maxRequests: config.rateLimiters.oidc.maxRequests,

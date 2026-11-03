@@ -1,4 +1,4 @@
-import { CLIENT_ENTRY_FILE } from '@sharkord/shared';
+import { CLIENT_ENTRY_FILE } from '@sandshark/shared';
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import fs from 'fs/promises';
 import path from 'path';

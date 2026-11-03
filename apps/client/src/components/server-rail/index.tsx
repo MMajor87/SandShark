@@ -11,7 +11,7 @@ import {
   selectServerProfile
 } from '@/helpers/server-connection';
 import { cn } from '@/lib/utils';
-import { Tooltip } from '@sharkord/ui';
+import { Tooltip } from '@sandshark/ui';
 import { Plus } from 'lucide-react';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';

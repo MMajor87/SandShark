@@ -4,7 +4,7 @@ import {
   type TChannel,
   type TChannelUserPermissionsMap,
   type TReadStateMap
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { and, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { db } from '..';
 import { getOnlineUserIds } from '../../utils/wss';

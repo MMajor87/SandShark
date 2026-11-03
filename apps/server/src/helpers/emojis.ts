@@ -1,4 +1,4 @@
-import { ActivityLogType, type TEmoji } from '@sharkord/shared';
+import { ActivityLogType, type TEmoji } from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { removeFile } from '../db/mutations/files';

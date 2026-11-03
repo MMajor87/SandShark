@@ -1,6 +1,6 @@
 import { assertVoiceChatClose } from '@/features/app/actions';
 import { store } from '@/features/store';
-import type { TChannel, TChannelUserPermissionsMap } from '@sharkord/shared';
+import type { TChannel, TChannelUserPermissionsMap } from '@sandshark/shared';
 import { markChannelAsRead } from '../actions';
 import { serverSliceActions } from '../slice';
 import {

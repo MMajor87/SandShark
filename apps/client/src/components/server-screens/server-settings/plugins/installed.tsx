@@ -3,8 +3,8 @@ import { requestConfirmation } from '@/features/dialogs/actions';
 import { usePluginsEnabled } from '@/features/server/hooks';
 import { getTRPCClient } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
-import type { TPluginInfo } from '@sharkord/shared';
-import { getTrpcError, TestId } from '@sharkord/shared';
+import type { TPluginInfo } from '@sandshark/shared';
+import { getTrpcError, TestId } from '@sandshark/shared';
 import {
   Alert,
   AlertDescription,
@@ -14,14 +14,14 @@ import {
   LoadingCard,
   Switch,
   Tooltip
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { AlertCircle, Package, RefreshCw, Trash2, User } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { StatePanel } from '../../settings-shell/state-panel';
+import { ImageWithFallback } from './image-with-fallback';
 import { ListWithSeparators } from './list-with-separators';
-import { ImageWithFallback } from './marketplace/image-with-fallback';
 
 type TPluginItemProps = {
   plugin: TPluginInfo;

@@ -7,14 +7,14 @@ import { useOwnPublicUser } from '@/features/server/users/hooks';
 import { getFileUrl } from '@/helpers/get-file-url';
 import type { TPickedImage } from '@/hooks/use-pick-image';
 import { getTRPCClient } from '@/lib/trpc';
-import { DEFAULT_PROFILE_COLOR, UploadPurpose } from '@sharkord/shared';
+import { DEFAULT_PROFILE_COLOR, UploadPurpose } from '@sandshark/shared';
 import {
   ColorPicker,
   Group,
   ImageSwatchPicker,
   Input,
   Textarea
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 

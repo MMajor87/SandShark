@@ -1,4 +1,4 @@
-import type { TSettings } from '@sharkord/shared';
+import type { TSettings } from '@sandshark/shared';
 import { hasUserJoinedBefore } from '../db/queries/logins';
 
 const shouldAskServerPassword = async (

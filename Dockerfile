@@ -5,20 +5,20 @@ ENV RUNNING_IN_DOCKER=true
 
 USER root
 
-COPY apps/server/build/out/sharkord-linux-x64 /tmp/sharkord-linux-x64
-COPY apps/server/build/out/sharkord-linux-arm64 /tmp/sharkord-linux-arm64
+COPY apps/server/build/out/sandshark-linux-x64 /tmp/sandshark-linux-x64
+COPY apps/server/build/out/sandshark-linux-arm64 /tmp/sandshark-linux-arm64
 
 RUN set -eux; \
     case "$TARGETARCH" in \
-      amd64)  cp /tmp/sharkord-linux-x64 /sharkord ;; \
-      arm64)  cp /tmp/sharkord-linux-arm64 /sharkord ;; \
+      amd64)  cp /tmp/sandshark-linux-x64 /sandshark ;; \
+      arm64)  cp /tmp/sandshark-linux-arm64 /sandshark ;; \
       *) echo "Unsupported arch: $TARGETARCH" >&2; exit 1 ;; \
     esac; \
-    chmod +x /sharkord; \
-    chown bun:bun /sharkord; \
-    rm -rf /tmp/sharkord-linux-*
+    chmod +x /sandshark; \
+    chown bun:bun /sandshark; \
+    rm -rf /tmp/sandshark-linux-*
 
-RUN mkdir -p /home/bun/.config/sharkord && \
+RUN mkdir -p /home/bun/.config/sandshark && \
     chown -R bun:bun /home/bun/.config
 
 COPY docker-entrypoint.sh /entrypoint.sh

@@ -121,8 +121,7 @@ Recovery policy:
   devices remain. Camera and screen sharing turn off and require a new user action.
 - A lost WebSocket session clears local voice membership before server reconnect
   backoff. Reconnecting the server does not automatically join voice. Select a
-  voice channel again. This handles the stale connected UI described in upstream
-  [#849](https://github.com/Sharkord/sharkord/issues/849).
+  voice channel again, so the UI never shows a stale connected state.
 - Recovery validates server membership before rebuilding. A missing session,
   revoked access or another recovery error clears local membership and stops.
   There is no voice rejoin retry loop. Server kick/ban/removal follows teardown.

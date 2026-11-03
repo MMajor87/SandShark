@@ -1,4 +1,7 @@
-import type { PluginCapabilityMode, TPluginCapability } from '@sharkord/shared';
+import type {
+  PluginCapabilityMode,
+  TPluginCapability
+} from '@sandshark/shared';
 
 export const EVERYONE_KEY = 'everyone';
 

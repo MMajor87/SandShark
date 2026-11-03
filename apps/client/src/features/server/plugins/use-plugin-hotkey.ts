@@ -4,8 +4,8 @@ import type {
   TPluginHotkeyAction,
   TPluginHotkeyBinding,
   TPluginHotkeyPhase
-} from '@sharkord/shared';
-import { formatCombo } from '@sharkord/ui';
+} from '@sandshark/shared';
+import { formatCombo } from '@sandshark/ui';
 import { useMemo } from 'react';
 import { usePluginId } from './plugin-id-context';
 

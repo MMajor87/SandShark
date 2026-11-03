@@ -55,7 +55,7 @@ const createDesktopWindow = ({
     : join(process.resourcesPath, 'sandshark.png');
   const startAtLoginArgs = ['--sandshark-start-minimized'];
   const isStartAtLoginSupported = process.platform === 'win32';
-  const deepLinkSchemes = ['sandshark', 'sharkord'];
+  const deepLinkSchemes = ['sandshark'];
   const youtubeDesktopReferrer = 'https://sandshark.localhost/';
   const crashRecoveryWindowMs = 60_000;
   const maximumCrashRecoveryReloads = 2;
@@ -463,7 +463,7 @@ const createDesktopWindow = ({
       const url = new URL(value);
 
       return (
-        (url.protocol === 'sandshark:' || url.protocol === 'sharkord:') &&
+        url.protocol === 'sandshark:' &&
         !url.username &&
         !url.password &&
         (!!url.hostname || url.pathname.length > 1)

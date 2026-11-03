@@ -1,4 +1,4 @@
-import { ServerEvents } from '@sharkord/shared';
+import { ServerEvents } from '@sandshark/shared';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import { getChannelsReadStatesForUser } from '../db/queries/channels';

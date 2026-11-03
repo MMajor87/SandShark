@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import type { TIconButtonSize } from '@sharkord/ui';
+import type { TIconButtonSize } from '@sandshark/ui';
 
 // cards shrink to the thumbnail strip when another card is pinned
 const cardDensity = (isCompact: boolean) => ({

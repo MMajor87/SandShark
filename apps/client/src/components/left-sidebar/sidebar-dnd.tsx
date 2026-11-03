@@ -6,7 +6,7 @@ import {
   SortableContext,
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
-import { Permission } from '@sharkord/shared';
+import { Permission } from '@sandshark/shared';
 import { Hash, Volume2 } from 'lucide-react';
 import { memo, useMemo } from 'react';
 import { createPortal } from 'react-dom';

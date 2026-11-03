@@ -1,6 +1,6 @@
 import { uploadImage } from '@/helpers/upload-file';
 import { useFilePicker } from '@/hooks/use-file-picker';
-import { getTrpcError, UploadPurpose } from '@sharkord/shared';
+import { getTrpcError, UploadPurpose } from '@sandshark/shared';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';

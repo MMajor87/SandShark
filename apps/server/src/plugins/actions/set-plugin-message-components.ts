@@ -1,4 +1,4 @@
-import type { TPluginMessageComponent } from '@sharkord/shared';
+import type { TPluginMessageComponent } from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { publishMessage } from '../../db/publishers';

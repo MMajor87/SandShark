@@ -1,4 +1,4 @@
-import { ActivityLogType, type TCategory } from '@sharkord/shared';
+import { ActivityLogType, type TCategory } from '@sandshark/shared';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';

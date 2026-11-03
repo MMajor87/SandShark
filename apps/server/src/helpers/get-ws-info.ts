@@ -245,7 +245,7 @@ const warnAboutUntrustedProxy = (
   hasWarnedAboutUntrustedProxy = true;
 
   logger.warn(
-    'Requests are arriving from %s with forwarded headers, but that address is not in server.trustedProxies, so the headers are ignored and every client is rate limited as one. Add it to server.trustedProxies (or SHARKORD_TRUSTED_PROXIES) if it is your proxy.',
+    'Requests are arriving from %s with forwarded headers, but that address is not in server.trustedProxies, so the headers are ignored and every client is rate limited as one. Add it to server.trustedProxies (or SANDSHARK_TRUSTED_PROXIES) if it is your proxy.',
     socketIp ?? 'an unknown address'
   );
 };

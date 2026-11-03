@@ -3,8 +3,8 @@ import { useSettingsForm } from '@/components/server-screens/settings-shell/use-
 import { requestConfirmation } from '@/features/dialogs/actions';
 import { getFileUrl } from '@/helpers/get-file-url';
 import { getTRPCClient } from '@/lib/trpc';
-import type { TJoinedEmoji } from '@sharkord/shared';
-import { Group, IconButton, Input, Tooltip } from '@sharkord/ui';
+import type { TJoinedEmoji } from '@sandshark/shared';
+import { Group, IconButton, Input, Tooltip } from '@sandshark/ui';
 import { filesize } from 'filesize';
 import { Trash2, X } from 'lucide-react';
 import { memo, useCallback } from 'react';

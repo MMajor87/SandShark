@@ -4,7 +4,7 @@ import {
   DELETED_USER_IDENTITY_AND_NAME,
   UserStatus,
   type TJoinedPublicUser
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { createCachedSelector } from 're-reselect';
 
 const STATUS_ORDER: Record<string, number> = {

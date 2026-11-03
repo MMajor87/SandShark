@@ -1,4 +1,4 @@
-import { CLIENT_ENTRY_FILE } from '@sharkord/shared';
+import { CLIENT_ENTRY_FILE } from '@sandshark/shared';
 import http from 'http';
 import path from 'path';
 import { getSettings } from '../db/queries/server';

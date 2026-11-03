@@ -1,5 +1,5 @@
 import { getTRPCClient } from '@/lib/trpc';
-import { getTrpcError, type TJoinedUser } from '@sharkord/shared';
+import { getTrpcError, type TJoinedUser } from '@sandshark/shared';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
   Group,
   Input
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';

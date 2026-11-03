@@ -5,7 +5,7 @@ import {
 import { useChannelCan } from '@/features/server/hooks';
 import { useSelectChannel } from '@/hooks/use-select-channel';
 import { cn } from '@/lib/utils';
-import { ChannelPermission } from '@sharkord/shared';
+import { ChannelPermission } from '@sandshark/shared';
 import { memo, useCallback, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 

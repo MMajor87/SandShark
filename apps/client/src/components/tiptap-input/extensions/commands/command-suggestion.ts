@@ -1,4 +1,4 @@
-import type { TCommandInfo } from '@sharkord/shared';
+import type { TCommandInfo } from '@sandshark/shared';
 import type { Editor } from '@tiptap/core';
 import { createSuggestionRenderer } from '../create-suggestion-renderer';
 import { SUGGESTION_LIMIT } from '../filter-by-query';

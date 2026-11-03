@@ -1,7 +1,7 @@
 import { PluginAvatar } from '@/components/plugin-avatar';
 import { UserAvatar } from '@/components/user-avatar';
 import { usePluginMetadata } from '@/features/server/plugins/hooks';
-import type { TMessage } from '@sharkord/shared';
+import type { TMessage } from '@sandshark/shared';
 import { memo } from 'react';
 
 type TMessageAuthorAvatarProps = Pick<TMessage, 'userId' | 'pluginId'> & {

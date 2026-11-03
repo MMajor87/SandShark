@@ -9,7 +9,7 @@ import {
   STORAGE_MAX_QUOTA_PER_USER,
   STORAGE_MIN_QUOTA_PER_USER,
   type TJoinedRole
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import {
   Alert,
   AlertDescription,
@@ -19,7 +19,7 @@ import {
   Separator,
   Switch,
   Tooltip
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { filesize } from 'filesize';
 import { Info, Star, Trash2, X } from 'lucide-react';
 import { memo, useCallback } from 'react';

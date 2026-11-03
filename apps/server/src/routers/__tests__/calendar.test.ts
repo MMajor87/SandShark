@@ -1,4 +1,4 @@
-import { CALENDAR_PAGE_SIZE, MAX_CALENDAR_TIMESTAMP } from '@sharkord/shared';
+import { CALENDAR_PAGE_SIZE, MAX_CALENDAR_TIMESTAMP } from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { eq, sql } from 'drizzle-orm';
 import { getCaller, initTest } from '../../__tests__/helpers';

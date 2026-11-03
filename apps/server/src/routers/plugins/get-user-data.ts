@@ -1,4 +1,4 @@
-import { Permission, zPluginId } from '@sharkord/shared';
+import { Permission, zPluginId } from '@sandshark/shared';
 import z from 'zod';
 import { getPluginUserData } from '../../db/queries/plugin-user-data';
 import { protectedProcedure } from '../../utils/trpc';

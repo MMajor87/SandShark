@@ -1,11 +1,11 @@
-import type { EventPayloads } from '@sharkord/plugin-sdk';
+import type { EventPayloads } from '@sandshark/plugin-sdk';
 import {
   ChannelPermission,
   DEFAULT_MESSAGES_LIMIT,
   MESSAGE_MAX_LENGTH,
   Permission,
   REACTION_EMOJI_MAX_LENGTH
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import { initTest, sendMessage, uploadFile } from '../../__tests__/helpers';

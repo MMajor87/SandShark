@@ -1,4 +1,4 @@
-import type { TCommandArg, TCommandInfo } from '@sharkord/shared';
+import type { TCommandArg, TCommandInfo } from '@sandshark/shared';
 import {
   Group,
   Input,
@@ -7,7 +7,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 

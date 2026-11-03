@@ -1,4 +1,4 @@
-import { PLUGIN_USER_DATA_MAX_BYTES } from '@sharkord/shared';
+import { PLUGIN_USER_DATA_MAX_BYTES } from '@sandshark/shared';
 import { and, eq } from 'drizzle-orm';
 import { db } from '..';
 import { invariant } from '../../utils/invariant';

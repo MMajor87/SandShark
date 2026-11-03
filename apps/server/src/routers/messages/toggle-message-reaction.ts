@@ -2,7 +2,7 @@ import {
   Permission,
   REACTION_EMOJI_MAX_LENGTH,
   type TBeforeReactionPayload
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';

@@ -1,4 +1,4 @@
-import { REACTION_EMOJI_MAX_LENGTH, ServerEvents } from '@sharkord/shared';
+import { REACTION_EMOJI_MAX_LENGTH, ServerEvents } from '@sandshark/shared';
 import { getPluginVoiceRuntime } from '../../helpers/get-plugin-voice-runtime';
 import { resolveKnownEmojiFileId } from '../../helpers/resolve-known-emoji-file-id';
 import { invariant } from '../../utils/invariant';

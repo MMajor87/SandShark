@@ -1,4 +1,4 @@
-import { Permission } from '@sharkord/shared';
+import { Permission } from '@sandshark/shared';
 import z from 'zod';
 import { unbanUser } from '../../helpers/moderation';
 import { invariant } from '../../utils/invariant';

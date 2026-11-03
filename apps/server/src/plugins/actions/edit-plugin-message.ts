@@ -1,4 +1,4 @@
-import { getPlainTextFromHtml, isEmptyMessage } from '@sharkord/shared';
+import { getPlainTextFromHtml, isEmptyMessage } from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { publishMessage } from '../../db/publishers';

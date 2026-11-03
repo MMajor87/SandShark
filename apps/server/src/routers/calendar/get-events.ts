@@ -1,4 +1,4 @@
-import { CALENDAR_PAGE_SIZE, zCalendarCursor } from '@sharkord/shared';
+import { CALENDAR_PAGE_SIZE, zCalendarCursor } from '@sandshark/shared';
 import { z } from 'zod';
 import { config } from '../../config';
 import { getCalendarEventsPage } from '../../db/queries/calendar';

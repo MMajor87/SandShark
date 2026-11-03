@@ -1,11 +1,11 @@
-import type { PluginSettings } from '@sharkord/plugin-sdk';
+import type { PluginSettings } from '@sandshark/plugin-sdk';
 import {
   getSettingValueError,
   isReferenceSetting,
   isSecretSetting,
   type TPluginSettingDefinition,
   type TPluginSettingsResponse
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { getRole } from '../db/queries/roles';

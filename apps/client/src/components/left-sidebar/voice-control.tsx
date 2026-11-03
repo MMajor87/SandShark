@@ -3,8 +3,8 @@ import { useChannelCan } from '@/features/server/hooks';
 import { leaveVoice } from '@/features/server/voice/actions';
 import { useVoice } from '@/features/server/voice/hooks';
 import { cn } from '@/lib/utils';
-import { ChannelPermission, PluginSlot } from '@sharkord/shared';
-import { Button } from '@sharkord/ui';
+import { ChannelPermission, PluginSlot } from '@sandshark/shared';
+import { Button } from '@sandshark/ui';
 import {
   AlertTriangle,
   Loader2,

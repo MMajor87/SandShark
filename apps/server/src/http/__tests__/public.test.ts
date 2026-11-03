@@ -1,4 +1,4 @@
-import { ChannelType, type TFile, type TTempFile } from '@sharkord/shared';
+import { ChannelType, type TFile, type TTempFile } from '@sandshark/shared';
 import { beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import fs from 'fs/promises';

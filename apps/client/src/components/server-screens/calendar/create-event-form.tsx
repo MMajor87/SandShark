@@ -5,7 +5,7 @@ import {
   getTrpcError,
   zCalendarEventInput,
   type TCalendarTarget
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import {
   Button,
   Card,
@@ -16,7 +16,7 @@ import {
   Input,
   Label,
   Textarea
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { Plus, Users } from 'lucide-react';
 import {
   memo,

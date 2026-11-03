@@ -5,8 +5,8 @@ import { getUrlFromServer } from '@/helpers/get-file-url';
 import { useDateLocale } from '@/hooks/use-date-locale';
 import { getTRPCClient } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
-import type { TJoinedInvite } from '@sharkord/shared';
-import { getTrpcError } from '@sharkord/shared';
+import type { TJoinedInvite } from '@sandshark/shared';
+import { getTrpcError } from '@sandshark/shared';
 import {
   Badge,
   Button,
@@ -14,7 +14,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Copy, MoreVertical, Trash2 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';

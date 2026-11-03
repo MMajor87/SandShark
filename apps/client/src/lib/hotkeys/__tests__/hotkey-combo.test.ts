@@ -2,7 +2,7 @@ import {
   comboFromKeyboardEvent,
   formatCombo,
   isReservedCombo
-} from '@sharkord/ui/src/lib/hotkey';
+} from '@sandshark/ui/src/lib/hotkey';
 import { describe, expect, it } from 'bun:test';
 
 const NO_MODIFIERS = {

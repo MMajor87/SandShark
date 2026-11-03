@@ -1,5 +1,5 @@
 import { Dialog } from '@/components/dialogs/dialogs';
-import type { TGenericObject } from '@sharkord/shared';
+import type { TGenericObject } from '@sandshark/shared';
 import { store } from '../store';
 import { dialogInfoSelector } from './selectors';
 import { dialogSliceActions } from './slice';

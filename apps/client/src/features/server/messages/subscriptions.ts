@@ -1,6 +1,6 @@
 import { logDebug } from '@/helpers/browser-logger';
 import { getTRPCClient } from '@/lib/trpc';
-import type { TJoinedMessage, TThreadSummary } from '@sharkord/shared';
+import type { TJoinedMessage, TThreadSummary } from '@sandshark/shared';
 import { getMessageConversation } from '../helpers';
 import { handleSubscriptionError } from '../subscription-error';
 import {

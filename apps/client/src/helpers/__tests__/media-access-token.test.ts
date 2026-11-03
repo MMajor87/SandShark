@@ -1,4 +1,4 @@
-import type { TFile } from '@sharkord/shared';
+import type { TFile } from '@sandshark/shared';
 import { afterEach, expect, test } from 'bun:test';
 import { getFileUrl } from '../get-file-url';
 import {

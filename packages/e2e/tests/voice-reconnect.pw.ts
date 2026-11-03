@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 import { chromium, type Page } from '@playwright/test';
-import { TestId } from '@sharkord/shared';
+import { TestId } from '@sandshark/shared';
 import { expect, loginAs, test } from './fixtures';
 
 const voiceChannel = (page: Page) =>

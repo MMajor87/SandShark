@@ -1,4 +1,4 @@
-import { formatCombo, isReservedCombo } from '@sharkord/ui';
+import { formatCombo, isReservedCombo } from '@sandshark/ui';
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 

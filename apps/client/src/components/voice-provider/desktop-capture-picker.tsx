@@ -5,7 +5,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { AppWindow, Monitor, X } from 'lucide-react';
 import { memo } from 'react';
 

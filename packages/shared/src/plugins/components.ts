@@ -85,11 +85,11 @@ export type TPluginSlotRequirements = Partial<Record<PluginSlot, Permission>>;
  *
  * Each slot types its components from `TPluginSlotProps`, so a component that
  * takes no props still fits anywhere. Import React from the host through
- * `window.__SHARKORD_REACT__` rather than bundling your own, or hooks will
+ * `window.__SANDSHARK_REACT__` rather than bundling your own, or hooks will
  * throw against a second copy.
  *
  * Whatever else the component imports is downloaded by everyone who opens the
- * server. `@sharkord/ui` is a normal dependency and copies what you use into
+ * server. `@sandshark/ui` is a normal dependency and copies what you use into
  * your bundle; the sdk's own enums and types cost only what you use.
  */
 export type TPluginComponentsMapBySlotId = {

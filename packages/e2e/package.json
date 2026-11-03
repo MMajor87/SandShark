@@ -1,5 +1,5 @@
 {
-  "name": "@sharkord/e2e",
+  "name": "@sandshark/e2e",
   "version": "0.0.28",
   "type": "module",
   "private": true,
@@ -15,11 +15,11 @@
     "lint:fix": "eslint ./tests/**/*.ts --ext ts --report-unused-disable-directives --fix",
     "check-types": "tsc --noEmit",
     "magic": "bun --bun run lint:fix && bun --bun run format && bun --bun run check-types",
-    "seed:e2e": "SHARKORD_DATA_PATH=./e2e-data bun run ./tests/setup/seed-db.ts"
+    "seed:e2e": "SANDSHARK_DATA_PATH=./e2e-data bun run ./tests/setup/seed-db.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "@sharkord/shared": "workspace:*",
+    "@sandshark/shared": "workspace:*",
     "@types/bun": "latest",
     "@types/react": "^19",
     "drizzle-orm": "^0.44.5"

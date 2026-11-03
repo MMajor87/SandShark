@@ -5,7 +5,7 @@ import {
   FileSaveType,
   STORAGE_MIN_QUOTA_PER_USER,
   type TInvokerContext
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import {
   afterEach,
   beforeAll,
@@ -1173,21 +1173,6 @@ export { onLoad, onUnload };
 
       expect(await pluginRow('plugin-a')).toBeDefined();
       expect(pluginManager.isEnabled('plugin-a')).toBe(true);
-    });
-
-    // installing removes the directory before writing the new one, and reading
-    // that as an uninstall would wipe the plugin mid-update
-    test('should ignore a plugin that is being installed', async () => {
-      await pluginManager.togglePlugin('plugin-a', true);
-
-      await removeDirectory('plugin-a');
-      pluginManager.markInstalling('plugin-a');
-
-      await pluginManager.reconcileRemovedPlugins();
-
-      expect(await pluginRow('plugin-a')).toBeDefined();
-
-      pluginManager.clearInstalling('plugin-a');
     });
   });
 

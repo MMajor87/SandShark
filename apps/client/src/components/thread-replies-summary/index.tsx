@@ -1,5 +1,5 @@
 import { UserAvatarStack } from '@/components/user-avatar-stack';
-import type { TThreadSummary } from '@sharkord/shared';
+import type { TThreadSummary } from '@sandshark/shared';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 

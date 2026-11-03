@@ -1,4 +1,4 @@
-import type { TCalendarCursor } from '@sharkord/shared';
+import type { TCalendarCursor } from '@sandshark/shared';
 import { and, eq, exists, gt, inArray, or, sql } from 'drizzle-orm';
 import { db } from '..';
 import {

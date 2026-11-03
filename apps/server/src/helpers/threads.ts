@@ -1,4 +1,4 @@
-import { getMentions } from '@sharkord/shared';
+import { getMentions } from '@sandshark/shared';
 import { and, eq, gt, inArray, lt, ne, or, type SQL } from 'drizzle-orm';
 import { db } from '../db';
 import { publishThreadFollowers } from '../db/publishers';

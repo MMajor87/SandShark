@@ -1,4 +1,4 @@
-import { Permission, type PluginCapabilityType } from '@sharkord/shared';
+import { Permission, type PluginCapabilityType } from '@sandshark/shared';
 import { useSelector } from 'react-redux';
 import type { IRootState } from '../../store';
 import { useCan } from '../hooks';

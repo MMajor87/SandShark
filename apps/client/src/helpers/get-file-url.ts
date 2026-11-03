@@ -1,5 +1,5 @@
 import { i18n } from '@/i18n';
-import type { TFile } from '@sharkord/shared';
+import type { TFile } from '@sandshark/shared';
 import { getMediaAccessToken } from './media-access-token';
 import { getServerConnection } from './server-connection';
 

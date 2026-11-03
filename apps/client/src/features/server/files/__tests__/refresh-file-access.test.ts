@@ -1,4 +1,4 @@
-import type { TFile, TJoinedEmoji, TJoinedMessage } from '@sharkord/shared';
+import type { TFile, TJoinedEmoji, TJoinedMessage } from '@sandshark/shared';
 import { expect, test } from 'bun:test';
 import { serverSliceActions, serverSliceReducer } from '../../slice';
 

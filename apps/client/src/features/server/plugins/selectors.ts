@@ -4,7 +4,7 @@ import {
   PluginSlot,
   type TPluginReactComponent,
   type TPluginTab
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { createCachedSelector } from 're-reselect';
 
 // stable empty value, so a plugin with no tabs does not re-render its view on

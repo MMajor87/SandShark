@@ -12,8 +12,8 @@ import { useIsShiftHeld } from '@/features/app/hooks';
 import { requestConfirmation } from '@/features/dialogs/actions';
 import { useCustomEmojis } from '@/features/server/emojis/hooks';
 import { getTRPCClient } from '@/lib/trpc';
-import { Permission, PluginSlot, TestId } from '@sharkord/shared';
-import { IconButton } from '@sharkord/ui';
+import { Permission, PluginSlot, TestId } from '@sandshark/shared';
+import { IconButton } from '@sandshark/ui';
 import {
   MessageSquareText,
   Pencil,

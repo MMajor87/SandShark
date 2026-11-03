@@ -1,5 +1,5 @@
 import { isDesktopClient } from '@/platform/environment';
-import type { TFile } from '@sharkord/shared';
+import type { TFile } from '@sandshark/shared';
 import { getFileUrl } from './get-file-url';
 
 const downloadFile = async (file: TFile) => {

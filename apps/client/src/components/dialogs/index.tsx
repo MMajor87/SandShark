@@ -8,7 +8,6 @@ import { CreateChannelDialog } from './create-channel';
 import { CreateInviteDialog } from './create-invite-dialog';
 import { DeleteUserDialog } from './delete-user';
 import { Dialog } from './dialogs';
-import { PluginInstallConfirmDialog } from './plugin-install-confirm';
 import { ResetUserPasswordDialog } from './reset-user-password';
 import { SearchDialog } from './search';
 import { ServerPasswordDialog } from './server-password';
@@ -27,7 +26,6 @@ const DialogsMap: any = {
   [Dialog.ASSIGN_ROLE]: AssignRoleDialog,
   [Dialog.CREATE_INVITE]: CreateInviteDialog,
   [Dialog.CREATE_CATEGORY]: CreateCategoryDialog,
-  [Dialog.PLUGIN_INSTALL_CONFIRM]: PluginInstallConfirmDialog,
   [Dialog.DELETE_USER]: DeleteUserDialog,
   [Dialog.RESET_USER_PASSWORD]: ResetUserPasswordDialog,
   [Dialog.SEARCH]: SearchDialog,

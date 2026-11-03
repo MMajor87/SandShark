@@ -1,6 +1,6 @@
 import { getTRPCClient, type TRouterOutputs } from '@/lib/trpc';
-import { getTrpcError, type TCalendarCursor } from '@sharkord/shared';
-import { Button } from '@sharkord/ui';
+import { getTrpcError, type TCalendarCursor } from '@sandshark/shared';
+import { Button } from '@sandshark/ui';
 import { CalendarDays } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';

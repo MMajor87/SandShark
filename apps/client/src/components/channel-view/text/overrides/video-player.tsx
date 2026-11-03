@@ -1,4 +1,4 @@
-import { cn } from '@sharkord/ui';
+import { cn } from '@sandshark/ui';
 import { memo, type ComponentProps } from 'react';
 import ReactPlayer from 'react-player';
 

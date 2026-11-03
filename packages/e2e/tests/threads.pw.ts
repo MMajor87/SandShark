@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { TestId } from '@sharkord/shared';
+import { TestId } from '@sandshark/shared';
 import { expect, test } from './fixtures';
 import { LIVE_MESSAGES_CHANNEL, openChannel } from './helpers/channels';
 import { withClients } from './helpers/clients';

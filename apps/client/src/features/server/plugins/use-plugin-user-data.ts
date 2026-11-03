@@ -1,4 +1,4 @@
-import type { TPluginUserData } from '@sharkord/shared';
+import type { TPluginUserData } from '@sandshark/shared';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { useSelector } from 'react-redux';
 import { ownUserIdSelector } from '../users/selectors';

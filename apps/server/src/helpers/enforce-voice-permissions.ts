@@ -3,7 +3,7 @@ import {
   Permission,
   ServerEvents,
   StreamKind
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { channelUserCan } from '../db/queries/channels';
 import { userCan } from '../db/queries/roles';
 import { VoiceRuntime } from '../runtimes/voice';

@@ -6,7 +6,7 @@ import type {
   TMessageReaction,
   TMessageReplyPreview,
   TMessagesCursor
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import {
   and,
   asc,

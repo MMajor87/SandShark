@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { TestId, UserStatus } from '@sharkord/shared';
+import { TestId, UserStatus } from '@sandshark/shared';
 import { memo } from 'react';
 
 type TUserStatusBadgeProps = {

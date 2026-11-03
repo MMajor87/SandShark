@@ -1,4 +1,4 @@
-import { ActivityLogType, Permission } from '@sharkord/shared';
+import { ActivityLogType, Permission } from '@sandshark/shared';
 import { z } from 'zod';
 import { deleteRoleAndFallbackUsers } from '../../db/mutations/roles';
 import { publishRole } from '../../db/publishers';

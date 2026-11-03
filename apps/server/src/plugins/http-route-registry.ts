@@ -2,7 +2,7 @@ import type {
   TPluginHttpMethod,
   TPluginHttpRouteHandler,
   TPluginHttpRouteOptions
-} from '@sharkord/plugin-sdk';
+} from '@sandshark/plugin-sdk';
 import { hasPrefixPathSegment, isSupportedHttpMethod } from '../http/helpers';
 import type { PluginLogger } from './plugin-logger';
 

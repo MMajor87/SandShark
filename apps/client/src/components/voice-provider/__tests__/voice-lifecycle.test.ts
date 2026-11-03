@@ -1,4 +1,4 @@
-import { StreamKind } from '@sharkord/shared';
+import { StreamKind } from '@sandshark/shared';
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test';
 import type { Device } from 'mediasoup-client/types';
 import { EventEmitter } from 'node:events';

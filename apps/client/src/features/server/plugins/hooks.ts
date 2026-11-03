@@ -1,5 +1,5 @@
 import type { IRootState } from '@/features/store';
-import type { PluginSlot } from '@sharkord/shared';
+import type { PluginSlot } from '@sandshark/shared';
 import { useSelector } from 'react-redux';
 import {
   commandsSelector,

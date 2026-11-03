@@ -1,4 +1,4 @@
-import { extractUrls, type TMessageMetadata } from '@sharkord/shared';
+import { extractUrls, type TMessageMetadata } from '@sandshark/shared';
 import dns from 'dns';
 import { eq } from 'drizzle-orm';
 import { getLinkPreview } from 'link-preview-js';

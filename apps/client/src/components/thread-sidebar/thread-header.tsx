@@ -1,8 +1,8 @@
 import { useIsThreadFollowed } from '@/features/server/threads/hooks';
 import { useChannelLabel } from '@/hooks/use-channel-label';
 import { getTRPCClient } from '@/lib/trpc';
-import { getTrpcError } from '@sharkord/shared';
-import { IconButton } from '@sharkord/ui';
+import { getTrpcError } from '@sandshark/shared';
+import { IconButton } from '@sandshark/ui';
 import { Bell, BellOff, MessageSquareText, X } from 'lucide-react';
 import { memo, useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';

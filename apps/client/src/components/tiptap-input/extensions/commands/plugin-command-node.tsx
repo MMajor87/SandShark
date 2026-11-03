@@ -1,4 +1,4 @@
-import { MessageNodeType, type TCommandArg } from '@sharkord/shared';
+import { MessageNodeType, type TCommandArg } from '@sandshark/shared';
 import { Node } from '@tiptap/core';
 import {
   NodeViewWrapper,

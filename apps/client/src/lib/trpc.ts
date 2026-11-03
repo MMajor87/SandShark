@@ -21,7 +21,7 @@ import {
   DisconnectCode,
   type AppRouter,
   type TConnectionParams
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { createTRPCProxyClient, createWSClient, wsLink } from '@trpc/client';
 import type { inferRouterOutputs } from '@trpc/server';
 

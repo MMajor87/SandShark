@@ -1,4 +1,4 @@
-import { Permission, ServerEvents } from '@sharkord/shared';
+import { Permission, ServerEvents } from '@sandshark/shared';
 import { protectedProcedure } from '../../utils/trpc';
 
 const onPluginLogRoute = protectedProcedure.subscription(async ({ ctx }) => {

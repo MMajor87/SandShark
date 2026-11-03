@@ -63,14 +63,14 @@ jobs:
         with:
           ref: ${{ needs.resolve-release.outputs.sha }}
       - name: Build server artifacts
-        uses: ./.github/actions/build-sharkord
+        uses: ./.github/actions/build-sandshark
       - name: Generate provenance and checksums
         working-directory: apps/server/build/out
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.sha }}
         run: |
           printf '%s\n' "$RELEASE_SHA" > BUILD_COMMIT.txt
-          sha256sum sharkord-* release.json BUILD_COMMIT.txt > SHA256SUMS.txt
+          sha256sum sandshark-* release.json BUILD_COMMIT.txt > SHA256SUMS.txt
       - name: Publish versioned server image
         uses: ./.github/actions/docker-build-publish
         with:
@@ -95,10 +95,10 @@ jobs:
           fail_on_unmatched_files: true
           body_path: apps/server/RELEASE_NOTES.md
           files: |
-            apps/server/build/out/sharkord-linux-x64
-            apps/server/build/out/sharkord-linux-arm64
-            apps/server/build/out/sharkord-windows-x64.exe
-            apps/server/build/out/sharkord-macos-arm64
+            apps/server/build/out/sandshark-linux-x64
+            apps/server/build/out/sandshark-linux-arm64
+            apps/server/build/out/sandshark-windows-x64.exe
+            apps/server/build/out/sandshark-macos-arm64
             apps/server/build/out/release.json
             apps/server/build/out/SHA256SUMS.txt
             apps/server/build/out/BUILD_COMMIT.txt

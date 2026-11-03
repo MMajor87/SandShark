@@ -2,7 +2,7 @@ import type {
   TVoiceDebugEvent,
   TVoiceDebugSnapshot
 } from '@/helpers/voice-debug';
-import { cn } from '@sharkord/ui';
+import { cn } from '@sandshark/ui';
 import { memo, useEffect, useRef } from 'react';
 import { formatTime, statsByType } from './helpers';
 import { Fields, Pill, Section, StatGroup } from './parts';

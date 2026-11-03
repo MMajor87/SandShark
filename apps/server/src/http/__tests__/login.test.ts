@@ -1,4 +1,4 @@
-import { ChannelType, sha256 } from '@sharkord/shared';
+import { ChannelType, sha256 } from '@sandshark/shared';
 import { describe, expect, spyOn, test } from 'bun:test';
 import { and, eq, inArray } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
@@ -107,7 +107,7 @@ describe('/login', () => {
       .get();
 
     expect(newUser).toBeTruthy();
-    expect(newUser?.name).toStartWith('SharkordUser');
+    expect(newUser?.name).toStartWith('SandSharkUser');
   });
 
   test('should mark all existing messages as read for first-time users', async () => {

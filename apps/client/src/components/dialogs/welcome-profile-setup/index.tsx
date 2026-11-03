@@ -12,7 +12,7 @@ import {
   DEFAULT_PROFILE_COLOR,
   getTrpcError,
   UploadPurpose
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import {
   Avatar,
   AvatarFallback,
@@ -26,7 +26,7 @@ import {
   IconButton,
   Input,
   Textarea
-} from '@sharkord/ui';
+} from '@sandshark/ui';
 import { Upload, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -127,7 +127,7 @@ const WelcomeProfileSetupDialog = memo(
           name: values.name.trim(),
           profileColor: ownPublicUser.profileColor ?? DEFAULT_PROFILE_COLOR,
           bio: trimmedBio || undefined,
-          // Older Sharkord servers require this field. Newer servers ignore it.
+          // older servers require this field, newer servers ignore it.
           bannerColor:
             typeof legacyBannerColor === 'string'
               ? legacyBannerColor

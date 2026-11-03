@@ -1,4 +1,4 @@
-import { DEFAULT_PROFILE_COLOR } from '@sharkord/shared';
+import { DEFAULT_PROFILE_COLOR } from '@sandshark/shared';
 import { memo, useMemo } from 'react';
 
 type TCardThemeProps = {

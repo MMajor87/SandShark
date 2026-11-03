@@ -1,5 +1,5 @@
 import { getTRPCClient } from '@/lib/trpc';
-import { TYPING_MS } from '@sharkord/shared';
+import { TYPING_MS } from '@sandshark/shared';
 import { throttle } from 'lodash-es';
 import { useMemo } from 'react';
 

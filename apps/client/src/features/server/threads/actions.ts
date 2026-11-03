@@ -6,7 +6,7 @@ import type {
   TMessagesCursor,
   TThreadFollowUpdate,
   TThreadReadState
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { markChannelAsRead } from '../actions';
 import {
   isChannelTextVisibleByIdSelector,

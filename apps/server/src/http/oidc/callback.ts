@@ -3,7 +3,7 @@ import {
   getErrorMessage,
   OidcError,
   OWNER_ROLE_ID
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import type http from 'http';
 import jwt from 'jsonwebtoken';

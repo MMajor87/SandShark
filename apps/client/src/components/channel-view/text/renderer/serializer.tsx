@@ -1,6 +1,6 @@
 import { ChannelChip } from '@/components/channel-chip';
 import { RoleMentionChip } from '@/components/role-mention-chip';
-import { MessageNodeType, parseDomCommand } from '@sharkord/shared';
+import { MessageNodeType, parseDomCommand } from '@sandshark/shared';
 import { Element, type DOMNode } from 'html-react-parser';
 import { CommandOverride } from '../overrides/command';
 import { MentionOverride } from '../overrides/mention';

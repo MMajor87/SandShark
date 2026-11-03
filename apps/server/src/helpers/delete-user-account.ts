@@ -3,7 +3,7 @@ import {
   DELETED_USER_IDENTITY_AND_NAME,
   OWNER_ROLE_ID,
   ServerEvents
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { and, eq, exists, notExists, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import fs from 'fs/promises';

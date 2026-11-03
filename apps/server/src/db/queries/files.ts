@@ -1,4 +1,4 @@
-import type { TFile, TPluginStorageUsage } from '@sharkord/shared';
+import type { TFile, TPluginStorageUsage } from '@sandshark/shared';
 import { desc, eq, inArray, sql, sum } from 'drizzle-orm';
 import { db } from '..';
 import { attachFileToken } from '../../helpers/files-crypto';

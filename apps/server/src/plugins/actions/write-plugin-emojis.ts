@@ -2,7 +2,7 @@ import {
   FileSaveType,
   imageExtensions,
   type TJoinedEmoji
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import path from 'path';
 import { getEmojiById, getUniqueEmojiName } from '../../db/queries/emojis';
 import { getPublicUserById } from '../../db/queries/users';

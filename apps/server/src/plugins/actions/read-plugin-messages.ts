@@ -1,4 +1,4 @@
-import { DEFAULT_MESSAGES_LIMIT, type TJoinedMessage } from '@sharkord/shared';
+import { DEFAULT_MESSAGES_LIMIT, type TJoinedMessage } from '@sandshark/shared';
 import { and, desc, eq, lt } from 'drizzle-orm';
 import { db } from '../../db';
 import { joinMessagesWithRelations } from '../../db/queries/messages';

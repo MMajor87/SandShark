@@ -15,8 +15,8 @@ import {
   useServerName
 } from '@/features/server/hooks';
 import { useThreadsOpen } from '@/features/server/threads/hooks';
-import { ChannelType, PluginSlot } from '@sharkord/shared';
-import { Alert, AlertDescription } from '@sharkord/ui';
+import { ChannelType, PluginSlot } from '@sandshark/shared';
+import { Alert, AlertDescription } from '@sandshark/ui';
 import {
   AlertTriangle,
   ArrowLeft,

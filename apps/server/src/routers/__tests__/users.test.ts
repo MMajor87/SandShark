@@ -6,7 +6,7 @@ import {
   Permission,
   ServerEvents,
   type TTempFile
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { and, eq, sql } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';

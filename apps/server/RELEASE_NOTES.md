@@ -1,3 +1,16 @@
+# SandShark Server (unreleased)
+
+- Renames the server's remaining old project identifiers to SandShark.
+- Removes the plugin marketplace and the install and update plugin routes. To add a plugin, copy its folder into the `plugins` folder in the server's data directory.
+
+## Upgrade steps
+
+- Environment variables are now `SANDSHARK_*`, for example `SANDSHARK_HOST`, `SANDSHARK_PORT`, `SANDSHARK_WEBRTC_ANNOUNCED_ADDRESS`, `SANDSHARK_OIDC_CLIENT_SECRET` and `SANDSHARK_DATA_PATH`. The old names are no longer read, so rename them in your Docker or service configuration before upgrading.
+- The default data folder is now `sandshark` (for example `/home/bun/.config/sandshark` in Docker). On first start the server moves the old folder to the new name. If the old folder cannot be moved, the server keeps using it and logs a warning.
+- Docker: change the volume mount to `-v sandshark-data:/home/bun/.config/sandshark`. A volume still mounted at the old path keeps working but cannot be moved from inside the container.
+- Release binaries are now named `sandshark-linux-x64`, `sandshark-linux-arm64`, `sandshark-windows-x64.exe` and `sandshark-macos-arm64`. Update any install scripts that download them by name.
+- The version header is now `X-SandShark-Version`.
+
 # SandShark Server 0.1.1
 
 - Adds account self deletion with password confirmation. Deleting an account removes its calendar events and invitations.

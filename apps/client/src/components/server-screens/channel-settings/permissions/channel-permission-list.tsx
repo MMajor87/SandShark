@@ -1,5 +1,5 @@
-import { ChannelPermission } from '@sharkord/shared';
-import { Label, Switch } from '@sharkord/ui';
+import { ChannelPermission } from '@sandshark/shared';
+import { Label, Switch } from '@sandshark/ui';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 

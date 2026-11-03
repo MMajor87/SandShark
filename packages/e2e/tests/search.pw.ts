@@ -1,4 +1,4 @@
-import { TestId } from '@sharkord/shared';
+import { TestId } from '@sandshark/shared';
 import { expect, loginAs, test } from './fixtures';
 
 // the mock channels hold 1300 messages between them, all of them "Mock message N", so a bare

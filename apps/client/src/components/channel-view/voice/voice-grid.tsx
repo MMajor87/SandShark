@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Tooltip } from '@sharkord/ui';
+import { Tooltip } from '@sandshark/ui';
 import { ChevronDown, Users } from 'lucide-react';
 import {
   isValidElement,

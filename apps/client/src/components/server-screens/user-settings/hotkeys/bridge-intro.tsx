@@ -1,15 +1,6 @@
-import { Button } from '@sharkord/ui';
-import {
-  AppWindow,
-  ExternalLink,
-  EyeOff,
-  Zap,
-  type LucideIcon
-} from 'lucide-react';
+import { AppWindow, EyeOff, Zap, type LucideIcon } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-
-const HOTKEYS_DOCS_URL = 'https://sharkord.com/docs/bridge/overview';
 
 type TStep = {
   icon: LucideIcon;
@@ -35,32 +26,23 @@ const BridgeIntro = memo(() => {
   const { t } = useTranslation('settings');
 
   return (
-    <div className="space-y-4">
-      <ol className="space-y-4">
-        <IntroStep
-          icon={EyeOff}
-          title={t('hotkeysIntroProblemTitle')}
-          description={t('hotkeysIntroProblemDesc')}
-        />
-        <IntroStep
-          icon={AppWindow}
-          title={t('hotkeysIntroFixTitle')}
-          description={t('hotkeysIntroFixDesc')}
-        />
-        <IntroStep
-          icon={Zap}
-          title={t('hotkeysIntroResultTitle')}
-          description={t('hotkeysIntroResultDesc')}
-        />
-      </ol>
-
-      <Button variant="outline" size="sm" asChild>
-        <a href={HOTKEYS_DOCS_URL} target="_blank" rel="noopener noreferrer">
-          {t('hotkeysIntroDocs')}
-          <ExternalLink />
-        </a>
-      </Button>
-    </div>
+    <ol className="space-y-4">
+      <IntroStep
+        icon={EyeOff}
+        title={t('hotkeysIntroProblemTitle')}
+        description={t('hotkeysIntroProblemDesc')}
+      />
+      <IntroStep
+        icon={AppWindow}
+        title={t('hotkeysIntroFixTitle')}
+        description={t('hotkeysIntroFixDesc')}
+      />
+      <IntroStep
+        icon={Zap}
+        title={t('hotkeysIntroResultTitle')}
+        description={t('hotkeysIntroResultDesc')}
+      />
+    </ol>
   );
 });
 

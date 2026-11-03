@@ -3,7 +3,7 @@ import {
   Permission,
   UploadHeaders,
   UploadPurpose
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import fs from 'fs';
 import http from 'http';
 import { imageSizeFromFile } from 'image-size/fromFile';

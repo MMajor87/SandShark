@@ -3,7 +3,7 @@ import { SettingsSection } from '@/components/server-screens/settings-shell/sect
 import { useSettingsForm } from '@/components/server-screens/settings-shell/use-settings-form';
 import { setAutoJoinLastChannel } from '@/features/app/actions';
 import { useAutoJoinLastChannel } from '@/features/app/hooks';
-import { Group, Switch } from '@sharkord/ui';
+import { Group, Switch } from '@sandshark/ui';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 

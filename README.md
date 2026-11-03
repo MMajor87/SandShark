@@ -1,6 +1,6 @@
 # SandShark
 
-SandShark is a Windows desktop client and self-hosted server for small-group voice and text communication. It builds on [Sharkord](https://github.com/Sharkord/sharkord) and keeps compatibility identifiers where existing clients and installations need them.
+SandShark is a Windows desktop client and self-hosted server for small-group voice and text communication.
 
 The desktop app provides notifications, tray controls, push-to-talk, saved server profiles, screen sharing, application audio capture, and Windows installer and update support. This repository also contains the web client, shared packages, and plugin SDK.
 
@@ -19,7 +19,7 @@ The Server 0.1.0 release includes a public Linux amd64/arm64 image at `ghcr.io/m
 
 ```sh
 docker volume create sandshark-data
-docker run -d --name sandshark-server --restart unless-stopped -p 4991:4991/tcp -p 40000:40000/udp -e SHARKORD_HOST=0.0.0.0 -e SHARKORD_WEBRTC_ANNOUNCED_ADDRESS=YOUR_PUBLIC_IP_OR_HOSTNAME -v sandshark-data:/home/bun/.config/sharkord ghcr.io/mmajor87/sandshark-server:0.1.0
+docker run -d --name sandshark-server --restart unless-stopped -p 4991:4991/tcp -p 40000:40000/udp -e SANDSHARK_HOST=0.0.0.0 -e SANDSHARK_WEBRTC_ANNOUNCED_ADDRESS=YOUR_PUBLIC_IP_OR_HOSTNAME -v sandshark-data:/home/bun/.config/sandshark ghcr.io/mmajor87/sandshark-server:0.1.0
 ```
 
 Replace `YOUR_PUBLIC_IP_OR_HOSTNAME` with the address clients use to reach the server. Open TCP 4991 for the app and UDP 40000 for voice on the host and firewall. The named volume keeps the database, uploads, configuration, plugins, and other server data when the container is replaced. Connect the desktop client to `http://YOUR_PUBLIC_IP_OR_HOSTNAME:4991` or your configured HTTPS address. Back up the whole data volume before upgrading; database migrations run at startup. There is no moving `latest` image tag, so pin the version you deploy.
@@ -52,8 +52,7 @@ Server binaries are written to `apps/server/build/out/`; Windows installers are 
 ## Project information
 
 - [Contribution guide](CONTRIBUTING.md), [development guide](DEVELOPMENT.md), and [roadmap](ROADMAP.md)
-- [Upstream compatibility and integration guide](docs/upstream-compatibility.md)
 - [Server 0.1.0 release verification](docs/server-0.1.0-validation.md)
-- [License and upstream attribution](LICENSE)
+- [License](LICENSE). SandShark began as a fork of an MIT licensed project, whose copyright notice the license requires us to keep.
 
 Report SandShark problems in the [issue tracker](https://github.com/MMajor87/SandShark/issues). Include the desktop and server versions and reproduction steps, and remove credentials and private server addresses from logs.

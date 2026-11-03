@@ -1,4 +1,4 @@
-import { TestId } from '@sharkord/shared';
+import { TestId } from '@sandshark/shared';
 import { expect, loginAs, test } from './fixtures';
 
 test('calendar loads bounded pages without replacing earlier events', async ({

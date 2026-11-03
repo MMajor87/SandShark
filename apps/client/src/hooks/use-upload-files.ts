@@ -1,7 +1,7 @@
 import { useChannelById } from '@/features/server/channels/hooks';
 import { useCan, usePublicServerSettings } from '@/features/server/hooks';
 import { uploadFile, type TUploadProgress } from '@/helpers/upload-file';
-import { isPreviewable, Permission, type TTempFile } from '@sharkord/shared';
+import { isPreviewable, Permission, type TTempFile } from '@sandshark/shared';
 import {
   useCallback,
   useEffect,

@@ -1,4 +1,4 @@
-import { OWNER_ROLE_ID, Permission } from '@sharkord/shared';
+import { OWNER_ROLE_ID, Permission } from '@sandshark/shared';
 import { describe, expect, test } from 'bun:test';
 import { initTest } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';

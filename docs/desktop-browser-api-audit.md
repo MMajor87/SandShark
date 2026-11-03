@@ -32,14 +32,14 @@ This audit covers `apps/client` at the Phase 0 upstream baseline (`ecea4d3c831e2
 | File picker APIs | Hidden `<input type=file>` in upload hook; dynamic input in `use-file-picker.ts` | Works unchanged | Preserve current renderer picker; Electron dialog integration is optional. |
 | Drag-and-drop file APIs | `use-upload-files.ts` paste, `dragover`, and `drop` handlers | Works unchanged | Verify Windows Explorer drag-and-drop in Phase 21. |
 | Browser download APIs | `helpers/download-file.ts` creates an anchor and object URL | Should be replaced by Electron functionality | Move downloads to Electron session/download handling for destination choice, progress, and reveal-in-folder support. |
-| Browser URL handling | `helpers/get-file-url.ts`, connect invite query parameter | Requires a compatibility wrapper | The renderer must retain the selected Sharkord server origin while packaged UI loads from an app URL. Replace direct `window.location` server derivation with a desktop-aware server-origin helper in Phase 6. |
+| Browser URL handling | `helpers/get-file-url.ts`, connect invite query parameter | Requires a compatibility wrapper | The renderer must retain the selected SandShark server origin while packaged UI loads from an app URL. Replace direct `window.location` server derivation with a desktop-aware server-origin helper in Phase 6. |
 | Browser history APIs | No direct `history`, `pushState`, `replaceState`, or `popstate` usage | Works unchanged | No migration required. |
 | External windows | `window.open()` for server-activity and connect-screen links | Should be replaced by Electron functionality | Intercept and open approved HTTP/HTTPS URLs with `shell.openExternal`; block renderer navigation in Phase 19. |
 | Fullscreen / Picture-in-Picture | Voice view hooks | Requires further investigation | Validate Electron Chromium behavior after the basic window exists; preserve current fallback behavior. |
 
 ## Authentication and Server Origin
 
-The web client assumes its own origin is the Sharkord server. Login is an HTTP POST to `${origin}/login`; the tRPC client opens `${wsProtocol}://${host}` and passes the session token in WebSocket connection parameters. A packaged Electron renderer cannot make that assumption, so Phase 6 must introduce an explicit active-server origin with both HTTP and WebSocket forms. The existing `getUrlFromServer()` and `getHostFromServer()` functions are the intended migration seam.
+The web client assumes its own origin is the SandShark server. Login is an HTTP POST to `${origin}/login`; the tRPC client opens `${wsProtocol}://${host}` and passes the session token in WebSocket connection parameters. A packaged Electron renderer cannot make that assumption, so Phase 6 must introduce an explicit active-server origin with both HTTP and WebSocket forms. The existing `getUrlFromServer()` and `getHostFromServer()` functions are the intended migration seam.
 
 ## Test Server Routing Check
 

@@ -1,5 +1,5 @@
 import { useCan } from '@/features/server/hooks';
-import { Permission } from '@sharkord/shared';
+import { Permission } from '@sandshark/shared';
 import { Settings, Shield } from 'lucide-react';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';

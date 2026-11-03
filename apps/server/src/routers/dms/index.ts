@@ -1,4 +1,4 @@
-import { ServerEvents } from '@sharkord/shared';
+import { ServerEvents } from '@sandshark/shared';
 import { protectedProcedure, t } from '../../utils/trpc';
 import { closeDirectMessageRoute } from './close-direct-message';
 import { openDirectMessageRoute } from './open-direct-message';

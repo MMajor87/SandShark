@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test';
-import { TestId } from '@sharkord/shared';
+import { TestId } from '@sandshark/shared';
 import { messagesContainer } from './scroll';
 
 // read-only, so the pagination specs can count its pages without another spec's message

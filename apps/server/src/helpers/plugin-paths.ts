@@ -2,7 +2,7 @@ import {
   CLIENT_ENTRY_FILE,
   SERVER_ENTRY_FILE,
   zPluginId
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import path from 'path';
 import { PLUGINS_DATA_PATH, PLUGINS_PATH } from './paths';
 

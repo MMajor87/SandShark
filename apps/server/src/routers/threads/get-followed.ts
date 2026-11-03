@@ -1,4 +1,4 @@
-import { zMessagesCursor } from '@sharkord/shared';
+import { zMessagesCursor } from '@sandshark/shared';
 import { z } from 'zod';
 import { config } from '../../config';
 import { getChannelsForUser } from '../../db/queries/channels';

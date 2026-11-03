@@ -14,17 +14,13 @@ import {
   type TPluginEphemeralResponse,
   type TPluginInfo,
   type TPluginPushEvent
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import fs from 'fs/promises';
 import path from 'path';
 import { initTest, sendMessage } from '../../__tests__/helpers';
-import {
-  loadMockedPlugins,
-  mockPluginDownload,
-  resetPluginMocks
-} from '../../__tests__/mocks';
+import { loadMockedPlugins, resetPluginMocks } from '../../__tests__/mocks';
 import { tdb, testsBaseUrl } from '../../__tests__/setup';
 import * as publishers from '../../db/publishers';
 import { getChannelsReadStatesForUser } from '../../db/queries/channels';
@@ -54,7 +50,6 @@ import {
 } from '../../helpers/plugin-capability-access';
 import { hasVoiceMoveGrant } from '../../helpers/voice-move-grants';
 import { pluginManager } from '../../plugins';
-import { eventBus } from '../../plugins/event-bus';
 import { drainActivityLogQueue } from '../../queues/activity-log';
 import * as messageMetadata from '../../queues/message-metadata';
 import { VoiceRuntime } from '../../runtimes/voice';
@@ -839,129 +834,6 @@ describe('plugins router', () => {
           "Setting 'logChannel' expects a number, received string"
         );
       });
-    });
-  });
-
-  describe('install', () => {
-    test('should throw when user lacks permissions', async () => {
-      const { caller } = await initTest(2);
-
-      await expect(
-        caller.plugins.install({
-          pluginId: 'plugin-example',
-          version: '0.0.1'
-        })
-      ).rejects.toThrow('Insufficient permissions');
-    });
-
-    test('should call downloadPlugin with fetched URL and checksum', async () => {
-      const { caller } = await initTest();
-      const mockDownload = mock(() => Promise.resolve());
-
-      mockPluginDownload(mockDownload);
-
-      await caller.plugins.install({
-        pluginId: 'plugin-example',
-        version: '0.0.1'
-      });
-
-      expect(mockDownload).toHaveBeenCalledWith(
-        'plugin-example',
-        'https://example.com/plugin.tar.gz',
-        'deadbeef1234'
-      );
-    });
-
-    test('should reject empty pluginId', async () => {
-      const { caller } = await initTest();
-
-      await expect(
-        caller.plugins.install({
-          pluginId: '',
-          version: '0.0.1'
-        })
-      ).rejects.toThrow();
-    });
-
-    test('should reject missing version', async () => {
-      const { caller } = await initTest();
-
-      await expect(
-        // @ts-expect-error intentionally omitting required field
-        caller.plugins.install({
-          pluginId: 'plugin-example'
-        })
-      ).rejects.toThrow();
-    });
-  });
-
-  describe('concurrent installs', () => {
-    test('should serialize installs of the same plugin', async () => {
-      const { caller } = await initTest();
-      const order: string[] = [];
-      let active = 0;
-
-      mockPluginDownload(async () => {
-        active += 1;
-        order.push(`start:${active}`);
-
-        await Bun.sleep(20);
-
-        order.push(`end:${active}`);
-        active -= 1;
-      });
-
-      await Promise.all([
-        caller.plugins.install({ pluginId: 'plugin-a', version: '0.0.1' }),
-        caller.plugins.update({ pluginId: 'plugin-a', version: '0.0.1' })
-      ]);
-
-      // never two swaps in flight at once, so the directory is never half written
-      expect(order).toEqual(['start:1', 'end:1', 'start:1', 'end:1']);
-    });
-
-    test('should not serialize installs of different plugins', async () => {
-      const { caller } = await initTest();
-      let active = 0;
-      let peak = 0;
-
-      mockPluginDownload(async () => {
-        active += 1;
-        peak = Math.max(peak, active);
-
-        await Bun.sleep(20);
-
-        active -= 1;
-      });
-
-      await Promise.all([
-        caller.plugins.install({ pluginId: 'plugin-a', version: '0.0.1' }),
-        caller.plugins.install({ pluginId: 'plugin-b', version: '0.0.1' })
-      ]);
-
-      expect(peak).toBe(2);
-    });
-
-    test('should still run a queued install after the one before it fails', async () => {
-      const { caller } = await initTest();
-      let calls = 0;
-
-      mockPluginDownload(async () => {
-        calls += 1;
-
-        if (calls === 1) {
-          throw new Error('network exploded');
-        }
-      });
-
-      const [first, second] = await Promise.allSettled([
-        caller.plugins.install({ pluginId: 'plugin-a', version: '0.0.1' }),
-        caller.plugins.install({ pluginId: 'plugin-a', version: '0.0.1' })
-      ]);
-
-      expect(first!.status).toBe('rejected');
-      expect(second!.status).toBe('fulfilled');
-      expect(calls).toBe(2);
     });
   });
 
@@ -4317,75 +4189,6 @@ describe('plugins router', () => {
     });
   });
 
-  describe('update', () => {
-    test('should call downloadPlugin with fetched URL and checksum', async () => {
-      const { caller } = await initTest();
-      const mockDownload = mock(() => Promise.resolve());
-
-      mockPluginDownload(mockDownload, {
-        version: '2.0.0',
-        downloadUrl: 'https://example.com/plugin-a-v2.tar.gz',
-        checksum: 'cafebabe5678',
-        size: 2000
-      });
-
-      await caller.plugins.update({
-        pluginId: 'plugin-a',
-        version: '2.0.0'
-      });
-
-      expect(mockDownload).toHaveBeenCalledWith(
-        'plugin-a',
-        'https://example.com/plugin-a-v2.tar.gz',
-        'cafebabe5678'
-      );
-    });
-
-    test('should leave an enabled plugin loaded when the download fails', async () => {
-      const { caller } = await initTest();
-
-      await pluginManager.togglePlugin('plugin-a', true);
-
-      mockPluginDownload(() => Promise.reject(new Error('network exploded')));
-
-      await expect(
-        caller.plugins.update({ pluginId: 'plugin-a', version: '0.0.1' })
-      ).rejects.toThrow('network exploded');
-
-      // still enabled and still running: the failure must not have taken the
-      // plugin down or flipped its persisted state
-      expect(pluginManager.isEnabled('plugin-a')).toBe(true);
-      expect(eventBus.hasPlugin('plugin-a')).toBe(true);
-
-      const { plugins } = await caller.plugins.get();
-      const pluginA = plugins.find((p: TPluginInfo) => p.id === 'plugin-a');
-
-      expect(pluginA!.enabled).toBe(true);
-    });
-
-    test('should reject empty version', async () => {
-      const { caller } = await initTest();
-
-      await expect(
-        caller.plugins.update({
-          pluginId: 'plugin-a',
-          version: ''
-        })
-      ).rejects.toThrow();
-    });
-
-    test('should reject invalid plugin ID with uppercase', async () => {
-      const { caller } = await initTest();
-
-      await expect(
-        caller.plugins.update({
-          pluginId: 'Plugin-A',
-          version: '1.0.0'
-        })
-      ).rejects.toThrow();
-    });
-  });
-
   describe('pluginId validation in routes', () => {
     test('should reject uppercase pluginId in toggle', async () => {
       const { caller } = await initTest();
@@ -4456,26 +4259,6 @@ describe('plugins router', () => {
         .from(activityLog)
         .where(eq(activityLog.type, type));
     };
-
-    test('should log a plugin install with its version', async () => {
-      const { caller } = await initTest();
-
-      mockPluginDownload();
-
-      await caller.plugins.install({
-        pluginId: 'plugin-example',
-        version: '0.0.1'
-      });
-
-      const entries = await logsOfType(ActivityLogType.PLUGIN_INSTALLED);
-
-      expect(entries.length).toBe(1);
-      expect(entries[0]!.userId).toBe(1);
-      expect(entries[0]!.details).toMatchObject({
-        pluginId: 'plugin-example',
-        version: '0.0.1'
-      });
-    });
 
     test('should log a setting update by key without recording the value', async () => {
       const { caller } = await initTest();

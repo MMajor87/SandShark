@@ -1,4 +1,4 @@
-import { Permission } from '@sharkord/shared';
+import { Permission } from '@sandshark/shared';
 import { config } from '../../config';
 import { getRole } from '../../db/queries/roles';
 import { assertCanModifyOwnerRole } from '../../helpers/assert-can-modify-owner-role';

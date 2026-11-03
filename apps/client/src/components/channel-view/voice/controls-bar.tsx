@@ -8,8 +8,8 @@ import {
   useVoice
 } from '@/features/server/voice/hooks';
 import { cn } from '@/lib/utils';
-import { ChannelPermission, Permission } from '@sharkord/shared';
-import { Button, Tooltip } from '@sharkord/ui';
+import { ChannelPermission, Permission } from '@sandshark/shared';
+import { Button, Tooltip } from '@sandshark/ui';
 import {
   HeadphoneOff,
   Headphones,

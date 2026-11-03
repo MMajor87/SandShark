@@ -1,4 +1,4 @@
-import { isEmptyMessage } from '@sharkord/shared';
+import { isEmptyMessage } from '@sandshark/shared';
 import { z } from 'zod';
 import { removeFile } from '../../db/mutations/files';
 import { deleteMessage } from '../../db/mutations/messages';

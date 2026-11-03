@@ -1,4 +1,4 @@
-import { Permission } from '@sharkord/shared';
+import { Permission } from '@sandshark/shared';
 import { VoiceRuntime } from '../runtimes/voice';
 import { invariant } from '../utils/invariant';
 import type { Context } from '../utils/trpc';

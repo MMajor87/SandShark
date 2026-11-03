@@ -1,8 +1,13 @@
 import { SettingsListEditor } from '@/components/server-screens/settings-shell/list-editor';
 import { useAdminChannelPermissions } from '@/features/server/admin/hooks';
 import { useChannelById } from '@/features/server/channels/hooks';
-import { ChannelPermission } from '@sharkord/shared';
-import { Alert, AlertDescription, AlertTitle, LoadingCard } from '@sharkord/ui';
+import { ChannelPermission } from '@sandshark/shared';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  LoadingCard
+} from '@sandshark/ui';
 import { MessageCircleWarning, Users } from 'lucide-react';
 import { memo, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';

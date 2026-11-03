@@ -4,7 +4,7 @@ import {
   PluginCapabilityType,
   type TPluginCapabilityAccess,
   type TPluginCapabilityAccessRule
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import {
   getCapabilityAccess,
   getCapabilityRows

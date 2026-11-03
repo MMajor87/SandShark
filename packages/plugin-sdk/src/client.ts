@@ -15,24 +15,24 @@ import type {
   TPluginStoreState,
   TPluginTabs,
   TPluginUserData
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 // deep import: the barrel is tree shakeable now that the package declares
 // itself side effect free, and this does not rely on the bundler honouring it
-import { PluginCapabilityType } from '@sharkord/shared/src/plugins/capabilities';
+import { PluginCapabilityType } from '@sandshark/shared/src/plugins/capabilities';
 import { useSyncExternalStore } from 'react';
 import { createCallAction as bindCallAction } from './actions';
 
 declare global {
   interface Window {
     /** the host store, exposed before any plugin bundle is imported */
-    __SHARKORD_STORE__: TPluginStore;
+    __SANDSHARK_STORE__: TPluginStore;
   }
 }
 
-const store = window.__SHARKORD_STORE__;
+const store = window.__SANDSHARK_STORE__;
 
 /**
- * Sharkord's own actions: sending a message, selecting a channel, fetching one
+ * SandShark's own actions: sending a message, selecting a channel, fetching one
  * of your HTTP routes. To call your own server actions use `createCallAction`.
  */
 const actions: TPluginActions = store.actions;
@@ -42,7 +42,7 @@ const actions: TPluginActions = store.actions;
  * the plugin share:
  *
  * ```ts
- * const callAction = createCallAction<TSharkord>();
+ * const callAction = createCallAction<TSandShark>();
  * ```
  *
  * Call it once at module scope, not inside a component.
@@ -94,9 +94,9 @@ const useCanUseCommand = <C extends TPluginContract = TPluginContract>(
 const usePlaybackDeviceId = () => store.hooks.usePlaybackDeviceId();
 
 /**
- * Registers an action the user can bind a key to, in Sharkord's Hotkeys
- * settings or with a `HotkeyInput` from `@sharkord/ui`. Keys work while the game or another app has
- * focus, when the user runs the Sharkord Bridge. The action exists while the
+ * Registers an action the user can bind a key to, in SandShark's Hotkeys
+ * settings or with a `HotkeyInput` from `@sandshark/ui`. Keys work while the game or another app has
+ * focus, when the user runs the SandShark Bridge. The action exists while the
  * component using the hook is mounted, so a soundboard calls it once per sound.
  *
  * ```ts
@@ -113,7 +113,7 @@ const useHotkey = (
 /**
  * Everything one of your actions needs to be bound: the key as the user should
  * read it (`display`, `undefined` while unbound) and the props of the
- * `HotkeyInput` from `@sharkord/ui`, so a control to record the key is one line.
+ * `HotkeyInput` from `@sandshark/ui`, so a control to record the key is one line.
  * It records, refuses keys the browser or OS keep and keys another action
  * already uses, and applies as soon as the user picks.
  *
@@ -127,7 +127,7 @@ const useHotkeyBinding = (id: string): TPluginHotkeyBinding =>
   store.hooks.useHotkeyBinding(id);
 
 /**
- * Reads a slice of Sharkord's state and re-renders when it changes.
+ * Reads a slice of SandShark's state and re-renders when it changes.
  *
  * The selector must return a stable reference for unchanged state: reading a
  * field (`(state) => state.users`) is fine, building a new array or object on

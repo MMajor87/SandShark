@@ -5,6 +5,5 @@ export * from './components';
 export * from './contract';
 export * from './hooks';
 export * from './manifest';
-export * from './marketplace';
 export * from './primitives';
 export * from './settings';

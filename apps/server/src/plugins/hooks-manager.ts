@@ -7,7 +7,7 @@ import type {
   TBeforeProfileUpdateHook,
   TBeforeReactionHook,
   TBeforeVoiceJoinHook
-} from '@sharkord/shared';
+} from '@sandshark/shared';
 import { HOOK_EXECUTION_TIMEOUT_MS, withTimeout } from './execution-timeout';
 
 type THookHandlers = {

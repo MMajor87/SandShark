@@ -1,4 +1,4 @@
-import { ActivityLogType, DisconnectCode } from '@sharkord/shared';
+import { ActivityLogType, DisconnectCode } from '@sandshark/shared';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../../config';

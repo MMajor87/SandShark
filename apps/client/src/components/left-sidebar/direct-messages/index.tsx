@@ -16,8 +16,8 @@ import {
   getTrpcError,
   TestId,
   type TDirectMessageConversation
-} from '@sharkord/shared';
-import { IconButton } from '@sharkord/ui';
+} from '@sandshark/shared';
+import { IconButton } from '@sandshark/ui';
 import { X } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';

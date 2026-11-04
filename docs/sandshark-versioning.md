@@ -26,7 +26,7 @@ and binary installer are retained. Revalidate the patch and updater tests when
 upgrading that dependency; `bun install --frozen-lockfile` applies the patch in CI.
 
 Desktop releases explicitly set GitHub's Latest flag. Server releases explicitly
-leave it unset, including when a maintainer publishes a draft. This also protects
+leave it unset. This also protects
 older installed desktop clients that still use the repository-wide latest endpoint.
 Previously installed servers using that endpoint require a one-time manual upgrade.
 The new desktop selection code takes effect when the next desktop build is shipped.
@@ -56,12 +56,14 @@ E2E checks against that commit, and builds all four server binaries plus the bun
 web client. It generates `release.json`, `SHA256SUMS.txt` and `BUILD_COMMIT.txt`.
 It publishes a versioned Linux x64/arm64 image to
 `ghcr.io/mmajor87/sandshark-server:<version>` using GitHub Actions credentials, then
-creates a GitHub release draft. No Docker Hub credentials are required. Configure
-the GHCR package visibility as public if anonymous container pulls are intended.
+publishes the GitHub release with the version's notes, without GitHub's Latest flag.
+No Docker Hub credentials are required. Configure the GHCR package visibility as
+public if anonymous container pulls are intended.
 
-Review the draft's compatibility notes and complete its deployment checks before
-publishing. Leave **Set as latest release** disabled. The workflow does not push a
-container `latest` tag. The manually dispatched development image workflow publishes
+There is no draft to review: the release is published once the repository and E2E
+checks pass, and installed servers that update themselves see it right away. Review
+the compatibility notes in `apps/server/RELEASE_NOTES.md` before tagging. The workflow
+does not push a container `latest` tag. The manually dispatched development image workflow publishes
 `ghcr.io/mmajor87/sandshark-server:dev` separately.
 
 For a local build, run `bun run --cwd apps/server build`. Outputs live in

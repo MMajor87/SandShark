@@ -99,12 +99,14 @@ jobs:
             org.opencontainers.image.version=${{ needs.resolve-release.outputs.version }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ needs.resolve-release.outputs.sha }}
-      - name: Create server release draft
+      # published straight away, once the checks above have passed. never marked latest:
+      # desktop clients find their updates through the latest release
+      - name: Publish server release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
           name: SandShark Server ${{ needs.resolve-release.outputs.version }}
-          draft: true
+          draft: false
           prerelease: false
           make_latest: false
           fail_on_unmatched_files: true

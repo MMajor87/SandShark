@@ -16,12 +16,15 @@ import { serializeEphemeralMessage } from './ephemeral';
 import { getGuildContext, roleSnowflake, serializeRoles } from './guild';
 import { memberPermissionBits, serializeMember } from './member';
 import { serializeMessages, type TMessageSerializeOptions } from './message';
+import { serializeModalSubmit } from './modal';
 import { encodeSnowflake, SnowflakeTag } from './snowflake';
 import { serializeUser, userSnowflake } from './user';
 
 const DiscordInteractionType = {
   APPLICATION_COMMAND: 2,
-  MESSAGE_COMPONENT: 3
+  MESSAGE_COMPONENT: 3,
+  APPLICATION_COMMAND_AUTOCOMPLETE: 4,
+  MODAL_SUBMIT: 5
 } as const;
 
 const DiscordInteractionContext = {
@@ -77,7 +80,11 @@ const loadInteractionContext = async (event: TBotInteractionEvent) => {
     channels: new Set()
   };
 
-  if (event.kind === 'command') collectReferences(event.options, referenced);
+  if (event.kind === 'command' || event.kind === 'autocomplete') {
+    collectReferences(event.options, referenced);
+  } else if (event.kind === 'component') {
+    collectEntityValues(event.values, referenced);
+  }
 
   const [guild, publicUsers, channelRows, categoryRows] = await Promise.all([
     getGuildContext(),
@@ -100,6 +107,34 @@ const loadInteractionContext = async (event: TBotInteractionEvent) => {
 };
 
 type TInteractionContext = Awaited<ReturnType<typeof loadInteractionContext>>;
+
+const ENTITY_VALUE = /^(user|role|channel):(\d+)$/;
+
+// what a server filled select menu sent, "user:5" and the like. a string select's values
+// match nothing here
+const collectEntityValues = (values: string[], ids: TReferencedIds) => {
+  for (const value of values) {
+    const [, kind, id] = ENTITY_VALUE.exec(value) ?? [];
+
+    if (kind === 'user') ids.users.add(Number(id));
+    else if (kind === 'role') ids.roles.add(Number(id));
+    else if (kind === 'channel') ids.channels.add(Number(id));
+  }
+};
+
+const entityValueSnowflake = (value: string, context: TInteractionContext) => {
+  const [, kind, id] = ENTITY_VALUE.exec(value) ?? [];
+
+  if (kind === 'user') return userSnowflake(context.usersById.get(Number(id))!);
+
+  if (kind === 'channel') {
+    return channelSnowflake(context.channelsById.get(Number(id))!);
+  }
+
+  return roleSnowflake(
+    context.guild.roles.find((role) => role.id === Number(id))!
+  );
+};
 
 const serializeOptionValue = (
   option: TInvocationOption,
@@ -143,7 +178,8 @@ const serializeOptions = (
     return {
       name: option.name,
       type: option.type,
-      value: serializeOptionValue(option, context)
+      value: serializeOptionValue(option, context),
+      ...(option.focused ? { focused: true } : {})
     };
   });
 
@@ -223,6 +259,19 @@ const buildInteractionData = async (
   invokerBits: bigint,
   options: TMessageSerializeOptions
 ) => {
+  if (event.kind === 'modal') {
+    const message = await serializeComponentMessage(event, options);
+
+    return {
+      type: DiscordInteractionType.MODAL_SUBMIT,
+      data: {
+        custom_id: event.customId,
+        components: serializeModalSubmit(event, event.values)
+      },
+      ...(message ? { message } : {})
+    };
+  }
+
   if (event.kind === 'component') {
     const message = await serializeComponentMessage(event, options);
 
@@ -231,9 +280,7 @@ const buildInteractionData = async (
       data: {
         custom_id: event.customId,
         component_type: event.componentType,
-        ...(event.componentType === BotComponentType.STRING_SELECT
-          ? { values: event.values }
-          : {})
+        ...componentValues(event, context, invokerBits)
       },
       ...(message ? { message } : {})
     };
@@ -242,7 +289,10 @@ const buildInteractionData = async (
   const resolved = serializeResolved(context, invokerBits);
 
   return {
-    type: DiscordInteractionType.APPLICATION_COMMAND,
+    type:
+      event.kind === 'autocomplete'
+        ? DiscordInteractionType.APPLICATION_COMMAND_AUTOCOMPLETE
+        : DiscordInteractionType.APPLICATION_COMMAND,
     data: {
       id: commandSnowflake(event.command),
       name: event.command.name,
@@ -256,9 +306,29 @@ const buildInteractionData = async (
   };
 };
 
-// the message a button or select menu was used on, as the bot sees it
-const serializeComponentMessage = async (
+// a string select sends its values as they are. a server filled one sends snowflakes and
+// describes them in resolved, the way a command's options are
+const componentValues = (
   event: Extract<TBotInteractionEvent, { kind: 'component' }>,
+  context: TInteractionContext,
+  invokerBits: bigint
+) => {
+  if (event.componentType === BotComponentType.BUTTON) return {};
+
+  if (event.componentType === BotComponentType.STRING_SELECT) {
+    return { values: event.values };
+  }
+
+  return {
+    values: event.values.map((value) => entityValueSnowflake(value, context)),
+    resolved: serializeResolved(context, invokerBits)
+  };
+};
+
+// the message a button or select menu was used on, as the bot sees it. a modal opened from
+// one carries it too
+const serializeComponentMessage = async (
+  event: Extract<TBotInteractionEvent, { kind: 'component' | 'modal' }>,
   options: TMessageSerializeOptions
 ) => {
   if (event.messageId !== null) {

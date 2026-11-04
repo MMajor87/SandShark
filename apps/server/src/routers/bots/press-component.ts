@@ -2,7 +2,8 @@ import {
   BotButtonStyle,
   BotComponentType,
   ServerEvents,
-  type TBotActionRow
+  type TBotActionRow,
+  type TBotEntitySelect
 } from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -11,6 +12,10 @@ import { db } from '../../db';
 import { getBotById } from '../../db/queries/bots';
 import { botEphemeralMessages, messages } from '../../db/schema';
 import { assertChannelAccess } from '../../helpers/assert-channel-access';
+import {
+  assertReferencesExist,
+  type TCollectedIds
+} from '../../helpers/bot-command-invocation';
 import {
   createBotInteraction,
   getBotInteractionById,
@@ -102,6 +107,53 @@ const assertSelectValues = (
   );
 };
 
+// the kinds each server filled select menu takes
+const ENTITY_KINDS: Partial<Record<BotComponentType, string[]>> = {
+  [BotComponentType.USER_SELECT]: ['user'],
+  [BotComponentType.ROLE_SELECT]: ['role'],
+  [BotComponentType.MENTIONABLE_SELECT]: ['user', 'role'],
+  [BotComponentType.CHANNEL_SELECT]: ['channel']
+};
+
+const ENTITY_VALUE = /^(user|role|channel):(\d+)$/;
+
+// members, roles and channels picked from a select menu the server filled. each has to be
+// of a kind the menu takes, and one the member could have picked
+const assertEntityValues = async (
+  component: TBotEntitySelect,
+  values: string[],
+  memberId: number
+) => {
+  const kinds = ENTITY_KINDS[component.type] ?? [];
+  const ids: TCollectedIds = {
+    users: new Set(),
+    roles: new Set(),
+    channels: new Map()
+  };
+
+  invariant(
+    new Set(values).size === values.length &&
+      values.length >= component.minValues &&
+      values.length <= component.maxValues,
+    { code: 'BAD_REQUEST', message: 'That choice is not one of the options.' }
+  );
+
+  for (const value of values) {
+    const [, kind, id] = ENTITY_VALUE.exec(value) ?? [];
+
+    invariant(kind && kinds.includes(kind), {
+      code: 'BAD_REQUEST',
+      message: 'That choice is not one of the options.'
+    });
+
+    if (kind === 'user') ids.users.add(Number(id));
+    else if (kind === 'role') ids.roles.add(Number(id));
+    else ids.channels.set(Number(id), component.channelTypes);
+  }
+
+  await assertReferencesExist(ids, memberId);
+};
+
 // a member pressing a bot's button or choosing from its select menu. the bot is sent a
 // component interaction and answers it through the interaction endpoints
 const pressComponentRoute = rateLimitedProcedure(protectedProcedure, {
@@ -151,6 +203,8 @@ const pressComponentRoute = rateLimitedProcedure(protectedProcedure, {
 
     if (component.type === BotComponentType.STRING_SELECT) {
       assertSelectValues(component, input.values);
+    } else if (component.type !== BotComponentType.BUTTON) {
+      await assertEntityValues(component, input.values, ctx.userId);
     } else {
       invariant(input.values.length === 0, {
         code: 'BAD_REQUEST',
@@ -167,6 +221,7 @@ const pressComponentRoute = rateLimitedProcedure(protectedProcedure, {
       botId: source.botId,
       userId: ctx.userId,
       channelId: source.channelId,
+      type: 3,
       commandName: '',
       messageId: input.messageId ?? null,
       ephemeralMessageId: input.ephemeralMessageId ?? null

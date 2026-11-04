@@ -2,10 +2,11 @@ import {
   getErrorMessage,
   ServerEvents,
   sha256,
-  type TBotEphemeralMessage
+  type TBotEphemeralMessage,
+  type TBotModal
 } from '@sandshark/shared';
 import { randomBytes } from 'crypto';
-import { and, eq, lt } from 'drizzle-orm';
+import { and, eq, isNotNull, lt } from 'drizzle-orm';
 import { db } from '../db';
 import { botEphemeralMessages, botInteractions } from '../db/schema';
 import { logger } from '../logger';
@@ -22,7 +23,7 @@ type TCreateInteraction = Pick<
   TBotInteraction,
   'botId' | 'userId' | 'channelId' | 'commandName'
 > &
-  Partial<Pick<TBotInteraction, 'messageId' | 'ephemeralMessageId'>>;
+  Partial<Pick<TBotInteraction, 'type' | 'messageId' | 'ephemeralMessageId'>>;
 
 const createBotInteraction = async (input: TCreateInteraction) => {
   const token = randomBytes(48).toString('base64url');
@@ -223,6 +224,36 @@ const deleteBotEphemeralMessage = (
   );
 };
 
+// the bot answered with a form. it is kept on the interaction, to check what the member
+// submits against, and shown to that member alone
+const openBotModal = (interaction: TBotInteraction, modal: TBotModal) => {
+  db.update(botInteractions)
+    .set({ modal })
+    .where(eq(botInteractions.id, interaction.id))
+    .run();
+
+  pubsub.publishFor(interaction.userId, ServerEvents.BOT_MODAL_OPEN, {
+    ...modal,
+    interactionId: interaction.id,
+    botId: interaction.botId,
+    channelId: interaction.channelId
+  });
+};
+
+// a form is submitted once. false when it was already submitted, or never opened
+const closeBotModal = (interactionId: number) =>
+  !!db
+    .update(botInteractions)
+    .set({ modal: null })
+    .where(
+      and(
+        eq(botInteractions.id, interactionId),
+        isNotNull(botInteractions.modal)
+      )
+    )
+    .returning({ id: botInteractions.id })
+    .get();
+
 // past the token's lifetime nothing can reach an interaction any more. answers already
 // posted keep who ran the command, only their link to the interaction is cleared
 const cleanupBotInteractions = () => {
@@ -234,6 +265,7 @@ const cleanupBotInteractions = () => {
 export {
   claimBotInteractionResponse,
   cleanupBotInteractions,
+  closeBotModal,
   createBotEphemeralMessage,
   createBotInteraction,
   deleteBotEphemeralMessage,
@@ -241,6 +273,7 @@ export {
   getBotInteractionByToken,
   isTokenAlive,
   isWithinResponseWindow,
+  openBotModal,
   RESPONSE_WINDOW_MS,
   TOKEN_LIFETIME_MS,
   updateBotEphemeralMessage,

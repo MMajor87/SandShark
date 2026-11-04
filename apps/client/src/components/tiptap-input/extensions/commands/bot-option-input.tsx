@@ -1,14 +1,13 @@
 import { useChannels } from '@/features/server/channels/hooks';
 import { useRoles } from '@/features/server/roles/hooks';
 import { useUsers } from '@/features/server/users/hooks';
+import { discordChannelType } from '@/helpers/discord-channel-type';
 import {
   BotCommandOptionType,
-  ChannelType,
-  type TBotCommandOption,
-  type TChannel
+  type TBotCommandOption
 } from '@sandshark/shared';
 import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type TBotOptionInputProps = {
@@ -18,13 +17,14 @@ type TBotOptionInputProps = {
   handleKeyNavigation: (
     event: ReactKeyboardEvent<HTMLInputElement | HTMLSelectElement>
   ) => boolean;
+  // asks the bot for suggestions, for an option it completes
+  onSuggest?: (name: string, typed: string) => Promise<TChoice[]>;
 };
 
-type TChoice = { value: string; label: string };
+export type TChoice = { value: string; label: string };
 
-// discord's channel type numbers, which a bot restricts a channel option by
-const discordChannelType = (channel: TChannel) =>
-  channel.type === ChannelType.VOICE ? 2 : 0;
+// the bot is asked once typing pauses, not on every key
+const SUGGEST_DELAY_MS = 300;
 
 const SELECT_CLASS =
   'h-5 max-w-40 rounded border bg-background px-1 text-[11px]';
@@ -36,7 +36,8 @@ const BotOptionInput = memo(
     option,
     value,
     onValueChange,
-    handleKeyNavigation
+    handleKeyNavigation,
+    onSuggest
   }: TBotOptionInputProps) => {
     const { t } = useTranslation('common');
     const users = useUsers();
@@ -114,6 +115,25 @@ const BotOptionInput = memo(
       return undefined;
     }, [option, memberChoices, roleChoices, channels, t]);
 
+    const suggestId = useId();
+    const [suggestions, setSuggestions] = useState<TChoice[]>([]);
+
+    useEffect(() => {
+      if (!option.autocomplete || !onSuggest) return;
+
+      let cancelled = false;
+      const timer = setTimeout(async () => {
+        const choices = await onSuggest(option.name, value);
+
+        if (!cancelled) setSuggestions(choices);
+      }, SUGGEST_DELAY_MS);
+
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
+    }, [option.autocomplete, option.name, onSuggest, value]);
+
     const requirement = option.required
       ? t('commandArgRequired')
       : t('commandArgOptional');
@@ -182,6 +202,7 @@ const BotOptionInput = memo(
     const isNumber =
       option.type === BotCommandOptionType.INTEGER ||
       option.type === BotCommandOptionType.NUMBER;
+    const listId = suggestions.length > 0 ? `${suggestId}-list` : undefined;
 
     return (
       <label
@@ -200,7 +221,17 @@ const BotOptionInput = memo(
           className="h-5 min-w-18 rounded border bg-background px-1 text-[11px]"
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          list={listId}
         />
+        {listId && (
+          <datalist id={listId}>
+            {suggestions.map((choice) => (
+              <option key={choice.value} value={choice.value}>
+                {choice.label}
+              </option>
+            ))}
+          </datalist>
+        )}
       </label>
     );
   }

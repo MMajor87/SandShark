@@ -97,5 +97,7 @@
   "copyBotToken": "Copy token",
   "botTokenCopied": "Token copied to clipboard",
   "failedCopyBotToken": "Failed to copy the token",
-  "botTokenDone": "I've copied it"
+  "botTokenDone": "I've copied it",
+  "botModalSubmit": "Submit",
+  "failedSubmitBotModal": "Couldn't send the form"
 }

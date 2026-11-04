@@ -7,6 +7,7 @@ import {
   type TActivityLogDetailsMap,
   type TBotActionRow,
   type TBotCommandOption,
+  type TBotModal,
   type TMessageEmbed,
   type TMessageMetadata,
   type TPluginMessageComponent
@@ -280,8 +281,13 @@ const botInteractions = sqliteTable(
     channelId: integer('channel_id')
       .notNull()
       .references(() => channels.id, { onDelete: 'cascade' }),
-    // empty for a button or select menu, which is not a command
+    // discord's interaction type: 2 a slash command, 3 a button or select menu, 5 a modal
+    // submitted
+    type: integer('type').notNull().default(2),
+    // the command, or the command a modal submit came from. empty for a component
     commandName: text('command_name').notNull(),
+    // the form the bot answered with, until the member submits it
+    modal: text('modal', { mode: 'json' }).$type<TBotModal | null>(),
     // the message, or ephemeral answer, whose button or select menu was used
     messageId: integer('message_id').references(
       (): AnySQLiteColumn => messages.id,

@@ -8,8 +8,12 @@ import {
   EmbedBuilder,
   Events,
   GatewayIntentBits,
+  LabelBuilder,
   MessageFlags,
+  ModalBuilder,
   SlashCommandBuilder,
+  TextInputBuilder,
+  TextInputStyle,
   type Message
 } from 'discord.js';
 import { and, asc, eq } from 'drizzle-orm';
@@ -250,6 +254,27 @@ describe('discord.js compatibility', () => {
         return;
       }
 
+      // the usual autocomplete handler: filter a list by what has been typed
+      if (interaction.isAutocomplete()) {
+        const typed = interaction.options.getFocused().toLowerCase();
+
+        await interaction.respond(
+          ['Lisbon', 'Lismore', 'London']
+            .filter((city) => city.toLowerCase().startsWith(typed))
+            .map((city) => ({ name: city, value: city.toLowerCase() }))
+        );
+
+        return;
+      }
+
+      if (interaction.isModalSubmit()) {
+        await interaction.reply(
+          `thanks ${interaction.fields.getTextInputValue('name')}`
+        );
+
+        return;
+      }
+
       if (!interaction.isChatInputCommand()) return;
 
       if (interaction.commandName === 'echo') {
@@ -263,6 +288,21 @@ describe('discord.js compatibility', () => {
         await interaction.deferReply();
         await interaction.editReply('done');
         await interaction.followUp('and one more');
+      } else if (interaction.commandName === 'form') {
+        await interaction.showModal(
+          new ModalBuilder()
+            .setCustomId('feedback')
+            .setTitle('Feedback')
+            .addLabelComponents(
+              new LabelBuilder()
+                .setLabel('Name')
+                .setTextInputComponent(
+                  new TextInputBuilder()
+                    .setCustomId('name')
+                    .setStyle(TextInputStyle.Short)
+                )
+            )
+        );
       } else if (interaction.commandName === 'vote') {
         await interaction.reply({
           content: 'Vote now',
@@ -328,6 +368,20 @@ describe('discord.js compatibility', () => {
         new SlashCommandBuilder()
           .setName('vote')
           .setDescription('Asks for a vote')
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName('form')
+          .setDescription('Asks for feedback')
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName('city')
+          .setDescription('Picks a city')
+          .addStringOption((option) =>
+            option
+              .setName('name')
+              .setDescription('The city')
+              .setAutocomplete(true)
+          )
           .toJSON()
       ]);
 
@@ -474,6 +528,55 @@ describe('discord.js compatibility', () => {
       expect(voted).toMatchObject({
         content: '<p>voted up</p>',
         components: null
+      });
+
+      await caller.bots.runCommand({
+        commandId: commandId('form'),
+        channelId: 1
+      });
+
+      for (let attempt = 0; attempt < 100; attempt++) {
+        if (
+          published.mock.calls.some(
+            ([, topic]) => topic === ServerEvents.BOT_MODAL_OPEN
+          )
+        ) {
+          break;
+        }
+
+        await Bun.sleep(50);
+      }
+
+      const opened = published.mock.calls.find(
+        ([, topic]) => topic === ServerEvents.BOT_MODAL_OPEN
+      )?.[2] as { interactionId: number; labelled: boolean };
+
+      expect(opened).toMatchObject({ title: 'Feedback', labelled: true });
+
+      await caller.bots.submitModal({
+        interactionId: opened.interactionId,
+        values: { name: 'Alice' }
+      });
+
+      const [, , , , , thanks] = await waitForMessages(6);
+
+      expect(thanks).toMatchObject({
+        content: '<p>thanks Alice</p>',
+        interactionCommandName: 'form'
+      });
+
+      const suggestions = await caller.bots.autocomplete({
+        commandId: commandId('city'),
+        channelId: 1,
+        values: { name: 'lis' },
+        focused: 'name'
+      });
+
+      expect(suggestions).toEqual({
+        choices: [
+          { name: 'Lisbon', value: 'lisbon' },
+          { name: 'Lismore', value: 'lismore' }
+        ]
       });
     } finally {
       await client.destroy();

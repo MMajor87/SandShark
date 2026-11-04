@@ -135,7 +135,7 @@ describe('discord.py compatibility', () => {
 
         expect(ready).toBe('READY Py Bot 1 General,Restricted Text');
         expect(await stdout.waitForLine('SYNCED')).toBe(
-          'SYNCED roll,slow,choose 3'
+          'SYNCED roll,slow,choose,city,form 5'
         );
 
         const commands = await tdb
@@ -150,9 +150,13 @@ describe('discord.py compatibility', () => {
           ['roll', false],
           ['slow', false],
           ['choose', false],
+          ['city', false],
+          ['form', false],
           ['roll', true],
           ['slow', true],
-          ['choose', true]
+          ['choose', true],
+          ['city', true],
+          ['form', true]
         ]);
         expect(commands[0]!.options).toEqual([
           {
@@ -283,6 +287,53 @@ describe('discord.py compatibility', () => {
           components: null
         });
 
+        await caller.bots.runCommand({
+          commandId: commandId('form'),
+          channelId: 1
+        });
+
+        for (let attempt = 0; attempt < 100; attempt++) {
+          if (
+            published.mock.calls.some(
+              ([, topic]) => topic === ServerEvents.BOT_MODAL_OPEN
+            )
+          ) {
+            break;
+          }
+
+          await Bun.sleep(50);
+        }
+
+        const opened = published.mock.calls.find(
+          ([, topic]) => topic === ServerEvents.BOT_MODAL_OPEN
+        )?.[2] as { interactionId: number; inputs: { customId: string }[] };
+
+        await caller.bots.submitModal({
+          interactionId: opened.interactionId,
+          values: { [opened.inputs[0]!.customId]: 'Alice' }
+        });
+
+        const [, , , thanks] = await waitForAnswers(4);
+
+        expect(thanks).toMatchObject({
+          content: '<p>thanks Alice</p>',
+          interactionCommandName: 'form'
+        });
+
+        const suggestions = await caller.bots.autocomplete({
+          commandId: commandId('city'),
+          channelId: 1,
+          values: { name: 'lis' },
+          focused: 'name'
+        });
+
+        expect(suggestions).toEqual({
+          choices: [
+            { name: 'Lisbon', value: 'lisbon' },
+            { name: 'Lismore', value: 'lismore' }
+          ]
+        });
+
         const pingId = await caller.messages.send({
           channelId: 1,
           content: '<p>!ping</p>',
@@ -300,11 +351,12 @@ describe('discord.py compatibility', () => {
           '<p>4</p>',
           '<p>done</p>',
           '<p>picked</p>',
+          '<p>thanks Alice</p>',
           '<p>pong</p>',
-          // the seeded welcome message, the three command answers, the ping and the reply
-          '<p>history:6</p>'
+          // the seeded welcome message, the four command answers, the ping and the reply
+          '<p>history:7</p>'
         ]);
-        expect(botMessages[3]!.replyToMessageId).toBe(pingId);
+        expect(botMessages[4]!.replyToMessageId).toBe(pingId);
 
         const reactions = await tdb
           .select()

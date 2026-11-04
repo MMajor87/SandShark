@@ -1,3 +1,7 @@
+import { useChannels } from '@/features/server/channels/hooks';
+import { useRoles } from '@/features/server/roles/hooks';
+import { useUsers } from '@/features/server/users/hooks';
+import { discordChannelType } from '@/helpers/discord-channel-type';
 import { getTRPCClient } from '@/lib/trpc';
 import {
   BotButtonStyle,
@@ -5,6 +9,8 @@ import {
   getTrpcError,
   type TBotActionRow,
   type TBotButton,
+  type TBotEntitySelect,
+  type TBotSelectOption,
   type TBotStringSelect
 } from '@sandshark/shared';
 import { Button, Spinner } from '@sandshark/ui';
@@ -226,6 +232,88 @@ const BotMultiSelect = memo(({ select, press }: TBotSelectProps) => {
   );
 });
 
+const BotStringSelect = memo(({ select, press }: TBotSelectProps) => {
+  if (select.maxValues > 1) {
+    return <BotMultiSelect select={select} press={press} />;
+  }
+
+  return <BotSingleSelect select={select} press={press} />;
+});
+
+type TBotEntitySelectProps = {
+  select: TBotEntitySelect;
+  press: TPress;
+};
+
+// a select menu filled with the server's own members, roles or channels, shown as an
+// ordinary one whose values name what was picked
+const BotEntitySelect = memo(({ select, press }: TBotEntitySelectProps) => {
+  const users = useUsers();
+  const roles = useRoles();
+  const channels = useChannels();
+
+  const asStringSelect = useMemo<TBotStringSelect>(() => {
+    const options: TBotSelectOption[] = [];
+    const takesUsers =
+      select.type === BotComponentType.USER_SELECT ||
+      select.type === BotComponentType.MENTIONABLE_SELECT;
+    const takesRoles =
+      select.type === BotComponentType.ROLE_SELECT ||
+      select.type === BotComponentType.MENTIONABLE_SELECT;
+
+    if (takesUsers) {
+      for (const user of users) {
+        if (!user.banned) {
+          options.push({
+            label: user.name,
+            value: `user:${user.id}`,
+            default: false
+          });
+        }
+      }
+    }
+
+    if (takesRoles) {
+      for (const role of roles) {
+        options.push({
+          label: role.name,
+          value: `role:${role.id}`,
+          default: false
+        });
+      }
+    }
+
+    if (select.type === BotComponentType.CHANNEL_SELECT) {
+      for (const channel of channels) {
+        const allowed =
+          !channel.isDm &&
+          (!select.channelTypes ||
+            select.channelTypes.includes(discordChannelType(channel)));
+
+        if (allowed) {
+          options.push({
+            label: channel.name,
+            value: `channel:${channel.id}`,
+            default: false
+          });
+        }
+      }
+    }
+
+    return {
+      type: BotComponentType.STRING_SELECT,
+      customId: select.customId,
+      placeholder: select.placeholder,
+      minValues: select.minValues,
+      maxValues: select.maxValues,
+      disabled: select.disabled,
+      options
+    };
+  }, [select, users, roles, channels]);
+
+  return <BotStringSelect select={asStringSelect} press={press} />;
+});
+
 type TBotMessageComponentsProps = {
   rows: TBotActionRow[] | null;
   messageId?: number;
@@ -261,9 +349,9 @@ const BotMessageComponents = memo(
                 );
               }
 
-              if (component.maxValues > 1) {
+              if (component.type !== BotComponentType.STRING_SELECT) {
                 return (
-                  <BotMultiSelect
+                  <BotEntitySelect
                     key={index}
                     select={component}
                     press={press}
@@ -272,7 +360,7 @@ const BotMessageComponents = memo(
               }
 
               return (
-                <BotSingleSelect key={index} select={component} press={press} />
+                <BotStringSelect key={index} select={component} press={press} />
               );
             })}
           </div>

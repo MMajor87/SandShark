@@ -283,4 +283,55 @@ const resolveInvocation = async (
   };
 };
 
-export { resolveInvocation, type TInvocationInput };
+// the options of a command a member is still filling in, for the bot to suggest values for
+// the focused one. nothing is required yet and nothing is looked up: the focused value is
+// sent as typed, the other text, number and yes or no values as far as they are filled in
+const buildAutocompleteOptions = (
+  command: TBotCommandRow,
+  { subcommand, values }: TInvocationInput,
+  focused: string
+) => {
+  const { chain, leafOptions } = selectLeaf(command, subcommand);
+  const focusedOption = leafOptions.find((option) => option.name === focused);
+
+  invariant(focusedOption?.autocomplete, {
+    code: 'BAD_REQUEST',
+    message: 'This option has no suggestions.'
+  });
+
+  const leaves: TInvocationOption[] = [];
+
+  for (const option of leafOptions) {
+    const value = values[option.name];
+
+    if (option.name === focused) {
+      leaves.push({
+        name: option.name,
+        type: option.type,
+        value: String(value ?? ''),
+        focused: true
+      });
+    } else if (value !== undefined && value !== '' && isPlainValue(option)) {
+      leaves.push({ name: option.name, type: option.type, value });
+    }
+  }
+
+  return chain.reduceRight<TInvocationOption[]>(
+    (inner, level) => [{ name: level.name, type: level.type, options: inner }],
+    leaves
+  );
+};
+
+const isPlainValue = (option: TBotCommandOption) =>
+  option.type === BotCommandOptionType.STRING ||
+  option.type === BotCommandOptionType.INTEGER ||
+  option.type === BotCommandOptionType.NUMBER ||
+  option.type === BotCommandOptionType.BOOLEAN;
+
+export {
+  assertReferencesExist,
+  buildAutocompleteOptions,
+  resolveInvocation,
+  type TCollectedIds,
+  type TInvocationInput
+};

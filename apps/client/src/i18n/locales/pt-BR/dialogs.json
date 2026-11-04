@@ -97,5 +97,7 @@
   "copyBotToken": "Copiar token",
   "botTokenCopied": "Token copiado para a área de transferência",
   "failedCopyBotToken": "Falha ao copiar o token",
-  "botTokenDone": "Já copiei"
+  "botTokenDone": "Já copiei",
+  "botModalSubmit": "Enviar",
+  "failedSubmitBotModal": "Não foi possível enviar o formulário"
 }

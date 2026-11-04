@@ -97,5 +97,7 @@
   "copyBotToken": "复制令牌",
   "botTokenCopied": "令牌已复制到剪贴板",
   "failedCopyBotToken": "复制令牌失败",
-  "botTokenDone": "我已复制"
+  "botTokenDone": "我已复制",
+  "botModalSubmit": "提交",
+  "failedSubmitBotModal": "无法提交表单"
 }

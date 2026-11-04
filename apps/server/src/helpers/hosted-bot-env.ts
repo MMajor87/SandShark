@@ -34,6 +34,24 @@ const RESERVED_ENV_NAMES = [
 const getLocalOrigin = () =>
   `http://${getHost(config.server.host, '127.0.0.1')}:${config.server.port}`;
 
+// what installing dependencies runs with: no token, and none of the admin's variables,
+// since an install runs the packages' own scripts
+const buildInstallEnv = () => {
+  const result: Record<string, string> = {};
+
+  for (const name of PASSED_THROUGH) {
+    const value = process.env[name];
+
+    if (value !== undefined) result[name] = value;
+  }
+
+  // the compiled server binary acts as the plain bun cli with this set, so bots need no
+  // runtime of their own. bun itself ignores it
+  result.BUN_BE_BUN = '1';
+
+  return result;
+};
+
 const buildHostedBotEnv = ({
   token,
   env,
@@ -44,13 +62,7 @@ const buildHostedBotEnv = ({
   tokenEnvNames: string[];
 }) => {
   const origin = getLocalOrigin();
-  const result: Record<string, string> = {};
-
-  for (const name of PASSED_THROUGH) {
-    const value = process.env[name];
-
-    if (value !== undefined) result[name] = value;
-  }
+  const result = buildInstallEnv();
 
   for (const [name, value] of Object.entries(env)) {
     if (!RESERVED_ENV_NAMES.includes(name)) result[name] = value;
@@ -65,12 +77,9 @@ const buildHostedBotEnv = ({
 
   result.SANDSHARK_API_URL = `${origin}/api`;
   result.SANDSHARK_GATEWAY_URL = `${origin.replace(/^http/, 'ws')}${BOT_GATEWAY_PATH}`;
-  // the compiled server binary acts as the plain bun cli with this set, so bots need no
-  // runtime of their own. bun itself ignores it
-  result.BUN_BE_BUN = '1';
   result.NODE_ENV = 'production';
 
   return result;
 };
 
-export { buildHostedBotEnv, RESERVED_ENV_NAMES };
+export { buildHostedBotEnv, buildInstallEnv, RESERVED_ENV_NAMES };

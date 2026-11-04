@@ -1,9 +1,8 @@
 import { z } from 'zod';
-import { toStoredHtml } from '../../../helpers/discord/content';
 import { getGuildContext } from '../../../helpers/discord/guild';
 import { callProcedure } from '../call-procedure';
 import { createBotCaller } from '../context';
-import { DiscordApiError, DiscordErrorCode } from '../errors';
+import { DiscordErrorCode } from '../errors';
 import {
   invalidFormBody,
   loadMessageId,
@@ -11,12 +10,12 @@ import {
   readJsonBody,
   serializeForBot
 } from '../helpers';
+import { toStoredBody, zMessageBody } from '../message-body';
 import { NO_CONTENT, type TBotRouteHandler } from '../types';
 
-// discord caps message content at 2000 characters. embeds, stickers and components have
-// no sandshark counterpart, so a message carrying only those is empty here
-const zCreateMessage = z.object({
-  content: z.string().max(2_000).optional(),
+// discord caps message content at 2000 characters. stickers and components have no
+// sandshark counterpart yet, so a message carrying only those is empty here
+const zCreateMessage = zMessageBody.extend({
   message_reference: z
     .object({ message_id: z.string().regex(/^\d{1,20}$/) })
     .optional()
@@ -28,27 +27,22 @@ const createMessageRoute: TBotRouteHandler = async (request) => {
 
   if (!parsed.success) throw invalidFormBody();
 
-  const { content, message_reference: reference } = parsed.data;
-
-  if (!content || !content.trim()) {
-    throw new DiscordApiError(
-      400,
-      DiscordErrorCode.CANNOT_SEND_EMPTY_MESSAGE,
-      'Cannot send an empty message'
-    );
-  }
+  const { message_reference: reference } = parsed.data;
+  const { html, embeds } = await toStoredBody(parsed.data, {
+    requireContent: true
+  });
 
   const channel = await loadVisibleChannel(bot.id, params.channelId!);
   const replyToMessageId = reference
     ? await loadMessageId(channel.id, reference.message_id)
     : undefined;
   const guild = await getGuildContext();
-  const caller = createBotCaller(bot, info);
+  const caller = createBotCaller(bot, info, { embeds });
   const messageId = await callProcedure(
-    async () =>
+    () =>
       caller.messages.send({
         channelId: channel.id,
-        content: await toStoredHtml(content, guild),
+        content: html ?? '',
         replyToMessageId
       }),
     { code: DiscordErrorCode.UNKNOWN_CHANNEL, what: 'Channel' }

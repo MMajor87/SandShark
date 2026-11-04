@@ -2,6 +2,7 @@ import { Permission, ServerEvents } from '@sandshark/shared';
 import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test';
 import {
   Client,
+  EmbedBuilder,
   Events,
   GatewayIntentBits,
   MessageFlags,
@@ -249,6 +250,20 @@ describe('discord.js compatibility', () => {
         await interaction.deferReply();
         await interaction.editReply('done');
         await interaction.followUp('and one more');
+      } else if (interaction.commandName === 'scores') {
+        await interaction.reply({
+          embeds: [
+            new EmbedBuilder()
+              .setTitle('Scores')
+              .setDescription('**Alice** leads')
+              .setColor(0x00ff00)
+              .addFields(
+                { name: 'Alice', value: '10', inline: true },
+                { name: 'Bob', value: '7', inline: true }
+              )
+              .setFooter({ text: 'Updated now' })
+          ]
+        });
       }
     });
 
@@ -276,6 +291,10 @@ describe('discord.js compatibility', () => {
         new SlashCommandBuilder()
           .setName('slow')
           .setDescription('Takes a moment')
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName('scores')
+          .setDescription('Shows the scores')
           .toJSON()
       ]);
 
@@ -333,6 +352,30 @@ describe('discord.js compatibility', () => {
       ]);
 
       await caller.bots.runCommand({
+        commandId: commandId('scores'),
+        channelId: 1
+      });
+
+      const [, , , scores] = await waitForMessages(4);
+
+      expect(scores).toMatchObject({
+        content: '',
+        interactionCommandName: 'scores',
+        embeds: [
+          {
+            title: 'Scores',
+            description: '<p><strong>Alice</strong> leads</p>',
+            color: 0x00ff00,
+            fields: [
+              { name: 'Alice', value: '<p>10</p>', inline: true },
+              { name: 'Bob', value: '<p>7</p>', inline: true }
+            ],
+            footer: { text: 'Updated now' }
+          }
+        ]
+      });
+
+      await caller.bots.runCommand({
         commandId: commandId('secret'),
         channelId: 1
       });
@@ -355,7 +398,7 @@ describe('discord.js compatibility', () => {
 
       expect(ephemeral?.[0]).toBe(1);
       expect(ephemeral?.[2]).toMatchObject({ content: '<p>only you</p>' });
-      expect(await botMessages()).toHaveLength(3);
+      expect(await botMessages()).toHaveLength(4);
     } finally {
       await client.destroy();
     }

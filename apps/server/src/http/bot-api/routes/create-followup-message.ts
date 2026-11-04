@@ -8,6 +8,7 @@ import {
   serializeInteractionMessage,
   zInteractionMessage
 } from '../interaction-messages';
+import { toStoredBody } from '../message-body';
 import type { TInteractionRequest } from '../types';
 
 // another message after the first answer, public or for the member alone. after a
@@ -21,17 +22,16 @@ const createFollowupMessageRoute = async (request: TInteractionRequest) => {
   const original = findOriginalAnswer(request.interaction.id);
 
   if (original && isLoadingAnswer(original)) {
-    const filled = await editInteractionMessage(
-      request,
-      original,
-      parsed.data.content ?? ''
-    );
+    const filled = await editInteractionMessage(request, original, {
+      content: parsed.data.content ?? '',
+      embeds: parsed.data.embeds
+    });
 
     return serializeInteractionMessage(request, filled);
   }
 
   const target = await postInteractionMessage(request, {
-    content: parsed.data.content,
+    stored: await toStoredBody(parsed.data, { requireContent: true }),
     ephemeral: isEphemeral(parsed.data.flags),
     original: false,
     loading: false

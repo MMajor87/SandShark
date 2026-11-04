@@ -6,6 +6,7 @@ import {
   type BotCommandType,
   type TActivityLogDetailsMap,
   type TBotCommandOption,
+  type TMessageEmbed,
   type TMessageMetadata,
   type TPluginMessageComponent
 } from '@sandshark/shared';
@@ -299,6 +300,7 @@ const botEphemeralMessages = sqliteTable(
       .notNull()
       .references(() => botInteractions.id, { onDelete: 'cascade' }),
     content: text('content').notNull(),
+    embeds: text('embeds', { mode: 'json' }).$type<TMessageEmbed[] | null>(),
     loading: integer('loading', { mode: 'boolean' }).notNull(),
     original: integer('original', { mode: 'boolean' }).notNull(),
     createdAt: integer('created_at').notNull(),
@@ -404,7 +406,9 @@ const messages = sqliteTable(
     ),
     interactionCommandName: text('interaction_command_name'),
     // a deferred answer the bot has not written yet, shown as the bot thinking
-    loading: integer('loading', { mode: 'boolean' }).notNull().default(false)
+    loading: integer('loading', { mode: 'boolean' }).notNull().default(false),
+    // rich embeds, which only a bot can send
+    embeds: text('embeds', { mode: 'json' }).$type<TMessageEmbed[] | null>()
   },
   (t) => [
     index('messages_user_idx').on(t.userId),

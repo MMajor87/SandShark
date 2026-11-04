@@ -142,12 +142,15 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
       }
     }
 
-    // a bot's deferred answer to a slash command is saved empty until the bot writes it
+    // a bot's deferred answer to a slash command is saved empty until the bot writes it, and
+    // a bot's message may be embeds alone, as on discord
     const { botInteraction } = ctx;
+    const embeds = ctx.botEmbeds?.length ? ctx.botEmbeds : null;
     const isLoading = !!botInteraction?.loading;
+    const mayBeEmpty = isLoading || embeds !== null;
 
     invariant(
-      !isEmptyMessage(input.content) || input.files.length != 0 || isLoading,
+      !isEmptyMessage(input.content) || input.files.length != 0 || mayBeEmpty,
       {
         code: 'BAD_REQUEST',
         message: 'Message cannot be empty.'
@@ -157,7 +160,7 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
     let targetContent = sanitizeMessageHtml(input.content);
 
     invariant(
-      !isEmptyMessage(targetContent) || input.files.length != 0 || isLoading,
+      !isEmptyMessage(targetContent) || input.files.length != 0 || mayBeEmpty,
       {
         code: 'BAD_REQUEST',
         message:
@@ -360,6 +363,7 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
             ? botInteraction.commandName
             : null,
           loading: isLoading,
+          embeds,
           createdAt: Date.now()
         })
         .returning()

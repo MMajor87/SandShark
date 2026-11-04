@@ -3,6 +3,7 @@ import {
   UserStatus,
   type Permission,
   type TLocale,
+  type TMessageEmbed,
   type TUser
 } from '@sandshark/shared';
 import { initTRPC, TRPCError } from '@trpc/server';
@@ -61,6 +62,8 @@ export type Context = {
   throwValidationError: (field: string, message: string) => never;
   saveUserIp: (userId: number, ip: string) => Promise<void>;
   botInteraction?: TBotInteractionContext;
+  // embeds a bot sends with a message. set only by the bot api, a member cannot send one
+  botEmbeds?: TMessageEmbed[];
 };
 
 const t = initTRPC.context<Context>().create();

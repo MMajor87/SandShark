@@ -15,6 +15,7 @@ const ephemeral = (
   channelId,
   commandName: 'ping',
   content: '<p>pong</p>',
+  embeds: null,
   loading: false,
   createdAt: id,
   updatedAt: id,

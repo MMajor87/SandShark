@@ -1,6 +1,5 @@
 import type { TJoinedMessage } from '@sandshark/shared';
 import { and, eq } from 'drizzle-orm';
-import { z } from 'zod';
 import { db } from '../../db';
 import { botEphemeralMessages, messages } from '../../db/schema';
 import {
@@ -9,7 +8,6 @@ import {
   updateBotEphemeralMessage,
   type TBotEphemeralRow
 } from '../../helpers/bot-interactions';
-import { toStoredHtml } from '../../helpers/discord/content';
 import { getGuildContext } from '../../helpers/discord/guild';
 import { DiscordMessageFlag } from '../../helpers/discord/message';
 import { resolveMessageSnowflake } from '../../helpers/discord/resolve';
@@ -20,18 +18,22 @@ import {
 } from '../../helpers/discord/snowflake';
 import { callProcedure } from './call-procedure';
 import { createBotCaller } from './context';
-import { DiscordApiError, DiscordErrorCode, notFound } from './errors';
+import { DiscordErrorCode, notFound } from './errors';
 import { serializeForBot } from './helpers';
+import {
+  emptyMessage,
+  hasStoredContent,
+  toStoredBody,
+  zMessageBody,
+  type TMessageBody,
+  type TStoredBody
+} from './message-body';
 import type { TInteractionRequest } from './types';
 
-// the parts of discord's message body an interaction answer can use here. embeds and
-// components are dropped until sandshark has them (#58)
-const zInteractionMessage = z.object({
-  content: z.string().max(2_000).optional(),
-  flags: z.number().int().min(0).optional()
-});
+// an interaction answer is an ordinary message body, its flags saying whether it is ephemeral
+const zInteractionMessage = zMessageBody;
 
-type TInteractionMessage = z.infer<typeof zInteractionMessage>;
+type TInteractionMessage = TMessageBody;
 
 type TInteractionMessageTarget =
   | { kind: 'message'; id: number }
@@ -40,29 +42,10 @@ type TInteractionMessageTarget =
 const isEphemeral = (flags: number | undefined) =>
   ((flags ?? 0) & DiscordMessageFlag.EPHEMERAL) !== 0;
 
-const emptyMessage = () =>
-  new DiscordApiError(
-    400,
-    DiscordErrorCode.CANNOT_SEND_EMPTY_MESSAGE,
-    'Cannot send an empty message'
-  );
-
-// the content a bot sent, as stored message html. a loading answer is the only one that
-// may be empty
-const toAnswerHtml = async (content: string | undefined, loading: boolean) => {
-  if (!content || !content.trim()) {
-    if (loading) return '';
-
-    throw emptyMessage();
-  }
-
-  const guild = await getGuildContext();
-
-  return toStoredHtml(content, guild);
-};
-
 type TPostOptions = {
-  content: string | undefined;
+  // checked and converted before the interaction is claimed, so a refused body does not
+  // use up the bot's one answer
+  stored: TStoredBody;
   ephemeral: boolean;
   original: boolean;
   loading: boolean;
@@ -72,13 +55,14 @@ type TPostOptions = {
 // the channel, through the same procedure as every other message it sends
 const postInteractionMessage = async (
   { bot, info, interaction }: TInteractionRequest,
-  { content, ephemeral, original, loading }: TPostOptions
+  { stored, ephemeral, original, loading }: TPostOptions
 ): Promise<TInteractionMessageTarget> => {
-  const html = await toAnswerHtml(content, loading);
+  const { html, embeds } = stored;
 
   if (ephemeral) {
     const row = createBotEphemeralMessage(interaction, {
-      content: html,
+      content: html ?? '',
+      embeds: embeds?.length ? embeds : null,
       loading,
       original
     });
@@ -87,17 +71,20 @@ const postInteractionMessage = async (
   }
 
   const caller = createBotCaller(bot, info, {
-    id: interaction.id,
-    userId: interaction.userId,
-    commandName: interaction.commandName,
-    original,
-    loading
+    interaction: {
+      id: interaction.id,
+      userId: interaction.userId,
+      commandName: interaction.commandName,
+      original,
+      loading
+    },
+    embeds
   });
   const messageId = await callProcedure(
     () =>
       caller.messages.send({
         channelId: interaction.channelId,
-        content: html,
+        content: html ?? '',
         files: []
       }),
     { code: DiscordErrorCode.UNKNOWN_CHANNEL, what: 'Channel' }
@@ -218,6 +205,7 @@ const ephemeralAsMessage = (
   interactionUserId: row.original ? interaction.userId : null,
   interactionCommandName: row.original ? interaction.commandName : null,
   loading: row.loading,
+  embeds: row.embeds,
   files: [],
   reactions: []
 });
@@ -268,30 +256,55 @@ const isLoadingAnswer = (target: TInteractionMessageTarget) => {
   return !!row?.loading;
 };
 
+// an edit changes what it names and keeps the rest, as on discord. filling in a loading
+// answer is an edit like any other
 const editInteractionMessage = async (
   request: TInteractionRequest,
   target: TInteractionMessageTarget,
-  content: string
+  body: TMessageBody
 ): Promise<TInteractionMessageTarget> => {
-  const html = await toAnswerHtml(content, false);
+  const stored = await toStoredBody(body, { requireContent: false });
+
+  if (stored.html === undefined && stored.embeds === undefined) return target;
 
   if (target.kind === 'ephemeral') {
-    const row = updateBotEphemeralMessage(
-      request.interaction,
-      target.row.id,
-      html
-    );
+    const next = {
+      html: stored.html ?? target.row.content,
+      embeds: stored.embeds ?? target.row.embeds ?? undefined
+    };
+
+    if (!hasStoredContent(next)) throw emptyMessage();
+
+    const row = updateBotEphemeralMessage(request.interaction, target.row.id, {
+      content: next.html,
+      embeds: next.embeds?.length ? next.embeds : null
+    });
 
     if (!row) throw unknownMessage();
 
     return { kind: 'ephemeral', row };
   }
 
-  const caller = createBotCaller(request.bot, request.info);
+  const caller = createBotCaller(request.bot, request.info, {
+    embeds: stored.embeds
+  });
+  const unknown = { code: DiscordErrorCode.UNKNOWN_MESSAGE, what: 'Message' };
+  let content = stored.html;
+
+  if (content === undefined) {
+    const current = await callProcedure(
+      () => caller.messages.getOne({ messageId: target.id }),
+      unknown
+    );
+
+    content = current.content ?? '';
+  }
+
+  const nextContent = content;
 
   await callProcedure(
-    () => caller.messages.edit({ messageId: target.id, content: html }),
-    { code: DiscordErrorCode.UNKNOWN_MESSAGE, what: 'Message' }
+    () => caller.messages.edit({ messageId: target.id, content: nextContent }),
+    unknown
   );
 
   return target;

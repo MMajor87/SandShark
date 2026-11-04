@@ -44,14 +44,19 @@ const editMessageRoute = rateLimitedProcedure(protectedProcedure, {
 
     await assertCanModifyMessage(ctx, message, 'edit this message');
 
-    invariant(!isEmptyMessage(input.content), {
+    // a bot edit that brings no embeds keeps the ones the message has, and a message with
+    // embeds may have no text
+    const embeds = ctx.botEmbeds === undefined ? message.embeds : ctx.botEmbeds;
+    const mayBeEmpty = !!embeds?.length;
+
+    invariant(!isEmptyMessage(input.content) || mayBeEmpty, {
       code: 'BAD_REQUEST',
       message: 'Message cannot be empty.'
     });
 
     let sanitizedContent = sanitizeMessageHtml(input.content);
 
-    invariant(!isEmptyMessage(sanitizedContent), {
+    invariant(!isEmptyMessage(sanitizedContent) || mayBeEmpty, {
       code: 'BAD_REQUEST',
       message:
         'Your message only contained unsupported or removed content, so there was nothing to send.'
@@ -79,7 +84,8 @@ const editMessageRoute = rateLimitedProcedure(protectedProcedure, {
         // a bot filling in its deferred answer is writing it, not editing it
         editedAt: message.loading ? null : editedAt,
         editedBy: message.loading ? null : ctx.user.id,
-        loading: false
+        loading: false,
+        embeds: embeds?.length ? embeds : null
       })
       .where(eq(messages.id, input.messageId));
 

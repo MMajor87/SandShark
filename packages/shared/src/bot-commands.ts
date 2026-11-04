@@ -1,3 +1,5 @@
+import type { TMessageEmbed } from './message-embeds';
+
 // discord's application command types. chat input commands are the slash commands; user
 // and message commands are the right click "Apps" entries
 export enum BotCommandType {
@@ -49,6 +51,7 @@ export type TBotEphemeralMessage = {
   channelId: number;
   commandName: string;
   content: string;
+  embeds: TMessageEmbed[] | null;
   loading: boolean;
   createdAt: number;
   updatedAt: number;

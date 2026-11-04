@@ -206,6 +206,14 @@ describe('discord.py compatibility', () => {
           ['<p>4</p>', 'roll', null],
           ['<p>done</p>', 'slow', null]
         ]);
+        expect(commandAnswers[0]!.embeds).toEqual([
+          {
+            title: 'Roll',
+            description: '<p><strong>4</strong></p>',
+            color: 0x3498db,
+            fields: [{ name: 'Sides', value: '<p>4</p>', inline: true }]
+          }
+        ]);
 
         for (let attempt = 0; attempt < 100; attempt++) {
           if (

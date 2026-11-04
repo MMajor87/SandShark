@@ -1,4 +1,8 @@
-import { DEFAULT_LOCALE, type TJoinedUser } from '@sandshark/shared';
+import {
+  DEFAULT_LOCALE,
+  type TJoinedUser,
+  type TMessageEmbed
+} from '@sandshark/shared';
 import { createPermissionChecks } from '../../helpers/create-permission-checks';
 import { appRouter } from '../../routers';
 import type { TConnectionInfo } from '../../types';
@@ -13,10 +17,17 @@ import {
 // a request context for the bot user, so a bot write goes through the very procedure a
 // member's would: the same permission checks, sanitizing, plugin hooks, rate limits and
 // realtime publishes. a bot has no socket of its own here, the gateway owns that
+type TBotCallerExtras = {
+  // the slash command interaction this write answers
+  interaction?: TBotInteractionContext;
+  // the embeds of the message this write sends or edits
+  embeds?: TMessageEmbed[];
+};
+
 const createBotCaller = (
   bot: TJoinedUser,
   info: TConnectionInfo | undefined,
-  botInteraction?: TBotInteractionContext
+  { interaction, embeds }: TBotCallerExtras = {}
 ) => {
   const ctx: Context = {
     pubsub,
@@ -35,7 +46,8 @@ const createBotCaller = (
     getConnectionInfo: () => info,
     throwValidationError,
     saveUserIp: async () => {},
-    botInteraction
+    botInteraction: interaction,
+    botEmbeds: embeds
   };
 
   return appRouter.createCaller(ctx);

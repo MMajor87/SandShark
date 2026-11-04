@@ -28,7 +28,10 @@ tree = app_commands.CommandTree(client)
 
 @tree.command(name="roll", description="Roll a die")
 async def roll(interaction: discord.Interaction, sides: app_commands.Range[int, 2, 100]):
-    await interaction.response.send_message(str(sides))
+    embed = discord.Embed(title="Roll", description=f"**{sides}**", colour=0x3498DB)
+    embed.add_field(name="Sides", value=str(sides), inline=True)
+
+    await interaction.response.send_message(str(sides), embed=embed)
 
 
 # the usual way to take longer than three seconds: think first, then follow up, which fills

@@ -10,6 +10,7 @@ import { db } from '../../db';
 import { getPublicUsers } from '../../db/queries/users';
 import { channels, emojis, messages } from '../../db/schema';
 import { channelSnowflake } from './channel';
+import { serializeEmbed } from './embed';
 import { roleSnowflake, type TGuildContext } from './guild';
 import {
   collectHtmlMentions,
@@ -47,8 +48,17 @@ const unique = <T>(values: T[]) => [...new Set(values)];
 // everything a page of messages refers to, loaded in one round of queries instead of per
 // message: authors, mentioned users, roles and channels, custom emoji and reply targets
 const loadMessageLookups = async (page: TJoinedMessage[]) => {
+  // mentions in embeds resolve like those in the content
   const mentions = page.map((message) =>
-    collectHtmlMentions(message.content ?? '')
+    collectHtmlMentions(
+      [
+        message.content ?? '',
+        ...(message.embeds ?? []).flatMap((embed) => [
+          embed.description ?? '',
+          ...(embed.fields ?? []).map((field) => field.value)
+        ])
+      ].join('')
+    )
   );
   const channelIds = unique([
     ...page.map((message) => message.channelId),
@@ -309,7 +319,9 @@ const serializeMessages = async (
       attachments: message.files.map((file) =>
         serializeAttachment(file, options)
       ),
-      embeds: [],
+      embeds: (message.embeds ?? []).map((embed) =>
+        serializeEmbed(embed, htmlLookups)
+      ),
       reactions: serializeReactions(message.reactions, lookups, options.botId),
       pinned: message.pinned ?? false,
       flags: message.loading ? DiscordMessageFlag.LOADING : 0,

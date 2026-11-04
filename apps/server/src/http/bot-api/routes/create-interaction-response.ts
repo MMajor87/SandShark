@@ -4,11 +4,7 @@ import {
   type TBotInteraction
 } from '../../../helpers/bot-interactions';
 import { interactionSnowflake } from '../../../helpers/discord/interaction';
-import {
-  alreadyAcknowledged,
-  DiscordApiError,
-  DiscordErrorCode
-} from '../errors';
+import { alreadyAcknowledged } from '../errors';
 import { invalidFormBody, readJsonBody } from '../helpers';
 import {
   isEphemeral,
@@ -16,6 +12,7 @@ import {
   serializeInteractionMessage,
   zInteractionMessage
 } from '../interaction-messages';
+import { toStoredBody } from '../message-body';
 import { NO_CONTENT, type TInteractionRequest } from '../types';
 
 const InteractionCallbackType = {
@@ -62,20 +59,17 @@ const createInteractionResponseRoute = async (request: TInteractionRequest) => {
     type === InteractionCallbackType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE;
   const ephemeral = isEphemeral(data?.flags);
 
-  if (!loading && !data?.content?.trim()) {
-    throw new DiscordApiError(
-      400,
-      DiscordErrorCode.CANNOT_SEND_EMPTY_MESSAGE,
-      'Cannot send an empty message'
-    );
-  }
+  // a loading answer is the only one that may be empty, the bot writes it later
+  const stored = loading
+    ? { html: '', embeds: undefined }
+    : await toStoredBody(data ?? {}, { requireContent: true });
 
   if (!claimBotInteractionResponse(request.interaction.id)) {
     throw alreadyAcknowledged();
   }
 
   const target = await postInteractionMessage(request, {
-    content: loading ? undefined : data?.content,
+    stored,
     ephemeral,
     original: true,
     loading

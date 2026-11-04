@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { BotThinking } from './bot-thinking';
 import { InteractionHeader } from './interaction-header';
 import { getParsedMessageHtml } from './renderer/content-cache';
+import { MessageEmbeds } from './renderer/message-embeds';
 
 // an ephemeral answer has no message row, so it is shaped like one for the content parser.
 // the id is negated to stay clear of real message ids
@@ -39,6 +40,7 @@ const toParsableMessage = (message: TBotEphemeralMessage): TJoinedMessage => ({
   interactionUserId: null,
   interactionCommandName: null,
   loading: message.loading,
+  embeds: message.embeds,
   files: [],
   reactions: []
 });
@@ -64,7 +66,12 @@ const BotEphemeralMessageItem = memo(
       [message.id]
     );
 
-    let body = <div className="prose max-w-full msg-content">{content}</div>;
+    let body = (
+      <>
+        <div className="prose max-w-full msg-content">{content}</div>
+        <MessageEmbeds embeds={message.embeds} messageId={-message.id} />
+      </>
+    );
 
     if (message.loading) {
       body = <BotThinking botId={message.botId} />;

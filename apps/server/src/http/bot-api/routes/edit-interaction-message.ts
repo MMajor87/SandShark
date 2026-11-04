@@ -7,7 +7,7 @@ import {
 } from '../interaction-messages';
 import type { TInteractionRequest } from '../types';
 
-// fills in a deferred answer, or edits an answer. a body without content changes nothing
+// fills in a deferred answer, or edits an answer. what the body leaves out stays as it is
 const editInteractionMessageRoute = async (request: TInteractionRequest) => {
   const parsed = zInteractionMessage.safeParse(await readJsonBody(request.req));
 
@@ -17,10 +17,7 @@ const editInteractionMessageRoute = async (request: TInteractionRequest) => {
     request,
     request.params.messageId!
   );
-  const target =
-    parsed.data.content === undefined
-      ? found
-      : await editInteractionMessage(request, found, parsed.data.content);
+  const target = await editInteractionMessage(request, found, parsed.data);
 
   return serializeInteractionMessage(request, target);
 };

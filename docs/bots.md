@@ -67,6 +67,7 @@ Any library that lets you set the REST base URL can work. It should either read 
 - **Visibility.** A bot sees exactly what a member with the same roles sees. A channel it can't see is reported as *Unknown Channel*, never as *Missing Permissions*. Channel permission overwrites are always empty, because hidden channels aren't sent at all.
 - **Permissions.** SandShark's permissions are mapped onto Discord's permission bits. Bits with no SandShark equivalent are never set. The owner role is reported as Administrator.
 - **Message formatting.** Bold, italic, inline and block code, links, user, role and channel mentions, and custom emoji (`<:name:id>`) convert both ways. Underline, strikethrough and spoilers keep their text but lose the formatting.
+- **Embeds.** Up to 10 per message, with Discord's limits (6000 characters in all, 25 fields). Title, description, url, colour, timestamp, author, footer, fields, image and thumbnail are shown. Descriptions and field values take the same formatting as messages. Every url and image has to be `http` or `https`, so `attachment://` images aren't supported. A message can be embeds alone, and only bots can send them.
 - **Reactions.** Built-in emoji are named by their character (`👍`), and a bot's 👍 and a member's `:+1:` are the same reaction. Custom emoji use `name:id`.
 - **Avatars** aren't sent, because the libraries would build `cdn.discordapp.com` URLs from them.
 
@@ -83,7 +84,7 @@ Any library that lets you set the REST base URL can work. It should either read 
 | `GET /channels/{id}` | text, voice, category or a DM the bot is in |
 | `GET /channels/{id}/messages` | `limit` up to 100, and `before`, `after` or `around` |
 | `GET`, `PATCH`, `DELETE /channels/{id}/messages/{id}` | a bot can edit and delete its own messages, and other people's only with Manage messages |
-| `POST /channels/{id}/messages` | `content` up to 2000 characters, and `message_reference` for replies |
+| `POST /channels/{id}/messages` | `content` up to 2000 characters, `embeds`, and `message_reference` for replies |
 | `PUT`, `DELETE /channels/{id}/messages/{id}/reactions/{emoji}/@me` | |
 | `POST /channels/{id}/typing` | |
 | `POST /users/@me/channels` | opens a DM, if the server allows direct messages |
@@ -108,7 +109,7 @@ Without the **message content** intent, guild messages arrive with their content
 ## Not supported yet
 
 - Slash command options that take a file, autocomplete, and user and message commands (the right click "Apps" menu)
-- Embeds, buttons and other components, modals, and webhooks other than an interaction's own
+- Buttons, select menus and other components, modals, and webhooks other than an interaction's own
 - Uploading files from a bot (attachments can be read and downloaded)
 - Threads: replies inside a thread aren't sent or listed
 - Gateway resume: after a disconnect the bot identifies again, which the libraries do on their own

@@ -101,6 +101,7 @@ const toEphemeralPayload = (
   channelId: interaction.channelId,
   commandName: interaction.commandName,
   content: row.content,
+  embeds: row.embeds,
   loading: row.loading,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt
@@ -121,9 +122,10 @@ const createBotEphemeralMessage = (
   interaction: TBotInteraction,
   {
     content,
+    embeds,
     loading,
     original
-  }: Pick<TBotEphemeralRow, 'content' | 'loading' | 'original'>
+  }: Pick<TBotEphemeralRow, 'content' | 'embeds' | 'loading' | 'original'>
 ) => {
   const now = Date.now();
   const row = db
@@ -131,6 +133,7 @@ const createBotEphemeralMessage = (
     .values({
       interactionId: interaction.id,
       content,
+      embeds,
       loading,
       original,
       createdAt: now,
@@ -147,11 +150,11 @@ const createBotEphemeralMessage = (
 const updateBotEphemeralMessage = (
   interaction: TBotInteraction,
   messageId: number,
-  content: string
+  { content, embeds }: Pick<TBotEphemeralRow, 'content' | 'embeds'>
 ) => {
   const row = db
     .update(botEphemeralMessages)
-    .set({ content, loading: false, updatedAt: Date.now() })
+    .set({ content, embeds, loading: false, updatedAt: Date.now() })
     .where(
       and(
         eq(botEphemeralMessages.id, messageId),

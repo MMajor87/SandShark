@@ -67,24 +67,33 @@ const createDesktopPreferences = ({
     writeJsonAtomically(getDesktopSecretsPath(), secrets);
   };
 
-  const getDesktopSecret = (key: string) => {
-    if (!safeStorage.isEncryptionAvailable()) return undefined;
+  // the synchronous safeStorage methods are deprecated in electron 45 and removed in 46.
+  // the asynchronous ones use the same key store, so secrets saved before still decrypt
+  const getDesktopSecret = async (key: string) => {
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) return undefined;
 
     try {
       const value = getDesktopSecrets()[key];
-      return value
-        ? safeStorage.decryptString(Buffer.from(value, 'base64'))
-        : undefined;
+
+      if (!value) return undefined;
+
+      const { result } = await safeStorage.decryptStringAsync(
+        Buffer.from(value, 'base64')
+      );
+
+      return result;
     } catch {
       return undefined;
     }
   };
 
-  const setDesktopSecret = (key: string, value: string) => {
-    if (!safeStorage.isEncryptionAvailable()) return false;
+  const setDesktopSecret = async (key: string, value: string) => {
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) return false;
 
+    const encrypted = await safeStorage.encryptStringAsync(value);
     const secrets = getDesktopSecrets();
-    secrets[key] = safeStorage.encryptString(value).toString('base64');
+
+    secrets[key] = encrypted.toString('base64');
     saveDesktopSecrets(secrets);
     return true;
   };

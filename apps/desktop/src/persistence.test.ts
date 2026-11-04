@@ -57,16 +57,19 @@ test('log retention keeps two archives and redaction omits secrets and message c
   }
 });
 
-test('preferences preserve unrelated settings and secrets require encryption', () => {
+test('preferences preserve unrelated settings and secrets require encryption', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'sandshark-preferences-'));
   let available = true;
   const runtime = {
     app: { getPath: () => directory },
     safeStorage: {
-      isEncryptionAvailable: () => available,
-      encryptString: (value: string) => Buffer.from(`encrypted:${value}`),
-      decryptString: (value: Buffer) =>
-        value.toString().replace('encrypted:', '')
+      isAsyncEncryptionAvailable: async () => available,
+      encryptStringAsync: async (value: string) =>
+        Buffer.from(`encrypted:${value}`),
+      decryptStringAsync: async (value: Buffer) => ({
+        result: value.toString().replace('encrypted:', ''),
+        shouldReEncrypt: false
+      })
     }
   } as unknown as Parameters<typeof createDesktopPreferences>[0];
   try {
@@ -85,17 +88,17 @@ test('preferences preserve unrelated settings and secrets require encryption', (
       restartRequired: false
     });
     expect(reloaded.getUpdateSettings().automaticallyCheck).toBe(false);
-    expect(preferences.setDesktopSecret('token', 'value')).toBe(true);
-    expect(reloaded.getDesktopSecret('token')).toBe('value');
+    expect(await preferences.setDesktopSecret('token', 'value')).toBe(true);
+    expect(await reloaded.getDesktopSecret('token')).toBe('value');
     expect(
       readFileSync(join(directory, 'desktop-secrets.json'), 'utf8')
     ).not.toContain('value');
     available = false;
-    expect(preferences.setDesktopSecret('token', 'new')).toBe(false);
-    expect(preferences.getDesktopSecret('token')).toBeUndefined();
+    expect(await preferences.setDesktopSecret('token', 'new')).toBe(false);
+    expect(await preferences.getDesktopSecret('token')).toBeUndefined();
     available = true;
     preferences.removeDesktopSecret('token');
-    expect(reloaded.getDesktopSecret('token')).toBeUndefined();
+    expect(await reloaded.getDesktopSecret('token')).toBeUndefined();
     writeFileSync(join(directory, 'desktop-preferences.json'), 'broken');
     expect(
       createDesktopPreferences(runtime).getHardwareAccelerationSettings()

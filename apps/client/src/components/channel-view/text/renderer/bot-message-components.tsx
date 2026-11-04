@@ -264,14 +264,22 @@ const BotEntitySelect = memo(({ select, press }: TBotEntitySelectProps) => {
     if (takesUsers) {
       for (const user of users) {
         if (!user.banned) {
-          options.push({ label: user.name, value: `user:${user.id}`, default: false });
+          options.push({
+            label: user.name,
+            value: `user:${user.id}`,
+            default: false
+          });
         }
       }
     }
 
     if (takesRoles) {
       for (const role of roles) {
-        options.push({ label: role.name, value: `role:${role.id}`, default: false });
+        options.push({
+          label: role.name,
+          value: `role:${role.id}`,
+          default: false
+        });
       }
     }
 

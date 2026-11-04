@@ -68,7 +68,7 @@ Any library that lets you set the REST base URL can work. It should either read 
 - **Permissions.** SandShark's permissions are mapped onto Discord's permission bits. Bits with no SandShark equivalent are never set. The owner role is reported as Administrator.
 - **Message formatting.** Bold, italic, inline and block code, links, user, role and channel mentions, and custom emoji (`<:name:id>`) convert both ways. Underline, strikethrough and spoilers keep their text but lose the formatting.
 - **Embeds.** Up to 10 per message, with Discord's limits (6000 characters in all, 25 fields). Title, description, url, colour, timestamp, author, footer, fields, image and thumbnail are shown. Descriptions and field values take the same formatting as messages. Every url and image has to be `http` or `https`, so `attachment://` images aren't supported. A message can be embeds alone, and only bots can send them.
-- **Buttons and select menus.** Action rows with up to five buttons, in all five styles including link buttons, or one string select menu, on any message or ephemeral answer, with Discord's rules. A member's click arrives as an `INTERACTION_CREATE` of type 3 carrying the message, and the bot answers by updating that message (`interaction.update`, `edit_message`), deferring the update, or replying. Buttons on an ephemeral answer work for its member only, for as long as the answer is kept.
+- **Buttons and select menus.** Action rows with up to five buttons, in all five styles including link buttons, or one select menu, on any message or ephemeral answer, with Discord's rules. Select menus can list the bot's own options, or the server's members, roles, members and roles, or channels; those picks reach the bot as snowflakes with `resolved`. Preset default values on those menus are dropped. A member's click arrives as an `INTERACTION_CREATE` of type 3 carrying the message, and the bot answers by updating that message (`interaction.update`, `edit_message`), deferring the update, or replying. Buttons on an ephemeral answer work for its member only, for as long as the answer is kept.
 - **Reactions.** Built-in emoji are named by their character (`👍`), and a bot's 👍 and a member's `:+1:` are the same reaction. Custom emoji use `name:id`.
 - **Avatars** aren't sent, because the libraries would build `cdn.discordapp.com` URLs from them.
 
@@ -109,8 +109,8 @@ Without the **message content** intent, guild messages arrive with their content
 
 ## Not supported yet
 
-- Slash command options that take a file, autocomplete, and user and message commands (the right click "Apps" menu)
-- User, role, channel and mentionable select menus, modals and text inputs, Discord's newer layout components, and webhooks other than an interaction's own
+- Slash command options that take a file, and user and message commands (the right click "Apps" menu)
+- Select menus and other components inside modals (text inputs only), Discord's newer layout components, and webhooks other than an interaction's own
 - Uploading files from a bot (attachments can be read and downloaded)
 - Threads: replies inside a thread aren't sent or listed
 - Gateway resume: after a disconnect the bot identifies again, which the libraries do on their own
@@ -124,6 +124,12 @@ A bot registers its commands as it would on Discord: discord.js with `applicatio
 Answer them the usual ways: `reply`, `deferReply` then `editReply`, `followUp`, and ephemeral answers with `MessageFlags.Ephemeral` or `ephemeral=True`. An answer is a message from the bot, headed with who ran which command. An ephemeral answer is shown only to that member, below the channel's messages, until they dismiss it or reload. A deferred answer shows the bot thinking until it's filled in. A bot has three seconds to answer and fifteen minutes to edit or follow up, as on Discord.
 
 The bot posts its answer like any other message, so it needs to be able to see the channel and send messages there. A member can't run a command in a channel the bot can't see, or while the bot is offline.
+
+### Modals and autocomplete
+
+A command, button or select menu can be answered with a modal (`showModal`, `send_modal`), which opens as a form for that member only. Inputs inside labels and inputs inside action rows both work, and the submission reaches the bot in the shape it sent. A form is submitted once, within the interaction's fifteen minutes, and its answer can reply, or update the message when the form came from a button.
+
+An option marked `autocomplete` asks the bot for suggestions as the member types, with the typed value as the focused option. The bot answers with `respond` or an `@app_commands.autocomplete` callback, and suggestions it doesn't send within three seconds are simply not shown.
 
 ## Limits
 

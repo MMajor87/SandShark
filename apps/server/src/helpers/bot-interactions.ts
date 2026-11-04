@@ -246,7 +246,10 @@ const closeBotModal = (interactionId: number) =>
     .update(botInteractions)
     .set({ modal: null })
     .where(
-      and(eq(botInteractions.id, interactionId), isNotNull(botInteractions.modal))
+      and(
+        eq(botInteractions.id, interactionId),
+        isNotNull(botInteractions.modal)
+      )
     )
     .returning({ id: botInteractions.id })
     .get();

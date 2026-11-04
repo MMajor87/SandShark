@@ -6,8 +6,8 @@ import {
   type BotCommandType,
   type TActivityLogDetailsMap,
   type TBotActionRow,
-  type TBotModal,
   type TBotCommandOption,
+  type TBotModal,
   type TMessageEmbed,
   type TMessageMetadata,
   type TPluginMessageComponent

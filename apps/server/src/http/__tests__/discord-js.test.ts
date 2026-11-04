@@ -254,6 +254,19 @@ describe('discord.js compatibility', () => {
         return;
       }
 
+      // the usual autocomplete handler: filter a list by what has been typed
+      if (interaction.isAutocomplete()) {
+        const typed = interaction.options.getFocused().toLowerCase();
+
+        await interaction.respond(
+          ['Lisbon', 'Lismore', 'London']
+            .filter((city) => city.toLowerCase().startsWith(typed))
+            .map((city) => ({ name: city, value: city.toLowerCase() }))
+        );
+
+        return;
+      }
+
       if (interaction.isModalSubmit()) {
         await interaction.reply(
           `thanks ${interaction.fields.getTextInputValue('name')}`
@@ -359,6 +372,16 @@ describe('discord.js compatibility', () => {
         new SlashCommandBuilder()
           .setName('form')
           .setDescription('Asks for feedback')
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName('city')
+          .setDescription('Picks a city')
+          .addStringOption((option) =>
+            option
+              .setName('name')
+              .setDescription('The city')
+              .setAutocomplete(true)
+          )
           .toJSON()
       ]);
 
@@ -540,6 +563,20 @@ describe('discord.js compatibility', () => {
       expect(thanks).toMatchObject({
         content: '<p>thanks Alice</p>',
         interactionCommandName: 'form'
+      });
+
+      const suggestions = await caller.bots.autocomplete({
+        commandId: commandId('city'),
+        channelId: 1,
+        values: { name: 'lis' },
+        focused: 'name'
+      });
+
+      expect(suggestions).toEqual({
+        choices: [
+          { name: 'Lisbon', value: 'lisbon' },
+          { name: 'Lismore', value: 'lismore' }
+        ]
       });
     } finally {
       await client.destroy();

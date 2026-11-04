@@ -1,4 +1,5 @@
 import { t } from '../../utils/trpc';
+import { autocompleteRoute } from './autocomplete';
 import { createBotRoute } from './create-bot';
 import { deleteBotRoute } from './delete-bot';
 import {
@@ -25,6 +26,7 @@ const botsRouter = t.router({
   runCommand: runCommandRoute,
   pressComponent: pressComponentRoute,
   submitModal: submitModalRoute,
+  autocomplete: autocompleteRoute,
   onModalOpen: onModalOpenRoute,
   getCommands: getCommandsRoute,
   onCommandsChange: onCommandsChangeRoute,

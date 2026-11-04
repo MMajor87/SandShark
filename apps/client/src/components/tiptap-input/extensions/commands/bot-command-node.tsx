@@ -1,3 +1,5 @@
+import { useSelectedChannelId } from '@/features/server/channels/hooks';
+import { getTRPCClient } from '@/lib/trpc';
 import {
   BotCommandOptionType,
   MessageNodeType,
@@ -10,10 +12,11 @@ import {
   type NodeViewProps
 } from '@tiptap/react';
 import { memo, useCallback, useMemo } from 'react';
-import { BotOptionInput } from './bot-option-input';
+import { BotOptionInput, type TChoice } from './bot-option-input';
 import {
   safeJsonParse,
   serializeBotCommandText,
+  toBotCommandInvocation,
   type TPluginCommandValues
 } from './helpers';
 import { useCommandChip } from './use-command-chip';
@@ -57,6 +60,40 @@ const BotCommandNodeView = memo(
       () => safeJsonParse<TPluginCommandValues>(attrs.values, {}),
       [attrs.values]
     );
+    const channelId = useSelectedChannelId();
+
+    // the bot suggests values for the option being typed into, given what else is filled in.
+    // a failed request offers nothing rather than interrupting the member
+    const onSuggest = useCallback(
+      async (name: string, typed: string): Promise<TChoice[]> => {
+        if (!channelId) return [];
+
+        const invocation = toBotCommandInvocation({
+          commandId: String(attrs.commandId),
+          subcommand: attrs.subcommand,
+          options: attrs.options,
+          values: attrs.values
+        });
+
+        try {
+          const trpc = getTRPCClient();
+          const { choices } = await trpc.bots.autocomplete.mutate({
+            ...invocation,
+            values: { ...invocation.values, [name]: typed },
+            channelId,
+            focused: name
+          });
+
+          return choices.map((choice) => ({
+            value: String(choice.value),
+            label: choice.name
+          }));
+        } catch {
+          return [];
+        }
+      },
+      [attrs, channelId]
+    );
 
     const setValue = useCallback(
       (name: string, value: string) => {
@@ -86,6 +123,7 @@ const BotCommandNodeView = memo(
             value={values[option.name] ?? ''}
             onValueChange={setValue}
             handleKeyNavigation={handleKeyNavigation}
+            onSuggest={onSuggest}
           />
         ))}
       </NodeViewWrapper>

@@ -67,7 +67,11 @@ const ROW_MODAL = {
 
 const setup = async () => {
   const { bot, token } = await createTestBot();
-  const botRow = await tdb.select().from(users).where(eq(users.id, bot.id)).get();
+  const botRow = await tdb
+    .select()
+    .from(users)
+    .where(eq(users.id, bot.id))
+    .get();
   const applicationId = userSnowflake(botRow!);
 
   await botApiRequest(`/applications/${applicationId}/commands`, token, {
@@ -166,36 +170,59 @@ describe('bot modals', () => {
       .from(botInteractions)
       .where(eq(botInteractions.id, event.interactionId));
 
-    expect(row).toMatchObject({ responded: true, modal: { customId: 'feedback' } });
+    expect(row).toMatchObject({
+      responded: true,
+      modal: { customId: 'feedback' }
+    });
   });
 
   test.each([
-    ['labels mixed with action rows', {
-      ...LABELLED_MODAL,
-      components: [LABELLED_MODAL.components[0], ROW_MODAL.components[0]]
-    }],
-    ['an action row input without a label', {
-      ...ROW_MODAL,
-      components: [{ type: 1, components: [textInput('x')] }]
-    }],
-    ['the same custom id twice', {
-      ...ROW_MODAL,
-      components: [ROW_MODAL.components[0], ROW_MODAL.components[0]]
-    }],
+    [
+      'labels mixed with action rows',
+      {
+        ...LABELLED_MODAL,
+        components: [LABELLED_MODAL.components[0], ROW_MODAL.components[0]]
+      }
+    ],
+    [
+      'an action row input without a label',
+      {
+        ...ROW_MODAL,
+        components: [{ type: 1, components: [textInput('x')] }]
+      }
+    ],
+    [
+      'the same custom id twice',
+      {
+        ...ROW_MODAL,
+        components: [ROW_MODAL.components[0], ROW_MODAL.components[0]]
+      }
+    ],
     ['a title over 45 characters', { ...ROW_MODAL, title: 'x'.repeat(46) }],
-    ['a minimum over the maximum', {
-      ...ROW_MODAL,
-      components: [
-        { type: 1, components: [textInput('x', { label: 'X', min_length: 5, max_length: 2 })] }
-      ]
-    }],
-    ['six inputs', {
-      ...ROW_MODAL,
-      components: Array.from({ length: 6 }, (_, index) => ({
-        type: 1,
-        components: [textInput(`x${index}`, { label: 'X' })]
-      }))
-    }]
+    [
+      'a minimum over the maximum',
+      {
+        ...ROW_MODAL,
+        components: [
+          {
+            type: 1,
+            components: [
+              textInput('x', { label: 'X', min_length: 5, max_length: 2 })
+            ]
+          }
+        ]
+      }
+    ],
+    [
+      'six inputs',
+      {
+        ...ROW_MODAL,
+        components: Array.from({ length: 6 }, (_, index) => ({
+          type: 1,
+          components: [textInput(`x${index}`, { label: 'X' })]
+        }))
+      }
+    ]
   ])('refuses %s without using up the interaction', async (_, modal) => {
     const { runCommand, callback } = await setup();
     const event = await runCommand();
@@ -239,7 +266,10 @@ describe('bot modals', () => {
       data: {
         custom_id: 'feedback',
         components: [
-          { type: 18, component: { type: 4, custom_id: 'name', value: 'Alice' } },
+          {
+            type: 18,
+            component: { type: 4, custom_id: 'name', value: 'Alice' }
+          },
           { type: 18, component: { type: 4, custom_id: 'thoughts', value: '' } }
         ]
       }
@@ -301,7 +331,9 @@ describe('bot modals', () => {
     });
 
     expect(status).toBe(400);
-    expect(body.message).toBe('A modal submit cannot be answered with a modal.');
+    expect(body.message).toBe(
+      'A modal submit cannot be answered with a modal.'
+    );
   });
 
   test('a modal is submitted once, and only by its member', async () => {
@@ -322,9 +354,17 @@ describe('bot modals', () => {
   });
 
   test.each([
-    ['a field the form does not have', { name: 'A', colour: 'red' }, 'This form has no such field.'],
+    [
+      'a field the form does not have',
+      { name: 'A', colour: 'red' },
+      'This form has no such field.'
+    ],
     ['a required field left blank', { name: ' ' }, 'Fill in "Name".'],
-    ['a value over its maximum', { name: 'x'.repeat(21) }, '"Name" is too short or too long.']
+    [
+      'a value over its maximum',
+      { name: 'x'.repeat(21) },
+      '"Name" is too short or too long.'
+    ]
   ])('refuses %s', async (_, values, message) => {
     const { runCommand, callback, submit } = await setup();
     const source = await runCommand();
@@ -368,25 +408,29 @@ describe('bot modals', () => {
       .where(eq(channels.id, GENERAL))
       .get();
 
-    await botApiRequest(`/channels/${channelSnowflake(channel!)}/messages`, token, {
-      method: 'POST',
-      body: {
-        content: 'Rename me',
-        components: [
-          {
-            type: 1,
-            components: [
-              {
-                type: 2,
-                style: BotButtonStyle.PRIMARY,
-                label: 'Rename',
-                custom_id: 'rename'
-              }
-            ]
-          }
-        ]
+    await botApiRequest(
+      `/channels/${channelSnowflake(channel!)}/messages`,
+      token,
+      {
+        method: 'POST',
+        body: {
+          content: 'Rename me',
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 2,
+                  style: BotButtonStyle.PRIMARY,
+                  label: 'Rename',
+                  custom_id: 'rename'
+                }
+              ]
+            }
+          ]
+        }
       }
-    });
+    );
 
     const [message] = await tdb
       .select()
@@ -395,7 +439,10 @@ describe('bot modals', () => {
       .orderBy(asc(messages.id));
     const { caller } = await initTest(1);
 
-    await caller.bots.pressComponent({ messageId: message!.id, customId: 'rename' });
+    await caller.bots.pressComponent({
+      messageId: message!.id,
+      customId: 'rename'
+    });
     await callback(lastEvent(), { type: 9, data: ROW_MODAL });
 
     const pressed = lastEvent();
@@ -419,6 +466,9 @@ describe('bot modals', () => {
       .where(eq(messages.id, message!.id))
       .get();
 
-    expect(updated).toMatchObject({ content: '<p>Renamed</p>', components: null });
+    expect(updated).toMatchObject({
+      content: '<p>Renamed</p>',
+      components: null
+    });
   });
 });

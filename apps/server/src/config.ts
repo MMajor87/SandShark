@@ -106,7 +106,8 @@ const zConfig = z.object({
     oidc: zRateLimiter,
     reportClientError: zRateLimiter,
     botApi: zRateLimiter,
-    botApiAuthFailure: zRateLimiter
+    botApiAuthFailure: zRateLimiter,
+    botAutocomplete: zRateLimiter
   })
 });
 
@@ -264,6 +265,11 @@ const defaultConfig: TConfig = {
     },
     botApiAuthFailure: {
       maxRequests: 20,
+      windowMs: 60_000
+    },
+    // a member typing into an option the bot completes asks once a pause
+    botAutocomplete: {
+      maxRequests: 60,
       windowMs: 60_000
     }
   }

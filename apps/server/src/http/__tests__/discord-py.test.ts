@@ -135,7 +135,7 @@ describe('discord.py compatibility', () => {
 
         expect(ready).toBe('READY Py Bot 1 General,Restricted Text');
         expect(await stdout.waitForLine('SYNCED')).toBe(
-          'SYNCED roll,slow,choose,form 4'
+          'SYNCED roll,slow,choose,city,form 5'
         );
 
         const commands = await tdb
@@ -150,10 +150,12 @@ describe('discord.py compatibility', () => {
           ['roll', false],
           ['slow', false],
           ['choose', false],
+          ['city', false],
           ['form', false],
           ['roll', true],
           ['slow', true],
           ['choose', true],
+          ['city', true],
           ['form', true]
         ]);
         expect(commands[0]!.options).toEqual([
@@ -316,6 +318,20 @@ describe('discord.py compatibility', () => {
         expect(thanks).toMatchObject({
           content: '<p>thanks Alice</p>',
           interactionCommandName: 'form'
+        });
+
+        const suggestions = await caller.bots.autocomplete({
+          commandId: commandId('city'),
+          channelId: 1,
+          values: { name: 'lis' },
+          focused: 'name'
+        });
+
+        expect(suggestions).toEqual({
+          choices: [
+            { name: 'Lisbon', value: 'lisbon' },
+            { name: 'Lismore', value: 'lismore' }
+          ]
         });
 
         const pingId = await caller.messages.send({

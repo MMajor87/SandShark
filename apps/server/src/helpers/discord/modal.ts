@@ -38,7 +38,10 @@ const zLabel = z.object({
 const zDiscordModal = z.object({
   custom_id: zCustomId,
   title: z.string().min(1).max(45),
-  components: z.array(z.union([zInputRow, zLabel])).min(1).max(5)
+  components: z
+    .array(z.union([zInputRow, zLabel]))
+    .min(1)
+    .max(5)
 });
 
 type TDiscordModal = z.infer<typeof zDiscordModal>;
@@ -62,7 +65,10 @@ const toStoredModal = (modal: TDiscordModal): TBotModal | undefined => {
       return undefined;
     }
 
-    if (input.value && input.value.length > (input.max_length ?? MAX_INPUT_LENGTH)) {
+    if (
+      input.value &&
+      input.value.length > (input.max_length ?? MAX_INPUT_LENGTH)
+    ) {
       return undefined;
     }
 
@@ -105,9 +111,4 @@ const serializeModalSubmit = (
     return { type: BotComponentType.ACTION_ROW, components: [input] };
   });
 
-export {
-  MAX_INPUT_LENGTH,
-  serializeModalSubmit,
-  toStoredModal,
-  zDiscordModal
-};
+export { MAX_INPUT_LENGTH, serializeModalSubmit, toStoredModal, zDiscordModal };

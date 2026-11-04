@@ -1,20 +1,12 @@
-import { ChannelPermission, Permission, ServerEvents } from '@sandshark/shared';
+import { ServerEvents } from '@sandshark/shared';
 import { z } from 'zod';
 import { config } from '../../config';
-import { getSlashCommandById } from '../../db/queries/bot-commands';
-import { getChannelsForUser } from '../../db/queries/channels';
-import { getPublicUserById } from '../../db/queries/users';
-import { assertChannelAccess } from '../../helpers/assert-channel-access';
-import { canUseBotCommand } from '../../helpers/bot-command-access';
+import { assertBotCommandAccess } from '../../helpers/assert-bot-command-access';
 import { resolveInvocation } from '../../helpers/bot-command-invocation';
 import {
   createBotInteraction,
   watchBotInteractionResponse
 } from '../../helpers/bot-interactions';
-import { getGuildContext } from '../../helpers/discord/guild';
-import { memberPermissionBits } from '../../helpers/discord/member';
-import { isBotConnected } from '../../http/bot-api/gateway';
-import { invariant } from '../../utils/invariant';
 import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
 
 // runs a bot's slash command: the bot is sent INTERACTION_CREATE and answers through the
@@ -38,46 +30,11 @@ const runCommandRoute = rateLimitedProcedure(protectedProcedure, {
     })
   )
   .mutation(async ({ ctx, input }) => {
-    await ctx.needsPermission(Permission.SEND_MESSAGES);
-
-    const command = await getSlashCommandById(input.commandId);
-
-    invariant(command, { code: 'NOT_FOUND', message: 'Command not found.' });
-
-    await assertChannelAccess(ctx, input.channelId);
-    await ctx.needsChannelPermission(
-      input.channelId,
-      ChannelPermission.SEND_MESSAGES
+    const command = await assertBotCommandAccess(
+      ctx,
+      input.commandId,
+      input.channelId
     );
-
-    // the answer is posted in the channel by the bot, so the bot has to be able to see it
-    const botChannels = await getChannelsForUser(command.botId);
-
-    invariant(
-      botChannels.some((channel) => channel.id === input.channelId),
-      {
-        code: 'FORBIDDEN',
-        message: "This bot can't see this channel."
-      }
-    );
-
-    const [member, guild] = await Promise.all([
-      getPublicUserById(ctx.userId),
-      getGuildContext()
-    ]);
-
-    invariant(
-      member && canUseBotCommand(command, memberPermissionBits(member, guild)),
-      {
-        code: 'FORBIDDEN',
-        message: "You don't have permission to use this command."
-      }
-    );
-
-    invariant(isBotConnected(command.botId), {
-      code: 'PRECONDITION_FAILED',
-      message: 'This bot is offline right now.'
-    });
 
     const { options, commandName } = await resolveInvocation(
       command,

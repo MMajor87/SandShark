@@ -23,6 +23,8 @@ export type TInvocationOption = {
   type: BotCommandOptionType;
   value?: string | number | boolean;
   options?: TInvocationOption[];
+  // the option a member is typing into, when the bot is asked for suggestions
+  focused?: boolean;
 };
 
 type TBotInteractionEventBase = {
@@ -52,6 +54,14 @@ export type TBotComponentInteractionEvent = TBotInteractionEventBase & {
   ephemeralMessageId: number | null;
 };
 
+// a member typing into an option the bot completes. the options are as far as they are
+// filled in, the focused one holding whatever has been typed so far
+export type TBotAutocompleteInteractionEvent = TBotInteractionEventBase & {
+  kind: 'autocomplete';
+  command: TBotCommandInteractionEvent['command'];
+  options: TInvocationOption[];
+};
+
 // a form submitted. it may have been opened from a button, whose message it then carries
 export type TBotModalInteractionEvent = TBotInteractionEventBase & {
   kind: 'modal';
@@ -66,4 +76,5 @@ export type TBotModalInteractionEvent = TBotInteractionEventBase & {
 export type TBotInteractionEvent =
   | TBotCommandInteractionEvent
   | TBotComponentInteractionEvent
-  | TBotModalInteractionEvent;
+  | TBotModalInteractionEvent
+  | TBotAutocompleteInteractionEvent;

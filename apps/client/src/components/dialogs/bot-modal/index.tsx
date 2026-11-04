@@ -28,40 +28,42 @@ type TBotModalFieldProps = {
   onChange: (customId: string, value: string) => void;
 };
 
-const BotModalField = memo(({ input, value, onChange }: TBotModalFieldProps) => {
-  const handleChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      onChange(input.customId, event.target.value),
-    [onChange, input.customId]
-  );
-
-  const field =
-    input.style === BotTextInputStyle.PARAGRAPH ? (
-      <Textarea
-        value={value}
-        placeholder={input.placeholder}
-        maxLength={input.maxLength}
-        onChange={handleChange}
-      />
-    ) : (
-      <Input
-        value={value}
-        placeholder={input.placeholder}
-        maxLength={input.maxLength}
-        onChange={handleChange}
-      />
+const BotModalField = memo(
+  ({ input, value, onChange }: TBotModalFieldProps) => {
+    const handleChange = useCallback(
+      (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+        onChange(input.customId, event.target.value),
+      [onChange, input.customId]
     );
 
-  return (
-    <Group
-      label={input.label}
-      description={input.description}
-      required={input.required}
-    >
-      {field}
-    </Group>
-  );
-});
+    const field =
+      input.style === BotTextInputStyle.PARAGRAPH ? (
+        <Textarea
+          value={value}
+          placeholder={input.placeholder}
+          maxLength={input.maxLength}
+          onChange={handleChange}
+        />
+      ) : (
+        <Input
+          value={value}
+          placeholder={input.placeholder}
+          maxLength={input.maxLength}
+          onChange={handleChange}
+        />
+      );
+
+    return (
+      <Group
+        label={input.label}
+        description={input.description}
+        required={input.required}
+      >
+        {field}
+      </Group>
+    );
+  }
+);
 
 type TBotModalDialogProps = TDialogBaseProps & TBotModalOpen;
 
@@ -71,7 +73,9 @@ const BotModalDialog = memo(
     const { t } = useTranslation('dialogs');
     const [loading, setLoading] = useState(false);
     const [values, setValues] = useState<Record<string, string>>(() =>
-      Object.fromEntries(inputs.map((input) => [input.customId, input.value ?? '']))
+      Object.fromEntries(
+        inputs.map((input) => [input.customId, input.value ?? ''])
+      )
     );
 
     const onChange = useCallback(

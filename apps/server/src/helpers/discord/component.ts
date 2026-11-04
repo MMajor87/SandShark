@@ -196,9 +196,7 @@ const toStoredComponents = (rows: TDiscordActionRow[]): TBotActionRow[] =>
 const serializeEmoji = (emoji: TBotComponentEmoji | undefined) =>
   emoji ? { id: null, name: emoji.name, animated: false } : undefined;
 
-const serializeComponent = (
-  component: TBotActionRow['components'][number]
-) => {
+const serializeComponent = (component: TBotActionRow['components'][number]) => {
   if (component.type === BotComponentType.BUTTON) {
     return {
       type: BotComponentType.BUTTON,

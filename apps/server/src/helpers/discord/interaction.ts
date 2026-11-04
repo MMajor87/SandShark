@@ -13,16 +13,17 @@ import {
 } from './channel';
 import { commandSnowflake } from './command';
 import { serializeEphemeralMessage } from './ephemeral';
-import { serializeModalSubmit } from './modal';
 import { getGuildContext, roleSnowflake, serializeRoles } from './guild';
 import { memberPermissionBits, serializeMember } from './member';
 import { serializeMessages, type TMessageSerializeOptions } from './message';
+import { serializeModalSubmit } from './modal';
 import { encodeSnowflake, SnowflakeTag } from './snowflake';
 import { serializeUser, userSnowflake } from './user';
 
 const DiscordInteractionType = {
   APPLICATION_COMMAND: 2,
   MESSAGE_COMPONENT: 3,
+  APPLICATION_COMMAND_AUTOCOMPLETE: 4,
   MODAL_SUBMIT: 5
 } as const;
 
@@ -79,7 +80,7 @@ const loadInteractionContext = async (event: TBotInteractionEvent) => {
     channels: new Set()
   };
 
-  if (event.kind === 'command') {
+  if (event.kind === 'command' || event.kind === 'autocomplete') {
     collectReferences(event.options, referenced);
   } else if (event.kind === 'component') {
     collectEntityValues(event.values, referenced);
@@ -177,7 +178,8 @@ const serializeOptions = (
     return {
       name: option.name,
       type: option.type,
-      value: serializeOptionValue(option, context)
+      value: serializeOptionValue(option, context),
+      ...(option.focused ? { focused: true } : {})
     };
   });
 
@@ -287,7 +289,10 @@ const buildInteractionData = async (
   const resolved = serializeResolved(context, invokerBits);
 
   return {
-    type: DiscordInteractionType.APPLICATION_COMMAND,
+    type:
+      event.kind === 'autocomplete'
+        ? DiscordInteractionType.APPLICATION_COMMAND_AUTOCOMPLETE
+        : DiscordInteractionType.APPLICATION_COMMAND,
     data: {
       id: commandSnowflake(event.command),
       name: event.command.name,

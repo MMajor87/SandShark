@@ -1,6 +1,10 @@
 import { getErrorMessage } from '@sandshark/shared';
 import type http from 'http';
 import { config } from '../../config';
+import {
+  describeRestCall,
+  recordUnsupportedCall
+} from '../../helpers/bot-compat-report';
 import { getBotUserByAuthorization } from '../../helpers/bot-tokens';
 import { logger } from '../../logger';
 import type { TConnectionInfo } from '../../types';
@@ -47,6 +51,7 @@ import { getGuildRolesRoute } from './routes/get-guild-roles';
 import { getInteractionMessageRoute } from './routes/get-interaction-message';
 import { getUserRoute } from './routes/get-user';
 import { removeOwnReactionRoute } from './routes/remove-own-reaction';
+import { stubbedEmptyListRoute } from './routes/stubbed-empty-list';
 import { triggerTypingRoute } from './routes/trigger-typing';
 import {
   NO_CONTENT,
@@ -126,7 +131,11 @@ const botRoutes: TRoute<TBotRouteHandler>[] = [
     '/channels/:channelId/messages/:messageId/reactions/:emoji/@me',
     removeOwnReactionRoute
   ),
-  route('POST', '/channels/:channelId/typing', triggerTypingRoute)
+  route('POST', '/channels/:channelId/typing', triggerTypingRoute),
+  // the explicit list of calls answered empty rather than refused, each one in the report
+  route('GET', '/guilds/:guildId/emojis', stubbedEmptyListRoute),
+  route('GET', '/guilds/:guildId/stickers', stubbedEmptyListRoute),
+  route('GET', '/guilds/:guildId/scheduled-events', stubbedEmptyListRoute)
 ];
 
 const matchSegments = (routeSegments: string[], pathSegments: string[]) => {
@@ -372,7 +381,14 @@ const botApiRouteHandler = async (
   await respond(res, label, async () => {
     consumeBotLimit(res, bot.id);
 
-    if (!handler) throw routeNotFound(methodAllowed);
+    if (!handler) {
+      recordUnsupportedCall(
+        bot.id,
+        describeRestCall(method, pathname.slice(BOT_API_PREFIX.length))
+      );
+
+      throw routeNotFound(methodAllowed);
+    }
 
     return handler({
       req,

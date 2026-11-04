@@ -28,6 +28,15 @@ export type THostedBotLogEntry = {
   message: string;
 };
 
+// a call the bot made that this server does not support, counted rather than repeated.
+// stubbed calls were answered with a harmless empty result instead of an error
+export type THostedBotUnsupportedCall = {
+  call: string;
+  count: number;
+  lastAt: number;
+  stubbed: boolean;
+};
+
 // what the settings page sees of a hosted bot. the env values never leave the server, only
 // their names do
 export type THostedBot = {
@@ -40,6 +49,7 @@ export type THostedBot = {
   tokenEnvNames: string[];
   source: THostedBotSource | null;
   codeUpdatedAt: number | null;
+  unsupported: THostedBotUnsupportedCall[];
 };
 
 // the part of a hosted bot that only the running process knows, published as it changes

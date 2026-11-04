@@ -13,6 +13,10 @@ import {
   HostedBotRuntime
 } from '../runtimes/hosted-bot';
 import { invariant } from '../utils/invariant';
+import {
+  clearUnsupportedCalls,
+  getUnsupportedCalls
+} from './bot-compat-report';
 import { resolveHostedBotEntry } from './hosted-bot-entry';
 
 const getHostedBotView = async (botId: number): Promise<THostedBot> => {
@@ -26,7 +30,8 @@ const getHostedBotView = async (botId: number): Promise<THostedBot> => {
     source: row?.sourceType
       ? { type: row.sourceType, url: row.sourceUrl, ref: row.sourceRef }
       : null,
-    codeUpdatedAt: row?.codeUpdatedAt ?? null
+    codeUpdatedAt: row?.codeUpdatedAt ?? null,
+    unsupported: getUnsupportedCalls(botId)
   };
 };
 
@@ -95,6 +100,7 @@ const setHostedBotTokenEnvNames = async (botId: number, names: string[]) => {
 // the bots row and the hosted row go with the user through the cascade, the files do not
 const removeHostedBot = async (botId: number) => {
   await HostedBotRuntime.remove(botId);
+  clearUnsupportedCalls(botId);
 
   const logPath = getHostedBotLogPath(botId);
 

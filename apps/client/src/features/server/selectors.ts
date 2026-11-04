@@ -108,6 +108,9 @@ export const publicServerSettingsSelector = (state: IRootState) =>
 export const pluginsEnabledSelector = (state: IRootState) =>
   !!state.server.publicSettings?.enablePlugins;
 
+export const botHostingEnabledSelector = (state: IRootState) =>
+  !!state.server.publicSettings?.enableBotHosting;
+
 export const webRtcSimulcastEnabledSelector = (state: IRootState) =>
   !!state.server.publicSettings?.webRtcSimulcastEnabled;
 

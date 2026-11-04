@@ -8,6 +8,7 @@ import { channelReadStateByIdSelector } from './channels/selectors';
 import { getConversationKey } from './helpers';
 import {
   activeFullscreenPluginIdSelector,
+  botHostingEnabledSelector,
   categoryHasUnreadMentionsSelector,
   categoryUnreadMessagesCountSelector,
   connectedSelector,
@@ -76,6 +77,9 @@ export const useReferenceableChannels = () =>
   useSelector(referenceableChannelsSelector);
 
 export const usePluginsEnabled = () => useSelector(pluginsEnabledSelector);
+
+export const useBotHostingEnabled = () =>
+  useSelector(botHostingEnabledSelector);
 
 export const useCan = () => {
   const ownUserRoles = useOwnUserRoles();

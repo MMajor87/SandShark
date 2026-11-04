@@ -8,19 +8,27 @@ import { useRoles } from '@/features/server/roles/hooks';
 import { getTRPCClient } from '@/lib/trpc';
 import { getTrpcError, TestId, type TJoinedBot } from '@sandshark/shared';
 import { Badge, IconButton } from '@sandshark/ui';
-import { Bot, KeyRound, Pencil, Trash2 } from 'lucide-react';
-import { memo, useCallback, useMemo } from 'react';
+import { Bot, KeyRound, Pencil, Server, Trash2 } from 'lucide-react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { HostedBotPanel } from './hosted';
 
 type TBotRowProps = {
   bot: TJoinedBot;
   refetch: () => Promise<void>;
+  canHost: boolean;
 };
 
-const BotRow = memo(({ bot, refetch }: TBotRowProps) => {
+const BotRow = memo(({ bot, refetch, canHost }: TBotRowProps) => {
   const { t } = useTranslation('settings');
   const roles = useRoles();
+  const [hostingOpen, setHostingOpen] = useState(false);
+
+  const onToggleHosting = useCallback(
+    () => setHostingOpen((open) => !open),
+    []
+  );
 
   const roleNames = useMemo(
     () =>
@@ -92,44 +100,57 @@ const BotRow = memo(({ bot, refetch }: TBotRowProps) => {
   }, [bot.id, bot.name, refetch, t]);
 
   return (
-    <div
-      className="flex items-center gap-3 rounded-md border border-border px-3 py-2"
-      data-testid={TestId.BOT_ROW}
-    >
-      <Bot className="h-5 w-5 shrink-0 text-muted-foreground" />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{bot.name}</p>
-        <div className="mt-1 flex flex-wrap gap-1">
-          {roleNames.map((name) => (
-            <Badge key={name} variant="secondary">
-              {name}
-            </Badge>
-          ))}
+    <div className="space-y-2">
+      <div
+        className="flex items-center gap-3 rounded-md border border-border px-3 py-2"
+        data-testid={TestId.BOT_ROW}
+      >
+        <Bot className="h-5 w-5 shrink-0 text-muted-foreground" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{bot.name}</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {roleNames.map((name) => (
+              <Badge key={name} variant="secondary">
+                {name}
+              </Badge>
+            ))}
+          </div>
         </div>
+        {canHost && (
+          <IconButton
+            icon={Server}
+            variant={hostingOpen ? 'secondary' : 'ghost'}
+            size="sm"
+            title={t('hostBot')}
+            onClick={onToggleHosting}
+            data-testid={TestId.BOT_HOSTING_OPEN}
+          />
+        )}
+        <IconButton
+          icon={Pencil}
+          variant="ghost"
+          size="sm"
+          title={t('renameBot')}
+          onClick={onRename}
+        />
+        <IconButton
+          icon={KeyRound}
+          variant="ghost"
+          size="sm"
+          title={t('resetBotToken')}
+          onClick={onResetToken}
+          data-testid={TestId.BOT_RESET_TOKEN}
+        />
+        <IconButton
+          icon={Trash2}
+          variant="ghost"
+          size="sm"
+          title={t('deleteBot')}
+          onClick={onDelete}
+          className="text-destructive"
+        />
       </div>
-      <IconButton
-        icon={Pencil}
-        variant="ghost"
-        size="sm"
-        title={t('renameBot')}
-        onClick={onRename}
-      />
-      <IconButton
-        icon={KeyRound}
-        variant="ghost"
-        size="sm"
-        title={t('resetBotToken')}
-        onClick={onResetToken}
-        data-testid={TestId.BOT_RESET_TOKEN}
-      />
-      <IconButton
-        icon={Trash2}
-        variant="ghost"
-        size="sm"
-        title={t('deleteBot')}
-        onClick={onDelete}
-        className="text-destructive"
-      />
+      {canHost && hostingOpen && <HostedBotPanel botId={bot.id} />}
     </div>
   );
 });

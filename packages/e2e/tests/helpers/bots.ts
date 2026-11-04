@@ -13,9 +13,13 @@ const createBotThroughUi = async (page: Page, name: string) => {
 
   await page.getByTestId(TestId.BOT_CREATE).click();
 
-  // the name prompt is an alert dialog, which has its own role
-  await page.getByRole('alertdialog').getByRole('textbox').fill(name);
-  await page.keyboard.press('Enter');
+  // the name prompt is an alert dialog, which has its own role. enter goes to the field
+  // itself: the dialog is still settling its focus right after opening, and an enter sent to
+  // whatever has focus could land on cancel, which creates no bot
+  const nameField = page.getByRole('alertdialog').getByRole('textbox');
+
+  await nameField.fill(name);
+  await nameField.press('Enter');
 
   const tokenField = page.getByTestId(TestId.BOT_TOKEN_VALUE);
 

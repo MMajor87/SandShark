@@ -29,8 +29,9 @@ const setHostedEnvRoute = rateLimitedProcedure(protectedProcedure, {
     })
   )
   .mutation(async ({ ctx, input }) => {
-    await assertHostedBotAccess(ctx, input.botId);
-    await setHostedBotEnvVar(input.botId, input.name, input.value);
+    const bot = await assertHostedBotAccess(ctx, input.botId);
+
+    await setHostedBotEnvVar(bot, ctx.userId, input.name, input.value);
   });
 
 export { setHostedEnvRoute };

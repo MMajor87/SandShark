@@ -1,4 +1,9 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
+import type {
+  HostedBotJsRuntime,
+  HostedBotSourceType,
+  HostedBotTemplate
+} from './hosted-bots';
 import type { TChannel, TRole, TSettings } from './tables';
 import type { ChannelType } from './types';
 
@@ -19,6 +24,13 @@ export enum ActivityLogType {
   CREATED_BOT = 'CREATED_BOT',
   UPDATED_BOT = 'UPDATED_BOT',
   RESET_BOT_TOKEN = 'RESET_BOT_TOKEN',
+  STARTED_HOSTED_BOT = 'STARTED_HOSTED_BOT',
+  STOPPED_HOSTED_BOT = 'STOPPED_HOSTED_BOT',
+  RESTARTED_HOSTED_BOT = 'RESTARTED_HOSTED_BOT',
+  UPDATED_HOSTED_BOT_CODE = 'UPDATED_HOSTED_BOT_CODE',
+  INSTALLED_HOSTED_BOT_DEPENDENCIES = 'INSTALLED_HOSTED_BOT_DEPENDENCIES',
+  UPDATED_HOSTED_BOT_ENV = 'UPDATED_HOSTED_BOT_ENV',
+  UPDATED_HOSTED_BOT = 'UPDATED_HOSTED_BOT',
   // -------------------- ROLES --------------------
   CREATED_ROLE = 'CREATED_ROLE',
   DELETED_ROLE = 'DELETED_ROLE',
@@ -111,6 +123,44 @@ export type TActivityLogDetailsMap = {
   [ActivityLogType.RESET_BOT_TOKEN]: {
     botId: number;
     name: string;
+  };
+  [ActivityLogType.STARTED_HOSTED_BOT]: {
+    botId: number;
+    name: string;
+  };
+  [ActivityLogType.STOPPED_HOSTED_BOT]: {
+    botId: number;
+    name: string;
+  };
+  [ActivityLogType.RESTARTED_HOSTED_BOT]: {
+    botId: number;
+    name: string;
+  };
+  [ActivityLogType.UPDATED_HOSTED_BOT_CODE]: {
+    botId: number;
+    name: string;
+    sourceType: HostedBotSourceType;
+    sourceUrl: string | null;
+    sourceRef: string | null;
+    template: HostedBotTemplate | null;
+  };
+  [ActivityLogType.INSTALLED_HOSTED_BOT_DEPENDENCIES]: {
+    botId: number;
+    name: string;
+  };
+  [ActivityLogType.UPDATED_HOSTED_BOT_ENV]: {
+    botId: number;
+    name: string;
+    envName: string;
+    removed: boolean;
+  };
+  [ActivityLogType.UPDATED_HOSTED_BOT]: {
+    botId: number;
+    name: string;
+    tokenEnvNames?: string[];
+    jsRuntime?: HostedBotJsRuntime;
+    sourceUrl?: string;
+    sourceRef?: string | null;
   };
   // -------------------- ROLES --------------------
   [ActivityLogType.CREATED_ROLE]: {

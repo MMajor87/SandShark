@@ -31,8 +31,9 @@ const setHostedTokenEnvNamesRoute = rateLimitedProcedure(protectedProcedure, {
     })
   )
   .mutation(async ({ ctx, input }) => {
-    await assertHostedBotAccess(ctx, input.botId);
-    await setHostedBotTokenEnvNames(input.botId, input.names);
+    const bot = await assertHostedBotAccess(ctx, input.botId);
+
+    await setHostedBotTokenEnvNames(bot, ctx.userId, input.names);
   });
 
 export { setHostedTokenEnvNamesRoute };

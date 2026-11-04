@@ -29,8 +29,9 @@ const setHostedSourceRoute = rateLimitedProcedure(protectedProcedure, {
     })
   )
   .mutation(async ({ ctx, input }) => {
-    await assertHostedBotAccess(ctx, input.botId);
-    await setHostedBotGithubSource(input.botId, input.url, input.ref);
+    const bot = await assertHostedBotAccess(ctx, input.botId);
+
+    await setHostedBotGithubSource(bot, ctx.userId, input.url, input.ref);
   });
 
 export { setHostedSourceRoute };

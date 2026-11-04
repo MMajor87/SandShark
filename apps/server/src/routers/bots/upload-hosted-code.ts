@@ -23,7 +23,7 @@ const uploadHostedCodeRoute = rateLimitedProcedure(protectedProcedure, {
     })
   )
   .mutation(async ({ ctx, input }) => {
-    await assertHostedBotAccess(ctx, input.botId);
+    const bot = await assertHostedBotAccess(ctx, input.botId);
 
     const tempFile = fileManager.getTemporaryFile(input.fileId);
 
@@ -41,7 +41,7 @@ const uploadHostedCodeRoute = rateLimitedProcedure(protectedProcedure, {
     });
 
     try {
-      await replaceHostedBotCode(input.botId, Bun.file(tempFile.path), {
+      await replaceHostedBotCode(bot, ctx.userId, Bun.file(tempFile.path), {
         type: HostedBotSourceType.UPLOAD,
         url: null,
         ref: null

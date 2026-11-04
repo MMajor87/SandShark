@@ -11,8 +11,9 @@ const updateHostedCodeRoute = rateLimitedProcedure(protectedProcedure, {
 })
   .input(z.object({ botId: z.number().int().positive() }))
   .mutation(async ({ ctx, input }) => {
-    await assertHostedBotAccess(ctx, input.botId);
-    await updateHostedBotFromGithub(input.botId);
+    const bot = await assertHostedBotAccess(ctx, input.botId);
+
+    await updateHostedBotFromGithub(bot, ctx.userId);
   });
 
 export { updateHostedCodeRoute };

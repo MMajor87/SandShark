@@ -14,8 +14,9 @@ const installHostedDependenciesRoute = rateLimitedProcedure(
 )
   .input(z.object({ botId: z.number().int().positive() }))
   .mutation(async ({ ctx, input }) => {
-    await assertHostedBotAccess(ctx, input.botId);
-    await installHostedBotDependencies(input.botId);
+    const bot = await assertHostedBotAccess(ctx, input.botId);
+
+    await installHostedBotDependencies(bot, ctx.userId);
   });
 
 export { installHostedDependenciesRoute };

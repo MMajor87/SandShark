@@ -31,7 +31,8 @@
     "VIEW_USER_SENSITIVE_DATA": "Vedere dati sensibili utente",
     "USE_SOUNDBOARD": "Usare la soundboard",
     "MANAGE_SOUNDBOARD": "Gestire la soundboard",
-    "MANAGE_BOTS": "Gestisci bot"
+    "MANAGE_BOTS": "Gestisci bot",
+    "HOST_BOTS": "Ospita bot"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "Concede la possibilita di inviare messaggi nei canali.",
@@ -60,7 +61,8 @@
     "VIEW_USER_SENSITIVE_DATA": "Concede la possibilita di visualizzare dati sensibili utente come identita, indirizzo IP e posizione.",
     "USE_SOUNDBOARD": "Permette di riprodurre i suoni della soundboard nei canali vocali.",
     "MANAGE_SOUNDBOARD": "Permette di caricare, modificare ed eliminare i suoni della soundboard.",
-    "MANAGE_BOTS": "Consente di creare bot, reimpostarne i token ed eliminarli."
+    "MANAGE_BOTS": "Consente di creare bot, reimpostarne i token ed eliminarli.",
+    "HOST_BOTS": "Consente di eseguire il codice dei bot su questo server. Il codice ospitato può leggere tutto ciò che legge il server, quindi concedilo solo a chi affideresti il server stesso."
   },
   "channel": {
     "VIEW_CHANNEL": "Visualizzare canale",

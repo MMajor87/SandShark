@@ -57,6 +57,8 @@ const MEDIASOUP_PATH = path.resolve(DATA_PATH, 'mediasoup');
 const CONFIG_INI_PATH = path.resolve(DATA_PATH, 'config.ini');
 const PLUGINS_PATH = path.join(DATA_PATH, 'plugins');
 const PLUGINS_DATA_PATH = path.join(DATA_PATH, 'plugin-data');
+const HOSTED_BOTS_PATH = path.join(DATA_PATH, 'hosted-bots');
+const HOSTED_BOT_LOGS_PATH = path.join(LOGS_PATH, 'hosted-bots');
 const SRC_MIGRATIONS_PATH = path.join(process.cwd(), 'src', 'db', 'migrations');
 
 export {
@@ -65,6 +67,8 @@ export {
   DATA_PATH,
   DB_PATH,
   DRIZZLE_PATH,
+  HOSTED_BOT_LOGS_PATH,
+  HOSTED_BOTS_PATH,
   INTERFACE_PATH,
   LOGS_PATH,
   MEDIASOUP_BINARY_PATH,

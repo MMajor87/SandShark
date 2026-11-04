@@ -4,6 +4,7 @@ import { config } from '../../config';
 import { getBotById } from '../../db/queries/bots';
 import { publishBotCommandsChange } from '../../helpers/bot-commands';
 import { deleteUserAccount } from '../../helpers/delete-user-account';
+import { removeHostedBot } from '../../helpers/hosted-bots';
 import { closeBotGatewaySessions } from '../../http/bot-api/gateway';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure, rateLimitedProcedure } from '../../utils/trpc';
@@ -23,6 +24,7 @@ const deleteBotRoute = rateLimitedProcedure(protectedProcedure, {
 
     invariant(bot, { code: 'NOT_FOUND', message: 'Bot not found.' });
 
+    await removeHostedBot(bot.id);
     await deleteUserAccount(bot.id, { wipe: false, deletedBy: ctx.user.id });
     closeBotGatewaySessions(bot.id);
     // its commands went with it, through the cascade

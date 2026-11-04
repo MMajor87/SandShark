@@ -31,7 +31,8 @@
     "VIEW_USER_SENSITIVE_DATA": "View user sensitive data",
     "USE_SOUNDBOARD": "Use the soundboard",
     "MANAGE_SOUNDBOARD": "Manage soundboard",
-    "MANAGE_BOTS": "Manage bots"
+    "MANAGE_BOTS": "Manage bots",
+    "HOST_BOTS": "Host bots"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "Grants the ability to send messages in channels.",
@@ -60,7 +61,8 @@
     "VIEW_USER_SENSITIVE_DATA": "Grants the ability to view user sensitive data like identity, IP address, and location.",
     "USE_SOUNDBOARD": "Grants the ability to play soundboard sounds in voice channels.",
     "MANAGE_SOUNDBOARD": "Grants the ability to upload, edit and delete soundboard sounds.",
-    "MANAGE_BOTS": "Grants the ability to create bots, reset their tokens and delete them."
+    "MANAGE_BOTS": "Grants the ability to create bots, reset their tokens and delete them.",
+    "HOST_BOTS": "Grants the ability to run bot code on this server. Hosted code can read everything the server can, so give it only to people you would trust with the server itself."
   },
   "channel": {
     "VIEW_CHANNEL": "View Channel",

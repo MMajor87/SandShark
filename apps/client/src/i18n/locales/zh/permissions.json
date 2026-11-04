@@ -31,7 +31,8 @@
     "VIEW_USER_SENSITIVE_DATA": "查看用户敏感数据",
     "USE_SOUNDBOARD": "使用音效板",
     "MANAGE_SOUNDBOARD": "管理音效板",
-    "MANAGE_BOTS": "管理机器人"
+    "MANAGE_BOTS": "管理机器人",
+    "HOST_BOTS": "托管机器人"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "授予在频道中发送消息的权限。",
@@ -60,7 +61,8 @@
     "VIEW_USER_SENSITIVE_DATA": "授予查看用户敏感数据（如身份标识、IP 地址和位置）的权限。",
     "USE_SOUNDBOARD": "允许在语音频道中播放音效板中的音效。",
     "MANAGE_SOUNDBOARD": "允许上传、编辑和删除音效板中的音效。",
-    "MANAGE_BOTS": "允许创建机器人、重置其令牌以及删除机器人。"
+    "MANAGE_BOTS": "允许创建机器人、重置其令牌以及删除机器人。",
+    "HOST_BOTS": "允许在此服务器上运行机器人代码。托管的代码可以读取服务器能读取的一切，因此只授予你愿意托付整个服务器的人。"
   },
   "channel": {
     "VIEW_CHANNEL": "查看频道",

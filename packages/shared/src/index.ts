@@ -3,6 +3,7 @@ export * from './calendar';
 export * from './events';
 export * from './extensions';
 export * from './helpers';
+export * from './hosted-bots';
 export * from './logs';
 export * from './message-components';
 export * from './message-embeds';

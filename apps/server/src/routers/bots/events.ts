@@ -1,4 +1,4 @@
-import { ServerEvents } from '@sandshark/shared';
+import { Permission, ServerEvents } from '@sandshark/shared';
 import { protectedProcedure } from '../../utils/trpc';
 
 // a bot's answers that only this member sees, and their removal
@@ -31,10 +31,27 @@ const onInteractionFailedRoute = protectedProcedure.subscription(
     ctx.pubsub.subscribeFor(ctx.user.id, ServerEvents.BOT_INTERACTION_FAILED)
 );
 
+// the hosted bots' status and output, for the settings page
+const onHostedBotUpdateRoute = protectedProcedure.subscription(
+  async ({ ctx }) => {
+    await ctx.needsPermission(Permission.HOST_BOTS);
+
+    return ctx.pubsub.subscribe(ServerEvents.HOSTED_BOT_UPDATE);
+  }
+);
+
+const onHostedBotLogRoute = protectedProcedure.subscription(async ({ ctx }) => {
+  await ctx.needsPermission(Permission.HOST_BOTS);
+
+  return ctx.pubsub.subscribe(ServerEvents.HOSTED_BOT_LOG);
+});
+
 export {
   onCommandsChangeRoute,
   onEphemeralMessageDeleteRoute,
   onEphemeralMessageRoute,
+  onHostedBotLogRoute,
+  onHostedBotUpdateRoute,
   onInteractionFailedRoute,
   onModalOpenRoute
 };

@@ -10,8 +10,10 @@ import { z } from 'zod';
 import { updateSettings } from '../../db/mutations/server';
 import { publishSettings } from '../../db/publishers';
 import { getSettings } from '../../db/queries/server';
+import { startEnabledHostedBots } from '../../helpers/hosted-bots';
 import { pluginManager } from '../../plugins';
 import { enqueueActivityLog } from '../../queues/activity-log';
+import { HostedBotRuntime } from '../../runtimes/hosted-bot';
 import { invariant } from '../../utils/invariant';
 import { protectedProcedure } from '../../utils/trpc';
 
@@ -49,6 +51,7 @@ const zGeneralSettings = z.object({
   allowNewUsers: z.boolean().optional(),
   directMessagesEnabled: z.boolean().optional(),
   enablePlugins: z.boolean().optional(),
+  enableBotHosting: z.boolean().optional(),
   webRtcSimulcastEnabled: z.boolean().optional(),
   enableSearch: z.boolean().optional(),
   showWelcomeDialog: z.boolean().optional()
@@ -81,7 +84,13 @@ const updateSettingsRoute = protectedProcedure
       await ctx.needsPermission(Permission.MANAGE_SETTINGS);
     }
 
-    const { enablePlugins: oldEnablePlugins } = await getSettings();
+    // turning hosting on lets uploaded code run, which managing settings alone does not grant
+    if (input.enableBotHosting !== undefined) {
+      await ctx.needsPermission(Permission.HOST_BOTS);
+    }
+
+    const { enablePlugins: oldEnablePlugins, enableBotHosting: oldBotHosting } =
+      await getSettings();
 
     await updateSettings(input);
 
@@ -98,6 +107,17 @@ const updateSettingsRoute = protectedProcedure
       // connected clients would otherwise keep rendering slots and commands of
       // plugins that are no longer running
       pluginManager.publishPlugins();
+    }
+
+    if (
+      input.enableBotHosting !== undefined &&
+      input.enableBotHosting !== oldBotHosting
+    ) {
+      if (input.enableBotHosting) {
+        await startEnabledHostedBots();
+      } else {
+        await HostedBotRuntime.stopAll();
+      }
     }
 
     publishSettings();

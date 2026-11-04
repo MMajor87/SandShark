@@ -31,7 +31,8 @@
     "VIEW_USER_SENSITIVE_DATA": "Ver datos sensibles de usuarios",
     "USE_SOUNDBOARD": "Usar el panel de sonidos",
     "MANAGE_SOUNDBOARD": "Gestionar el panel de sonidos",
-    "MANAGE_BOTS": "Gestionar bots"
+    "MANAGE_BOTS": "Gestionar bots",
+    "HOST_BOTS": "Alojar bots"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "Permite enviar mensajes en los canales.",
@@ -60,7 +61,8 @@
     "VIEW_USER_SENSITIVE_DATA": "Permite ver datos sensibles de los usuarios como identidad, dirección IP y ubicación.",
     "USE_SOUNDBOARD": "Permite reproducir sonidos del panel en los canales de voz.",
     "MANAGE_SOUNDBOARD": "Permite subir, editar y eliminar sonidos del panel.",
-    "MANAGE_BOTS": "Permite crear bots, restablecer sus tokens y eliminarlos."
+    "MANAGE_BOTS": "Permite crear bots, restablecer sus tokens y eliminarlos.",
+    "HOST_BOTS": "Permite ejecutar el código de bots en este servidor. El código alojado puede leer todo lo que el servidor puede, así que concédelo solo a quien le confiarías el propio servidor."
   },
   "channel": {
     "VIEW_CHANNEL": "Ver canal",

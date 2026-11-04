@@ -7,6 +7,7 @@ import {
   openChannel
 } from './helpers/channels';
 import { withSecondClient } from './helpers/clients';
+import { routeE2eMedia } from './helpers/media';
 import {
   getMockMessageNumbers,
   LIVE_MESSAGES_NEWEST,
@@ -63,6 +64,7 @@ test('a channel opens at the bottom', async ({ page }) => {
 test('a channel full of media opens at the bottom and stays there', async ({
   page
 }) => {
+  await routeE2eMedia(page);
   await loginAs(page, 'testowner', 'password123');
   await openChannel(page, MEDIA_CHANNEL);
 

@@ -2,24 +2,17 @@ import { ChannelType, type TIMessage } from '@sandshark/shared';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { channels, messages } from '../../db/schema';
 
-const bigImageUrl = 'https://i.imgur.com/ZaGQvmT.jpeg';
-const videoUrl =
-  'https://avtshare01.rz.tu-ilmenau.de/avt-vqdb-uhd-1/test_1/segments/bigbuck_bunny_8bit_15000kbps_1080p_60.0fps_h264.mp4';
+// media on a reserved test domain, which the e2e specs serve themselves (see
+// packages/e2e/tests/helpers/media.ts). third party hosts made the media specs depend on
+// how fast the internet answered, and a random pick made every run see different media
+const E2E_MEDIA_HOST = 'https://e2e-media.test';
+const IMAGE_VARIANTS = 10;
 
-const getRandomImagesList = async (count: number): Promise<string[]> => {
-  try {
-    const res = await fetch(
-      `https://picsum.photos/v2/list?page=1&limit=${count}`
-    );
-    const data: any = await res.json();
+const bigImageUrl = `${E2E_MEDIA_HOST}/big.svg`;
+const videoUrl = `${E2E_MEDIA_HOST}/video.mp4`;
 
-    return data.map((item: { download_url: string }) => item.download_url);
-  } catch {
-    console.warn('Failed to fetch random images');
-
-    return [];
-  }
-};
+const imageUrl = (index: number) =>
+  `${E2E_MEDIA_HOST}/image-${index % IMAGE_VARIANTS}.svg`;
 
 const interleaveArrays = <T>(arrays: T[][]): T[] => {
   const maxLength = Math.max(...arrays.map((arr) => arr.length));
@@ -36,37 +29,30 @@ const interleaveArrays = <T>(arrays: T[][]): T[] => {
   return interleaved;
 };
 
-const createMockMessageArrayWithImages = async (
+const createMockMessageArrayWithImages = (
   channelId: number,
   totalMessages: number
-): Promise<TIMessage[]> => {
+): TIMessage[] => {
   const messagesArray: TIMessage[] = [];
   const baseCreatedAt = Date.now() - totalMessages * 60 * 1000;
-  const randomImages = await getRandomImagesList(200);
 
   for (let i = 0; i < totalMessages; i++) {
-    const randomIndex = Math.floor(Math.random() * randomImages.length);
-    const imageUrl = randomImages[randomIndex];
-
     const metadata: TIMessage['metadata'] = [
       {
         kind: 'media',
         url: bigImageUrl,
-        title: 'ZaGQvmT.jpeg',
+        title: 'big.svg',
+        description: '',
+        mediaType: 'image'
+      },
+      {
+        kind: 'media',
+        url: imageUrl(i),
+        title: `Image ${i % IMAGE_VARIANTS}`,
         description: '',
         mediaType: 'image'
       }
     ];
-
-    if (imageUrl) {
-      metadata.push({
-        kind: 'media',
-        url: imageUrl,
-        title: `Random Image ${randomIndex}`,
-        description: '',
-        mediaType: 'image'
-      });
-    }
 
     messagesArray.push({
       channelId,
@@ -98,7 +84,7 @@ const createMockMessageArrayWithVideo = (
         {
           kind: 'media',
           url: videoUrl,
-          title: 'bigbuck_bunny_8bit_15000kbps_1080p_60.0fps_h264.mp4',
+          title: 'video.mp4',
           description: '',
           mediaType: 'video'
         }
@@ -126,7 +112,7 @@ const messageRenderMock = async (
     .get();
 
   const allMockMessages = interleaveArrays([
-    await createMockMessageArrayWithImages(scrollChannel!.id, 500),
+    createMockMessageArrayWithImages(scrollChannel!.id, 500),
     createMockMessageArrayWithVideo(scrollChannel!.id, 500)
   ]);
 

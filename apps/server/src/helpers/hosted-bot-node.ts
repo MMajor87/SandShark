@@ -6,10 +6,16 @@ const NODE_MISSING_MESSAGE =
 // 20 is the oldest release line that loads the shim with --import
 const MIN_NODE_MAJOR = 20;
 
+// bun answers to node too: `bun run` puts a node on the path that is bun itself when no
+// node is installed, and it claims a recent node version. it cannot load the shim with
+// --import, so it answers the probe with something that is not a version
 const findNode = () =>
   findBinary(
     ['node'],
-    ['-p', 'process.versions.node.split(".")[0]'],
+    [
+      '-p',
+      'typeof Bun === "undefined" ? process.versions.node.split(".")[0] : "bun"'
+    ],
     (major) => Number(major) >= MIN_NODE_MAJOR
   );
 

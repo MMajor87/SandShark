@@ -97,5 +97,7 @@
   "copyBotToken": "Kopírovat token",
   "botTokenCopied": "Token zkopírován do schránky",
   "failedCopyBotToken": "Token se nepodařilo zkopírovat",
-  "botTokenDone": "Zkopírováno"
+  "botTokenDone": "Zkopírováno",
+  "botModalSubmit": "Odeslat",
+  "failedSubmitBotModal": "Formulář se nepodařilo odeslat"
 }

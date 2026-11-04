@@ -5,7 +5,8 @@ import {
   fetchBotCommands,
   removeBotEphemeralMessage,
   showBotEphemeralMessage,
-  showBotInteractionFailed
+  showBotInteractionFailed,
+  showBotModal
 } from './actions';
 
 const subscribeToBotCommands = () => {
@@ -50,8 +51,19 @@ const subscribeToBotCommands = () => {
     }
   );
 
+  const onModalOpenSub = trpc.bots.onModalOpen.subscribe(undefined, {
+    onData: (modal) => {
+      logDebug('[EVENTS] bots.onModalOpen', {
+        interactionId: modal.interactionId
+      });
+      showBotModal(modal);
+    },
+    onError: handleSubscriptionError('onModalOpen')
+  });
+
   return () => {
     onCommandsChangeSub.unsubscribe();
+    onModalOpenSub.unsubscribe();
     onEphemeralMessageSub.unsubscribe();
     onEphemeralMessageDeleteSub.unsubscribe();
     onInteractionFailedSub.unsubscribe();

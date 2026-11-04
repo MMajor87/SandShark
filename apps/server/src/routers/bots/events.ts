@@ -20,6 +20,11 @@ const onCommandsChangeRoute = protectedProcedure.subscription(async ({ ctx }) =>
   ctx.pubsub.subscribe(ServerEvents.BOT_COMMANDS_CHANGE)
 );
 
+// a form a bot answered this member with
+const onModalOpenRoute = protectedProcedure.subscription(async ({ ctx }) =>
+  ctx.pubsub.subscribeFor(ctx.user.id, ServerEvents.BOT_MODAL_OPEN)
+);
+
 // a command this member ran that the bot never answered
 const onInteractionFailedRoute = protectedProcedure.subscription(
   async ({ ctx }) =>
@@ -30,5 +35,6 @@ export {
   onCommandsChangeRoute,
   onEphemeralMessageDeleteRoute,
   onEphemeralMessageRoute,
-  onInteractionFailedRoute
+  onInteractionFailedRoute,
+  onModalOpenRoute
 };

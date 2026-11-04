@@ -2,6 +2,7 @@ import { closeDialogs } from '@/features/dialogs/actions';
 import { useDialogInfo } from '@/features/dialogs/hooks';
 import { createElement, memo } from 'react';
 import { AssignRoleDialog } from './assign-role';
+import { BotModalDialog } from './bot-modal';
 import { BotTokenDialog } from './bot-token';
 import { ConfirmActionDialog } from './confirm-action';
 import { CreateCategoryDialog } from './create-category';
@@ -32,7 +33,8 @@ const DialogsMap: any = {
   [Dialog.SEARCH]: SearchDialog,
   [Dialog.WELCOME_PROFILE_SETUP]: WelcomeProfileSetupDialog,
   [Dialog.VOICE_DEBUG]: VoiceDebugDialog,
-  [Dialog.BOT_TOKEN]: BotTokenDialog
+  [Dialog.BOT_TOKEN]: BotTokenDialog,
+  [Dialog.BOT_MODAL]: BotModalDialog
 };
 
 const DialogsProvider = memo(() => {

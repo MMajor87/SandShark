@@ -221,6 +221,7 @@ const pressComponentRoute = rateLimitedProcedure(protectedProcedure, {
       botId: source.botId,
       userId: ctx.userId,
       channelId: source.channelId,
+      type: 3,
       commandName: '',
       messageId: input.messageId ?? null,
       ephemeralMessageId: input.ephemeralMessageId ?? null

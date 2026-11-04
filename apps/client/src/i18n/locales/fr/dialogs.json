@@ -97,5 +97,7 @@
   "copyBotToken": "Copier le jeton",
   "botTokenCopied": "Jeton copié dans le presse-papiers",
   "failedCopyBotToken": "Impossible de copier le jeton",
-  "botTokenDone": "Je l'ai copié"
+  "botTokenDone": "Je l'ai copié",
+  "botModalSubmit": "Envoyer",
+  "failedSubmitBotModal": "Impossible d'envoyer le formulaire"
 }

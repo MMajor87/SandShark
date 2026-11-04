@@ -97,5 +97,7 @@
   "copyBotToken": "Copia token",
   "botTokenCopied": "Token copiato negli appunti",
   "failedCopyBotToken": "Impossibile copiare il token",
-  "botTokenDone": "Copiato"
+  "botTokenDone": "Copiato",
+  "botModalSubmit": "Invia",
+  "failedSubmitBotModal": "Impossibile inviare il modulo"
 }

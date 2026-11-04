@@ -97,5 +97,7 @@
   "copyBotToken": "Копировать токен",
   "botTokenCopied": "Токен скопирован в буфер обмена",
   "failedCopyBotToken": "Не удалось скопировать токен",
-  "botTokenDone": "Я скопировал"
+  "botTokenDone": "Я скопировал",
+  "botModalSubmit": "Отправить",
+  "failedSubmitBotModal": "Не удалось отправить форму"
 }

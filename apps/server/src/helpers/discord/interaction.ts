@@ -13,6 +13,7 @@ import {
 } from './channel';
 import { commandSnowflake } from './command';
 import { serializeEphemeralMessage } from './ephemeral';
+import { serializeModalSubmit } from './modal';
 import { getGuildContext, roleSnowflake, serializeRoles } from './guild';
 import { memberPermissionBits, serializeMember } from './member';
 import { serializeMessages, type TMessageSerializeOptions } from './message';
@@ -21,7 +22,8 @@ import { serializeUser, userSnowflake } from './user';
 
 const DiscordInteractionType = {
   APPLICATION_COMMAND: 2,
-  MESSAGE_COMPONENT: 3
+  MESSAGE_COMPONENT: 3,
+  MODAL_SUBMIT: 5
 } as const;
 
 const DiscordInteractionContext = {
@@ -79,7 +81,7 @@ const loadInteractionContext = async (event: TBotInteractionEvent) => {
 
   if (event.kind === 'command') {
     collectReferences(event.options, referenced);
-  } else {
+  } else if (event.kind === 'component') {
     collectEntityValues(event.values, referenced);
   }
 
@@ -255,6 +257,19 @@ const buildInteractionData = async (
   invokerBits: bigint,
   options: TMessageSerializeOptions
 ) => {
+  if (event.kind === 'modal') {
+    const message = await serializeComponentMessage(event, options);
+
+    return {
+      type: DiscordInteractionType.MODAL_SUBMIT,
+      data: {
+        custom_id: event.customId,
+        components: serializeModalSubmit(event, event.values)
+      },
+      ...(message ? { message } : {})
+    };
+  }
+
   if (event.kind === 'component') {
     const message = await serializeComponentMessage(event, options);
 
@@ -305,9 +320,10 @@ const componentValues = (
   };
 };
 
-// the message a button or select menu was used on, as the bot sees it
+// the message a button or select menu was used on, as the bot sees it. a modal opened from
+// one carries it too
 const serializeComponentMessage = async (
-  event: Extract<TBotInteractionEvent, { kind: 'component' }>,
+  event: Extract<TBotInteractionEvent, { kind: 'component' | 'modal' }>,
   options: TMessageSerializeOptions
 ) => {
   if (event.messageId !== null) {

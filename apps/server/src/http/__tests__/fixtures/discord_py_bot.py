@@ -56,6 +56,18 @@ async def choose(interaction: discord.Interaction):
     await interaction.response.send_message("Pick one", view=PickView())
 
 
+class FeedbackModal(discord.ui.Modal, title="Feedback"):
+    name = discord.ui.TextInput(label="Name")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"thanks {self.name.value}")
+
+
+@tree.command(name="form", description="Asks for feedback")
+async def form(interaction: discord.Interaction):
+    await interaction.response.send_modal(FeedbackModal())
+
+
 @client.event
 async def on_ready():
     guild = client.guilds[0]

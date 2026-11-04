@@ -5,6 +5,7 @@ import type {
   TBotEphemeralMessage,
   TBotEphemeralMessageDelete,
   TBotInteractionFailed,
+  TBotModalOpen,
   TCategory,
   TChannel,
   TChannelUserPermissionsMap,
@@ -139,6 +140,7 @@ type Events = {
   [ServerEvents.BOT_INTERACTION_CREATE]: TBotInteractionEvent;
   [ServerEvents.BOT_INTERACTION_FAILED]: TBotInteractionFailed;
   [ServerEvents.BOT_COMMANDS_CHANGE]: TBotCommandsChange;
+  [ServerEvents.BOT_MODAL_OPEN]: TBotModalOpen;
   [ServerEvents.BOT_EPHEMERAL_MESSAGE]: TBotEphemeralMessage;
   [ServerEvents.BOT_EPHEMERAL_MESSAGE_DELETE]: TBotEphemeralMessageDelete;
   [ServerEvents.PLUGIN_METADATA_CHANGE]: TPluginMetadata[];

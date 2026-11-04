@@ -60,6 +60,7 @@ export enum ServerEvents {
   BOT_INTERACTION_CREATE = 'botInteractionCreate',
   BOT_INTERACTION_FAILED = 'botInteractionFailed',
   BOT_COMMANDS_CHANGE = 'botCommandsChange',
+  BOT_MODAL_OPEN = 'botModalOpen',
   BOT_EPHEMERAL_MESSAGE = 'botEphemeralMessage',
   BOT_EPHEMERAL_MESSAGE_DELETE = 'botEphemeralMessageDelete',
 

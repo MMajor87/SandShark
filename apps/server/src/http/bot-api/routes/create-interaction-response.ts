@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import {
   claimBotInteractionResponse,
+  openBotModal,
   type TBotInteraction
 } from '../../../helpers/bot-interactions';
 import { interactionSnowflake } from '../../../helpers/discord/interaction';
+import { toStoredModal, zDiscordModal } from '../../../helpers/discord/modal';
 import { alreadyAcknowledged, DiscordErrorCode, notFound } from '../errors';
 import { invalidFormBody, readJsonBody } from '../helpers';
 import {
@@ -22,12 +24,16 @@ const InteractionCallbackType = {
   CHANNEL_MESSAGE_WITH_SOURCE: 4,
   DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE: 5,
   DEFERRED_UPDATE_MESSAGE: 6,
-  UPDATE_MESSAGE: 7
+  UPDATE_MESSAGE: 7,
+  MODAL: 9
 } as const;
 
+const MODAL_SUBMIT = 5;
+
+// a modal's data is checked on its own, after the type says it is one
 const zCallback = z.object({
   type: z.number().int(),
-  data: zInteractionMessage.optional()
+  data: z.unknown().optional()
 });
 
 const responseSummary = (
@@ -37,7 +43,7 @@ const responseSummary = (
   ephemeral: boolean
 ) => ({
   id: interactionSnowflake(interaction),
-  type: interaction.commandName ? 2 : 3,
+  type: interaction.type,
   activity_instance_id: null,
   response_message_id: messageId,
   response_message_loading: loading,
@@ -87,11 +93,38 @@ const createInteractionResponseRoute = async (request: TInteractionRequest) => {
 
   if (!parsed.success) throw invalidFormBody();
 
-  const { type, data } = parsed.data;
+  const { type } = parsed.data;
   const { interaction } = request;
+
+  if (type === InteractionCallbackType.MODAL) {
+    // a form cannot answer a form, as on discord
+    if (interaction.type === MODAL_SUBMIT) {
+      throw invalidFormBody('A modal submit cannot be answered with a modal.');
+    }
+
+    const modalBody = zDiscordModal.safeParse(parsed.data.data);
+    const modal = modalBody.success ? toStoredModal(modalBody.data) : undefined;
+
+    if (!modal) throw invalidFormBody();
+
+    if (!claimBotInteractionResponse(interaction.id)) {
+      throw alreadyAcknowledged();
+    }
+
+    openBotModal(interaction, modal);
+
+    return respondWith(request, type, undefined, false);
+  }
+
   const isUpdate =
     type === InteractionCallbackType.DEFERRED_UPDATE_MESSAGE ||
     type === InteractionCallbackType.UPDATE_MESSAGE;
+
+  const message = zInteractionMessage.safeParse(parsed.data.data ?? {});
+
+  if (!message.success) throw invalidFormBody();
+
+  const data = message.data;
 
   if (isUpdate) {
     if (!isComponentInteraction(interaction)) {

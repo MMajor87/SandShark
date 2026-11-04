@@ -1,10 +1,13 @@
+import { Dialog } from '@/components/dialogs/dialogs';
+import { openDialog } from '@/features/dialogs/actions';
 import { store } from '@/features/store';
 import { i18n } from '@/i18n';
 import { getTRPCClient } from '@/lib/trpc';
 import type {
   TBotCommandInfo,
   TBotEphemeralMessage,
-  TBotInteractionFailed
+  TBotInteractionFailed,
+  TBotModalOpen
 } from '@sandshark/shared';
 import { toast } from 'sonner';
 import { serverSliceActions } from '../slice';
@@ -30,6 +33,10 @@ export const showBotEphemeralMessage = (message: TBotEphemeralMessage) =>
 
 export const removeBotEphemeralMessage = (messageId: number) =>
   store.dispatch(serverSliceActions.removeBotEphemeralMessage(messageId));
+
+// a bot answered this member with a form
+export const showBotModal = (modal: TBotModalOpen) =>
+  openDialog(Dialog.BOT_MODAL, modal);
 
 export const showBotInteractionFailed = ({
   commandName

@@ -5,7 +5,8 @@ import {
   onCommandsChangeRoute,
   onEphemeralMessageDeleteRoute,
   onEphemeralMessageRoute,
-  onInteractionFailedRoute
+  onInteractionFailedRoute,
+  onModalOpenRoute
 } from './events';
 import { getBotsRoute } from './get-bots';
 import { getCommandsRoute } from './get-commands';
@@ -13,6 +14,7 @@ import { pressComponentRoute } from './press-component';
 import { renameBotRoute } from './rename-bot';
 import { resetBotTokenRoute } from './reset-bot-token';
 import { runCommandRoute } from './run-command';
+import { submitModalRoute } from './submit-modal';
 
 const botsRouter = t.router({
   getAll: getBotsRoute,
@@ -22,6 +24,8 @@ const botsRouter = t.router({
   delete: deleteBotRoute,
   runCommand: runCommandRoute,
   pressComponent: pressComponentRoute,
+  submitModal: submitModalRoute,
+  onModalOpen: onModalOpenRoute,
   getCommands: getCommandsRoute,
   onCommandsChange: onCommandsChangeRoute,
   onEphemeralMessage: onEphemeralMessageRoute,

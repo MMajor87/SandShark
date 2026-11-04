@@ -52,7 +52,18 @@ export type TBotComponentInteractionEvent = TBotInteractionEventBase & {
   ephemeralMessageId: number | null;
 };
 
+// a form submitted. it may have been opened from a button, whose message it then carries
+export type TBotModalInteractionEvent = TBotInteractionEventBase & {
+  kind: 'modal';
+  customId: string;
+  labelled: boolean;
+  values: { customId: string; value: string }[];
+  messageId: number | null;
+  ephemeralMessageId: number | null;
+};
+
 // handed to the bot's gateway sessions, the only place the plain token exists
 export type TBotInteractionEvent =
   | TBotCommandInteractionEvent
-  | TBotComponentInteractionEvent;
+  | TBotComponentInteractionEvent
+  | TBotModalInteractionEvent;

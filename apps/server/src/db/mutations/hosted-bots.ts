@@ -1,4 +1,7 @@
-import type { HostedBotSourceType } from '@sandshark/shared';
+import type {
+  HostedBotJsRuntime,
+  HostedBotSourceType
+} from '@sandshark/shared';
 import { db } from '..';
 import { hostedBots } from '../schema';
 
@@ -6,6 +9,7 @@ type THostedBotPatch = Partial<{
   enabled: boolean;
   env: Record<string, string>;
   tokenEnvNames: string[];
+  jsRuntime: HostedBotJsRuntime;
   sourceType: HostedBotSourceType;
   sourceUrl: string | null;
   sourceRef: string | null;

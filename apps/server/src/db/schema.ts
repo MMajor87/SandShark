@@ -1,6 +1,7 @@
 import {
   CalendarResponseStatus,
   DEFAULT_PROFILE_COLOR,
+  HostedBotJsRuntime,
   PluginCapabilityMode,
   PluginCapabilityType,
   type BotCommandType,
@@ -255,6 +256,10 @@ const hostedBots = sqliteTable(
       .$type<string[]>()
       .notNull()
       .default([]),
+    jsRuntime: text('js_runtime')
+      .$type<HostedBotJsRuntime>()
+      .notNull()
+      .default(HostedBotJsRuntime.BUN),
     sourceType: text('source_type').$type<HostedBotSourceType>(),
     sourceUrl: text('source_url'),
     sourceRef: text('source_ref'),

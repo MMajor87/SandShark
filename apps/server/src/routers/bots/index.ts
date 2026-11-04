@@ -22,6 +22,7 @@ import { resetBotTokenRoute } from './reset-bot-token';
 import { restartHostedRoute } from './restart-hosted';
 import { runCommandRoute } from './run-command';
 import { setHostedEnvRoute } from './set-hosted-env';
+import { setHostedJsRuntimeRoute } from './set-hosted-js-runtime';
 import { setHostedSourceRoute } from './set-hosted-source';
 import { setHostedTokenEnvNamesRoute } from './set-hosted-token-env-names';
 import { startHostedRoute } from './start-hosted';
@@ -52,6 +53,7 @@ const botsRouter = t.router({
   stopHosted: stopHostedRoute,
   restartHosted: restartHostedRoute,
   setHostedEnv: setHostedEnvRoute,
+  setHostedJsRuntime: setHostedJsRuntimeRoute,
   setHostedTokenEnvNames: setHostedTokenEnvNamesRoute,
   uploadHostedCode: uploadHostedCodeRoute,
   setHostedSource: setHostedSourceRoute,

@@ -1,0 +1,1 @@
+ALTER TABLE `hosted_bots` ADD `js_runtime` text DEFAULT 'bun' NOT NULL;

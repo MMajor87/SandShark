@@ -1229,6 +1229,106 @@ while True:
     );
 
     test.skipIf(!python)(
+      'moves requests, httpx and websockets to this server too',
+      async () => {
+        await enableHosting();
+
+        // each library reduced to what the shim patches, answering back where it was sent
+        const { caller, bot } = await createHostedBot({
+          'requests/__init__.py': `
+class Session:
+    def send(self, request, **kwargs):
+        return request.url
+`,
+          'httpx/__init__.py': `
+class URL(str):
+    pass
+
+
+class Client:
+    def send(self, request, **kwargs):
+        return str(request.url), request.headers.get('Host')
+
+
+class AsyncClient:
+    async def send(self, request, **kwargs):
+        return str(request.url)
+`,
+          'websockets/__init__.py': '',
+          'websockets/asyncio/__init__.py': '',
+          'websockets/asyncio/client.py': `
+class connect:
+    def __init__(self, uri, **kwargs):
+        self.uri = uri
+`,
+          'websockets/sync/__init__.py': '',
+          'websockets/sync/client.py': `
+def connect(uri, **kwargs):
+    return uri
+`,
+          'main.py': `
+import asyncio
+import os
+import time
+from urllib.parse import urlsplit
+
+import httpx
+import requests
+import websockets.asyncio.client
+from websockets.sync.client import connect
+
+API = os.environ['SANDSHARK_API_URL'] + '/v10/users/@me'
+GATEWAY = os.environ['SANDSHARK_GATEWAY_URL'] + '?v=10'
+
+
+class Request:
+    def __init__(self, url):
+        self.url = url
+        self.headers = {}
+
+
+print('requests', requests.Session().send(Request('https://discord.com/api/v10/users/@me')) == API)
+
+url, host = httpx.Client().send(Request('https://discord.com/api/v10/users/@me'))
+
+print('httpx', url == API, host == urlsplit(API).netloc)
+
+async_url = asyncio.run(httpx.AsyncClient().send(Request('https://discord.com/api/v10/users/@me')))
+
+print('httpx async', async_url == API)
+print('websockets', websockets.asyncio.client.connect('wss://gateway.discord.gg/?v=10').uri == GATEWAY)
+print('websockets sync', connect('wss://gateway.discord.gg/?v=10') == GATEWAY)
+
+try:
+    requests.Session().send(Request('https://cdn.discordapp.com/avatars/1/2.png'))
+except ConnectionRefusedError:
+    pass
+
+print('untouched', requests.Session().send(Request('https://example.com/weather')))
+print('done')
+
+while True:
+    time.sleep(1)
+`
+        });
+
+        await caller.bots.startHosted({ botId: bot.id });
+        await waitForLog(bot.id, 'done');
+
+        const text = logText(bot.id);
+
+        expect(text).toContain('requests True');
+        expect(text).toContain('httpx True True');
+        expect(text).toContain('httpx async True');
+        expect(text).toContain('websockets True');
+        expect(text).toContain('websockets sync True');
+        expect(text).toContain('refused a connection to cdn.discordapp.com');
+        expect(text).toContain('untouched https://example.com/weather');
+      },
+      30_000
+    );
+
+    test.skipIf(!python)(
       'installs requirements into a venv of its own and runs the bot on it',
       async () => {
         await enableHosting();

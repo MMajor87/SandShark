@@ -40,7 +40,7 @@ const enforceVoicePermissions = async (userId: number) => {
   pubsub.publish(ServerEvents.USER_VOICE_STATE_UPDATE, {
     channelId: runtime.id,
     userId,
-    state: runtime.getUserState(userId)
+    state: update
   });
 };
 

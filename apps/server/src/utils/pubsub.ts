@@ -95,7 +95,7 @@ type Events = {
   [ServerEvents.USER_VOICE_STATE_UPDATE]: {
     channelId: number;
     userId: number;
-    state: TVoiceUserState;
+    state: Partial<TVoiceUserState>;
   };
   [ServerEvents.USER_VOICE_MOVED]: {
     channelId: number;

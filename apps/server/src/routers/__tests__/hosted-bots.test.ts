@@ -2,6 +2,7 @@ import {
   HostedBotJsRuntime,
   HostedBotSourceType,
   HostedBotStatus,
+  HostedBotTemplate,
   Permission,
   ServerEvents,
   type THostedBotState
@@ -28,7 +29,13 @@ import {
 } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
 import { config } from '../../config';
-import { hostedBots, rolePermissions, settings } from '../../db/schema';
+import {
+  botCommands,
+  hostedBots,
+  messages,
+  rolePermissions,
+  settings
+} from '../../db/schema';
 import { getUnsupportedCalls } from '../../helpers/bot-compat-report';
 import { fileManager } from '../../helpers/file-manager';
 import { findNode } from '../../helpers/hosted-bot-node';
@@ -489,6 +496,141 @@ setInterval(() => {}, 1000);
           HostedBotRuntime.getState(bot.id).status === HostedBotStatus.RUNNING
       );
     });
+  });
+
+  describe('templates', () => {
+    test('needs the host bots permission', async () => {
+      await enableHosting();
+
+      const { bot } = await createHostedBot({});
+      const { caller } = await initTest(2);
+
+      await expect(
+        caller.bots.createHostedFromTemplate({
+          botId: bot.id,
+          template: HostedBotTemplate.PING
+        })
+      ).rejects.toThrow('Insufficient permissions');
+    });
+
+    test('refuses a bot that does not exist', async () => {
+      await enableHosting();
+
+      const { caller } = await initTest(1);
+
+      await expect(
+        caller.bots.createHostedFromTemplate({
+          botId: 999,
+          template: HostedBotTemplate.PING
+        })
+      ).rejects.toThrow('Bot not found.');
+    });
+
+    test('refuses while hosting is turned off', async () => {
+      const { caller, bot } = await createHostedBot({});
+
+      await expect(
+        caller.bots.createHostedFromTemplate({
+          botId: bot.id,
+          template: HostedBotTemplate.PING
+        })
+      ).rejects.toThrow('Bot hosting is turned off on this server.');
+    });
+
+    test('refuses a template that does not exist', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({});
+
+      await expect(
+        caller.bots.createHostedFromTemplate({
+          botId: bot.id,
+          template: 'nope' as HostedBotTemplate
+        })
+      ).rejects.toThrow();
+      expect(await fs.readdir(getHostedBotPath(bot.id))).toEqual([]);
+    });
+
+    test('refuses a bot that already has code', async () => {
+      await enableHosting();
+
+      const { caller, bot, botPath } = await createHostedBot({});
+      const { mockedToken } = await initTest(1);
+      const fileId = await uploadZip(mockedToken, {
+        'index.js': `console.log('mine');`
+      });
+
+      await caller.bots.uploadHostedCode({ botId: bot.id, fileId });
+
+      await expect(
+        caller.bots.createHostedFromTemplate({
+          botId: bot.id,
+          template: HostedBotTemplate.PING
+        })
+      ).rejects.toThrow(
+        'This bot already has code. Upload or update it instead.'
+      );
+      expect(await readBotFile(botPath, 'index.js')).toBe(
+        `console.log('mine');`
+      );
+    });
+
+    test('writes a ping bot that answers /ping', async () => {
+      await enableHosting();
+
+      const { caller, bot, botPath } = await createHostedBot({});
+      // an install would download discord.js, which the tests take from the repository
+      const install = spyOn(HostedBotRuntime, 'install').mockResolvedValue(
+        undefined
+      );
+
+      await caller.bots.createHostedFromTemplate({
+        botId: bot.id,
+        template: HostedBotTemplate.PING
+      });
+
+      expect(install).toHaveBeenCalledWith(bot.id);
+      expect(
+        JSON.parse(await readBotFile(botPath, 'package.json'))
+      ).toMatchObject({
+        main: 'index.js',
+        dependencies: { 'discord.js': expect.any(String) }
+      });
+
+      const view = await caller.bots.getHosted({ botId: bot.id });
+
+      expect(view.codeUpdatedAt).toBeNumber();
+      expect(view.source).toMatchObject({ type: HostedBotSourceType.UPLOAD });
+
+      await caller.bots.startHosted({ botId: bot.id });
+      await waitForLog(bot.id, 'ready as', 30_000);
+
+      const [command] = await tdb
+        .select()
+        .from(botCommands)
+        .where(eq(botCommands.botId, bot.id));
+
+      expect(command?.name).toBe('ping');
+
+      await caller.bots.runCommand({ commandId: command!.id, channelId: 1 });
+
+      const deadline = Date.now() + 10_000;
+      let reply: string | undefined;
+
+      while (!reply && Date.now() < deadline) {
+        const row = await tdb
+          .select({ content: messages.content })
+          .from(messages)
+          .where(eq(messages.userId, bot.id))
+          .get();
+
+        reply = row?.content ?? undefined;
+
+        await Bun.sleep(50);
+      }
+
+      expect(reply).toBe('<p>Pong!</p>');
+    }, 50_000);
   });
 
   describe('environment', () => {

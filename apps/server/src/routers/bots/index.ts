@@ -1,6 +1,7 @@
 import { t } from '../../utils/trpc';
 import { autocompleteRoute } from './autocomplete';
 import { createBotRoute } from './create-bot';
+import { createHostedFromTemplateRoute } from './create-hosted-from-template';
 import { deleteBotRoute } from './delete-bot';
 import {
   onCommandsChangeRoute,
@@ -56,6 +57,7 @@ const botsRouter = t.router({
   setHostedJsRuntime: setHostedJsRuntimeRoute,
   setHostedTokenEnvNames: setHostedTokenEnvNamesRoute,
   uploadHostedCode: uploadHostedCodeRoute,
+  createHostedFromTemplate: createHostedFromTemplateRoute,
   setHostedSource: setHostedSourceRoute,
   updateHostedCode: updateHostedCodeRoute,
   installHostedDependencies: installHostedDependenciesRoute,

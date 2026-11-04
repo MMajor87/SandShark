@@ -69,6 +69,8 @@ Instead of running the bot on another machine, you can give its code to SandShar
 3. Add the variables the bot reads, such as API keys, under **Variables**. Values are stored on the server and never shown again.
 4. Choose **Start**.
 
+To try hosting before you have a bot of your own, choose **Start from a ping bot** in step 2. It writes a small discord.js bot into the bot's folder, with a `/ping` command that answers "Pong!", and installs discord.js, which needs the server to reach npm. The files are the bot's own from then on: change them and upload them again like any code. The button is only offered while the bot has no code.
+
 What the server does for a hosted bot:
 
 - **Points it at this server.** Before the bot's own code runs, a small shim moves `https://discord.com/api` to this server's API and `gateway.discord.gg` to this server's gateway. A bot that calls `client.login()` or `client.run(token)` works unchanged.

@@ -4,10 +4,11 @@ import { getTRPCClient } from '@/lib/trpc';
 import {
   getTrpcError,
   HostedBotSourceType,
+  HostedBotTemplate,
   type THostedBot
 } from '@sandshark/shared';
 import { Button, Group, Input } from '@sandshark/ui';
-import { Download, GitBranch, Upload } from 'lucide-react';
+import { Download, GitBranch, Sparkles, Upload } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -79,6 +80,24 @@ const HostedSource = memo(({ hosted }: THostedSourceProps) => {
     }
   }, [botId, url, ref, t]);
 
+  const onUsePingTemplate = useCallback(async () => {
+    setBusy(true);
+
+    try {
+      const trpc = getTRPCClient();
+
+      await trpc.bots.createHostedFromTemplate.mutate({
+        botId,
+        template: HostedBotTemplate.PING
+      });
+      toast.success(t('hostedTemplateCreated'));
+    } catch (error) {
+      toast.error(getTrpcError(error, t('failedHostedTemplate')));
+    } finally {
+      setBusy(false);
+    }
+  }, [botId, t]);
+
   const onInstall = useCallback(async () => {
     try {
       const trpc = getTRPCClient();
@@ -102,6 +121,17 @@ const HostedSource = memo(({ hosted }: THostedSourceProps) => {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <p className="flex-1 text-sm text-muted-foreground">{updatedText}</p>
+        {!codeUpdatedAt && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onUsePingTemplate}
+            disabled={busy}
+          >
+            <Sparkles className="h-4 w-4" />
+            {t('hostedUsePingTemplate')}
+          </Button>
+        )}
         <Button size="sm" variant="outline" onClick={onUpload} disabled={busy}>
           <Upload className="h-4 w-4" />
           {t('hostedUploadZip')}

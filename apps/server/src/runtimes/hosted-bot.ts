@@ -11,7 +11,7 @@ import path from 'path';
 import { getHostedBot } from '../db/queries/hosted-bots';
 import { writeNewBotToken } from '../helpers/bot-tokens';
 import { resolveHostedBotEntry } from '../helpers/hosted-bot-entry';
-import { buildHostedBotEnv } from '../helpers/hosted-bot-env';
+import { buildHostedBotEnv, buildInstallEnv } from '../helpers/hosted-bot-env';
 import { writeHostedBotShim } from '../helpers/hosted-bot-shim';
 import { HOSTED_BOT_LOGS_PATH, HOSTED_BOTS_PATH } from '../helpers/paths';
 import { closeBotGatewaySessions } from '../http/bot-api/gateway';
@@ -42,6 +42,9 @@ class HostedBotRuntime {
   public static restartBaseDelayMs = 1000;
 
   private process: Subprocess<'ignore', 'pipe', 'pipe'> | undefined;
+  private installer: Subprocess<'ignore', 'pipe', 'pipe'> | undefined;
+  // a start asked for while dependencies install, run once they are in
+  private startAfterInstall = false;
   private status = HostedBotStatus.STOPPED;
   private startedAt: number | null = null;
   private restarts = 0;
@@ -68,6 +71,9 @@ class HostedBotRuntime {
 
   public static start = (botId: number) => HostedBotRuntime.get(botId).start();
 
+  public static install = (botId: number) =>
+    HostedBotRuntime.get(botId).install();
+
   public static stop = async (botId: number) => {
     const runtime = HostedBotRuntime.runtimes.get(botId);
 
@@ -82,7 +88,12 @@ class HostedBotRuntime {
 
   // stops the bot and forgets it, for a bot that was deleted
   public static remove = async (botId: number) => {
-    await HostedBotRuntime.stop(botId);
+    const runtime = HostedBotRuntime.runtimes.get(botId);
+
+    if (!runtime) return;
+
+    runtime.installer?.kill('SIGKILL');
+    await runtime.stop();
     HostedBotRuntime.runtimes.delete(botId);
   };
 
@@ -120,6 +131,7 @@ class HostedBotRuntime {
     for (const runtime of HostedBotRuntime.runtimes.values()) {
       runtime.wanted = false;
       runtime.process?.kill('SIGKILL');
+      runtime.installer?.kill('SIGKILL');
     }
   };
 
@@ -136,6 +148,11 @@ class HostedBotRuntime {
   };
 
   private start = async () => {
+    if (this.status === HostedBotStatus.INSTALLING) {
+      this.startAfterInstall = true;
+      return;
+    }
+
     if (this.wanted) return;
 
     this.wanted = true;
@@ -143,6 +160,55 @@ class HostedBotRuntime {
     this.restarts = 0;
 
     await this.spawn();
+  };
+
+  // the bot is stopped for the install, so it never runs against half installed packages,
+  // and started again after if it was running or was asked to start meanwhile
+  private install = async () => {
+    if (this.status === HostedBotStatus.INSTALLING) return;
+
+    this.startAfterInstall = this.wanted;
+    await this.stop();
+    this.setStatus(HostedBotStatus.INSTALLING);
+    this.log('system', 'installing dependencies');
+
+    let code: number | null = null;
+
+    try {
+      const installer = Bun.spawn({
+        cmd: [process.execPath, 'install'],
+        cwd: getHostedBotPath(this.botId),
+        env: buildInstallEnv(),
+        stdin: 'ignore',
+        stdout: 'pipe',
+        stderr: 'pipe'
+      });
+
+      this.installer = installer;
+      await Promise.all([
+        this.pipe(installer.stdout, 'stdout'),
+        this.pipe(installer.stderr, 'stderr')
+      ]);
+      code = await installer.exited;
+    } catch (error) {
+      this.log('system', `could not install: ${String(error)}`);
+    } finally {
+      this.installer = undefined;
+    }
+
+    const startAfter = this.startAfterInstall;
+
+    this.startAfterInstall = false;
+    this.setStatus(HostedBotStatus.STOPPED);
+
+    if (code !== 0) {
+      this.log('system', `installing dependencies failed with code ${code}`);
+      return;
+    }
+
+    this.log('system', 'dependencies installed');
+
+    if (startAfter) await this.start();
   };
 
   private spawn = async () => {

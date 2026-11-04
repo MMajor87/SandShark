@@ -15,16 +15,20 @@ import { getBotsRoute } from './get-bots';
 import { getCommandsRoute } from './get-commands';
 import { getHostedRoute } from './get-hosted';
 import { getHostedLogsRoute } from './get-hosted-logs';
+import { installHostedDependenciesRoute } from './install-hosted-dependencies';
 import { pressComponentRoute } from './press-component';
 import { renameBotRoute } from './rename-bot';
 import { resetBotTokenRoute } from './reset-bot-token';
 import { restartHostedRoute } from './restart-hosted';
 import { runCommandRoute } from './run-command';
 import { setHostedEnvRoute } from './set-hosted-env';
+import { setHostedSourceRoute } from './set-hosted-source';
 import { setHostedTokenEnvNamesRoute } from './set-hosted-token-env-names';
 import { startHostedRoute } from './start-hosted';
 import { stopHostedRoute } from './stop-hosted';
 import { submitModalRoute } from './submit-modal';
+import { updateHostedCodeRoute } from './update-hosted-code';
+import { uploadHostedCodeRoute } from './upload-hosted-code';
 
 const botsRouter = t.router({
   getAll: getBotsRoute,
@@ -49,6 +53,10 @@ const botsRouter = t.router({
   restartHosted: restartHostedRoute,
   setHostedEnv: setHostedEnvRoute,
   setHostedTokenEnvNames: setHostedTokenEnvNamesRoute,
+  uploadHostedCode: uploadHostedCodeRoute,
+  setHostedSource: setHostedSourceRoute,
+  updateHostedCode: updateHostedCodeRoute,
+  installHostedDependencies: installHostedDependenciesRoute,
   onHostedBotUpdate: onHostedBotUpdateRoute,
   onHostedBotLog: onHostedBotLogRoute
 });

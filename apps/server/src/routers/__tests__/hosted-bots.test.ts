@@ -1,4 +1,5 @@
 import {
+  HostedBotSourceType,
   HostedBotStatus,
   Permission,
   ServerEvents,
@@ -10,20 +11,24 @@ import {
   beforeAll,
   describe,
   expect,
+  spyOn,
   test
 } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import fs from 'fs/promises';
 import type http from 'http';
 import path from 'path';
+import * as yazl from 'yazl';
 import {
   botApiRequest,
   initTest,
-  startRealtimeServer
+  startRealtimeServer,
+  uploadFile
 } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
 import { config } from '../../config';
 import { hostedBots, rolePermissions, settings } from '../../db/schema';
+import { fileManager } from '../../helpers/file-manager';
 import { HOSTED_BOTS_PATH } from '../../helpers/paths';
 import { getHostedBotPath, HostedBotRuntime } from '../../runtimes/hosted-bot';
 import { pubsub } from '../../utils/pubsub';
@@ -98,6 +103,44 @@ const logText = (botId: number) =>
   HostedBotRuntime.getLogs(botId)
     .map(({ message }) => message)
     .join('\n');
+
+// a zip built in memory, the way an admin would zip their bot's folder
+const makeZip = (files: Record<string, string>) =>
+  new Promise<Uint8Array>((resolve, reject) => {
+    const zip = new yazl.ZipFile();
+    const chunks: Buffer[] = [];
+
+    for (const [name, content] of Object.entries(files)) {
+      zip.addBuffer(Buffer.from(content), name);
+    }
+
+    zip.outputStream.on('data', (chunk: Buffer) => chunks.push(chunk));
+    zip.outputStream.on('end', () =>
+      resolve(new Uint8Array(Buffer.concat(chunks)))
+    );
+    zip.outputStream.on('error', reject);
+    zip.end();
+  });
+
+const uploadBlob = async (
+  token: string,
+  content: string | Uint8Array,
+  name: string
+) => {
+  const response = await uploadFile(new File([content], name), token);
+  const { id } = (await response.json()) as { id: string };
+
+  return id;
+};
+
+const uploadZip = async (
+  token: string,
+  files: Record<string, string>,
+  name = 'bot.zip'
+) => uploadBlob(token, await makeZip(files), name);
+
+const readBotFile = (botPath: string, name: string) =>
+  fs.readFile(path.join(botPath, name), 'utf8');
 
 // asks the bot api who the bot is, the way every library does on login
 const WHOAMI_BOT = `
@@ -550,5 +593,225 @@ setInterval(() => {}, 1000);
         (await caller.bots.getHosted({ botId: bot.id })).tokenEnvNames
       ).toEqual(['MY_TOKEN', 'OTHER']);
     });
+  });
+
+  describe('code', () => {
+    test('an uploaded zip replaces the code and keeps the data next to it', async () => {
+      await enableHosting();
+
+      const { caller, bot, botPath } = await createHostedBot({
+        'index.js': 'old',
+        'data.json': '{"score":10}'
+      });
+      const { mockedToken } = await initTest(1);
+      const fileId = await uploadZip(mockedToken, {
+        'my-bot/index.js': 'new',
+        'my-bot/commands/ping.js': 'ping'
+      });
+
+      await caller.bots.uploadHostedCode({ botId: bot.id, fileId });
+
+      expect(await readBotFile(botPath, 'index.js')).toBe('new');
+      expect(await readBotFile(botPath, 'commands/ping.js')).toBe('ping');
+      expect(await readBotFile(botPath, 'data.json')).toBe('{"score":10}');
+      expect(fileManager.getTemporaryFile(fileId)).toBeUndefined();
+
+      const view = await caller.bots.getHosted({ botId: bot.id });
+
+      expect(view.source).toEqual({
+        type: HostedBotSourceType.UPLOAD,
+        url: null,
+        ref: null
+      });
+      expect(view.codeUpdatedAt).toBeNumber();
+    });
+
+    test('an upload with a package.json installs it and restarts the running bot', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({ 'index.js': WHOAMI_BOT });
+      const { mockedToken } = await initTest(1);
+
+      await caller.bots.startHosted({ botId: bot.id });
+      await waitForLog(bot.id, 'whoami');
+
+      const fileId = await uploadZip(mockedToken, {
+        'package.json': JSON.stringify({ name: 'bot', version: '1.0.0' }),
+        'index.js': `console.log('second version'); setInterval(() => {}, 1000);`
+      });
+
+      await caller.bots.uploadHostedCode({ botId: bot.id, fileId });
+      await waitForLog(bot.id, 'dependencies installed', 60_000);
+      await waitForLog(bot.id, 'second version');
+
+      expect(HostedBotRuntime.getState(bot.id).status).toBe(
+        HostedBotStatus.RUNNING
+      );
+    }, 70_000);
+
+    test('refuses an upload that is not the caller own, not a zip, unreadable or too large', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({});
+      const { mockedToken: otherToken } = await initTest(2);
+      const othersFile = await uploadZip(otherToken, { 'index.js': '' });
+
+      await expect(
+        caller.bots.uploadHostedCode({ botId: bot.id, fileId: othersFile })
+      ).rejects.toThrow('Uploaded file not found.');
+
+      const { mockedToken } = await initTest(1);
+      const textFile = await uploadZip(
+        mockedToken,
+        { 'index.js': '' },
+        'bot.txt'
+      );
+
+      await expect(
+        caller.bots.uploadHostedCode({ botId: bot.id, fileId: textFile })
+      ).rejects.toThrow('Upload the bot as a .zip file.');
+
+      const broken = await uploadBlob(mockedToken, 'not a zip', 'broken.zip');
+
+      await expect(
+        caller.bots.uploadHostedCode({ botId: bot.id, fileId: broken })
+      ).rejects.toThrow('The archive could not be read as a zip file.');
+
+      // the upload limit is a server setting, usually far below this one
+      const large = await uploadZip(mockedToken, { 'index.js': '' });
+      const tempFile = fileManager.getTemporaryFile(large)!;
+
+      spyOn(fileManager, 'getTemporaryFile').mockReturnValue({
+        ...tempFile,
+        size: 101 * 1024 * 1024
+      });
+
+      await expect(
+        caller.bots.uploadHostedCode({ botId: bot.id, fileId: large })
+      ).rejects.toThrow('The code is larger than 100 MB.');
+    });
+
+    test('stores a github source', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({});
+
+      await caller.bots.setHostedSource({
+        botId: bot.id,
+        url: 'https://github.com/someone/my-bot.git',
+        ref: 'main'
+      });
+
+      expect((await caller.bots.getHosted({ botId: bot.id })).source).toEqual({
+        type: HostedBotSourceType.GITHUB,
+        url: 'https://github.com/someone/my-bot.git',
+        ref: 'main'
+      });
+    });
+
+    test('refuses an address that is not a github repository, or a ref that climbs out', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({});
+
+      await expect(
+        caller.bots.setHostedSource({
+          botId: bot.id,
+          url: 'https://gitlab.com/someone/my-bot',
+          ref: null
+        })
+      ).rejects.toThrow('This is not a GitHub repository address.');
+      await expect(
+        caller.bots.setHostedSource({
+          botId: bot.id,
+          url: 'https://github.com/someone/my-bot',
+          ref: '../../users'
+        })
+      ).rejects.toThrow('This is not a branch, tag or commit name.');
+    });
+
+    test('updates from github through its archive api', async () => {
+      await enableHosting();
+
+      const { caller, bot, botPath } = await createHostedBot({});
+      const zip = await makeZip({
+        'someone-my-bot-abc123/index.js': 'from github'
+      });
+
+      await caller.bots.setHostedSource({
+        botId: bot.id,
+        url: 'https://github.com/someone/my-bot',
+        ref: 'v2'
+      });
+
+      const fetchSpy = spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(zip, { status: 200 })
+      );
+
+      await caller.bots.updateHostedCode({ botId: bot.id });
+
+      expect(fetchSpy.mock.calls[0]![0]).toBe(
+        'https://api.github.com/repos/someone/my-bot/zipball/v2'
+      );
+      expect(await readBotFile(botPath, 'index.js')).toBe('from github');
+    });
+
+    test('says why github could not send the code', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({});
+
+      await expect(
+        caller.bots.updateHostedCode({ botId: bot.id })
+      ).rejects.toThrow('This bot has no GitHub repository set.');
+
+      await caller.bots.setHostedSource({
+        botId: bot.id,
+        url: 'https://github.com/someone/private-bot',
+        ref: null
+      });
+
+      const fetchSpy = spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response('', { status: 404 })
+      );
+
+      await expect(
+        caller.bots.updateHostedCode({ botId: bot.id })
+      ).rejects.toThrow(
+        'The repository or branch was not found. Only public repositories can be used.'
+      );
+      expect(fetchSpy.mock.calls[0]![0]).toBe(
+        'https://api.github.com/repos/someone/private-bot/zipball'
+      );
+
+      fetchSpy.mockResolvedValue(new Response('', { status: 502 }));
+
+      await expect(
+        caller.bots.updateHostedCode({ botId: bot.id })
+      ).rejects.toThrow('GitHub could not send the code (status 502).');
+    });
+
+    test('installs dependencies on request, and only when there is a package.json', async () => {
+      await enableHosting();
+
+      const { caller, bot, botPath } = await createHostedBot({
+        'index.js': ''
+      });
+
+      await expect(
+        caller.bots.installHostedDependencies({ botId: bot.id })
+      ).rejects.toThrow('This bot has no package.json to install from.');
+
+      await fs.writeFile(
+        path.join(botPath, 'package.json'),
+        JSON.stringify({ name: 'bot', version: '1.0.0' })
+      );
+      await caller.bots.installHostedDependencies({ botId: bot.id });
+      await waitForLog(bot.id, 'dependencies installed', 60_000);
+
+      expect(HostedBotRuntime.getState(bot.id).status).toBe(
+        HostedBotStatus.STOPPED
+      );
+    }, 70_000);
   });
 });

@@ -8,7 +8,11 @@ const getHostedBot = (botId: number) =>
       botId: hostedBots.botId,
       enabled: hostedBots.enabled,
       env: hostedBots.env,
-      tokenEnvNames: hostedBots.tokenEnvNames
+      tokenEnvNames: hostedBots.tokenEnvNames,
+      sourceType: hostedBots.sourceType,
+      sourceUrl: hostedBots.sourceUrl,
+      sourceRef: hostedBots.sourceRef,
+      codeUpdatedAt: hostedBots.codeUpdatedAt
     })
     .from(hostedBots)
     .where(eq(hostedBots.botId, botId))

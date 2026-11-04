@@ -22,7 +22,11 @@ const getHostedBotView = async (botId: number): Promise<THostedBot> => {
     ...HostedBotRuntime.getState(botId),
     enabled: row?.enabled ?? false,
     envNames: Object.keys(row?.env ?? {}).sort(),
-    tokenEnvNames: row?.tokenEnvNames ?? []
+    tokenEnvNames: row?.tokenEnvNames ?? [],
+    source: row?.sourceType
+      ? { type: row.sourceType, url: row.sourceUrl, ref: row.sourceRef }
+      : null,
+    codeUpdatedAt: row?.codeUpdatedAt ?? null
   };
 };
 

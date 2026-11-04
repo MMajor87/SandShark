@@ -4,6 +4,7 @@ import {
   PluginCapabilityMode,
   PluginCapabilityType,
   type BotCommandType,
+  type HostedBotSourceType,
   type TActivityLogDetailsMap,
   type TBotActionRow,
   type TBotCommandOption,
@@ -254,6 +255,10 @@ const hostedBots = sqliteTable(
       .$type<string[]>()
       .notNull()
       .default([]),
+    sourceType: text('source_type').$type<HostedBotSourceType>(),
+    sourceUrl: text('source_url'),
+    sourceRef: text('source_ref'),
+    codeUpdatedAt: integer('code_updated_at'),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at')
   },

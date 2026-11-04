@@ -1,9 +1,23 @@
 export enum HostedBotStatus {
   STOPPED = 'stopped',
+  INSTALLING = 'installing',
   STARTING = 'starting',
   RUNNING = 'running',
   CRASHED = 'crashed'
 }
+
+// where the bot's code came from: a zip the admin uploaded, or a github repository the
+// server downloads again on every update
+export enum HostedBotSourceType {
+  UPLOAD = 'upload',
+  GITHUB = 'github'
+}
+
+export type THostedBotSource = {
+  type: HostedBotSourceType;
+  url: string | null;
+  ref: string | null;
+};
 
 export type THostedBotLogStream = 'stdout' | 'stderr' | 'system';
 
@@ -24,6 +38,8 @@ export type THostedBot = {
   restarts: number;
   envNames: string[];
   tokenEnvNames: string[];
+  source: THostedBotSource | null;
+  codeUpdatedAt: number | null;
 };
 
 // the part of a hosted bot that only the running process knows, published as it changes
@@ -39,7 +55,14 @@ export const HOSTED_BOT_DEFAULT_TOKEN_ENV_NAMES = [
   'BOT_TOKEN'
 ];
 
+// a public repository, written the way its page address reads
+export const HOSTED_BOT_GITHUB_URL_REGEX =
+  /^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?\/?$/;
+// a branch, tag or commit. it ends up in a url path, so it may never climb out with ..
+export const HOSTED_BOT_GITHUB_REF_REGEX = /^(?!.*\.\.)[\w./-]{1,255}$/;
+
 export const HOSTED_BOT_ENV_NAME_REGEX = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/;
 export const HOSTED_BOT_MAX_ENV_VARS = 50;
 export const HOSTED_BOT_MAX_ENV_VALUE_LENGTH = 4096;
 export const HOSTED_BOT_MAX_TOKEN_ENV_NAMES = 10;
+export const HOSTED_BOT_MAX_ARCHIVE_SIZE = 100 * 1024 * 1024;

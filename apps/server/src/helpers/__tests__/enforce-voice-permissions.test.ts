@@ -206,7 +206,7 @@ test('channel permission changes stop server producers and publish the revoked s
     expect(updates).toContainEqual({
       channelId: 4,
       userId: 2,
-      state: runtime.getUserState(2)
+      state: { webcamEnabled: false, sharingScreen: false }
     });
     expect(runtime.getUserState(2)).toMatchObject({
       webcamEnabled: false,

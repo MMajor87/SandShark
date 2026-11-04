@@ -703,6 +703,32 @@ describe('voice router', () => {
       }
     });
 
+    // a full state would carry the toggles the user's client has not sent yet as off, and
+    // the client trusts an off it hears about itself
+    test('should publish only the fields the call changed', async () => {
+      const { runtime, caller } = await joinVoiceChannelTwo(2);
+      const updates: unknown[] = [];
+
+      const subscription = pubsub
+        .subscribe(ServerEvents.USER_VOICE_STATE_UPDATE)
+        .subscribe({
+          next: (update) => {
+            updates.push(update);
+          }
+        });
+
+      try {
+        await caller.voice.updateState({ webcamEnabled: true });
+
+        expect(updates).toEqual([
+          { channelId: runtime.id, userId: 2, state: { webcamEnabled: true } }
+        ]);
+      } finally {
+        subscription.unsubscribe();
+        await runtime.destroy();
+      }
+    });
+
     // a public channel grants every channel permission outright, so the filtering only has
     // anything to do on a private one. view has to be granted or the guard would refuse the
     // whole call and the dropped fields would prove nothing
@@ -728,6 +754,15 @@ describe('voice router', () => {
       const { caller } = await initTest(2, undefined, {
         currentVoiceChannelId: PRIVATE_VOICE_CHANNEL_ID
       });
+      const updates: unknown[] = [];
+
+      const subscription = pubsub
+        .subscribe(ServerEvents.USER_VOICE_STATE_UPDATE)
+        .subscribe({
+          next: (update) => {
+            updates.push(update);
+          }
+        });
 
       try {
         await caller.voice.updateState({
@@ -737,6 +772,20 @@ describe('voice router', () => {
           soundMuted: true
         });
 
+        // the refused toggles are published as off, so the user's client turns them off too
+        expect(updates).toEqual([
+          {
+            channelId: PRIVATE_VOICE_CHANNEL_ID,
+            userId: 2,
+            state: {
+              micMuted: true,
+              webcamEnabled: false,
+              sharingScreen: false,
+              soundMuted: true
+            }
+          }
+        ]);
+
         // stopping transmission and muting playback remain available after permission loss
         expect(runtime.getUserState(2)).toMatchObject({
           micMuted: true,
@@ -745,6 +794,7 @@ describe('voice router', () => {
           soundMuted: true
         });
       } finally {
+        subscription.unsubscribe();
         await runtime.destroy();
       }
     });

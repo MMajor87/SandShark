@@ -2901,7 +2901,7 @@ describe('plugins router', () => {
 
     test('should server mute a user and tell everyone', async () => {
       await withUserInVoice(async (runtime) => {
-        const received: { state: { serverMuted: boolean } }[] = [];
+        const received: { state: { serverMuted?: boolean } }[] = [];
 
         const subscription = pubsub
           .subscribe(ServerEvents.USER_VOICE_STATE_UPDATE)

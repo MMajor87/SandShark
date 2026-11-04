@@ -57,16 +57,14 @@ const updateVoiceStateRoute = protectedProcedure
       }
     );
 
-    runtime.updateUserState(ctx.user.id, {
-      ...validatedInput
-    });
+    runtime.updateUserState(ctx.user.id, validatedInput);
 
-    const newState = runtime.getUserState(ctx.user.id);
-
+    // only the fields this call changed: the user's other toggles may still be on their way
+    // here, and a full state would report them as off to the user's own client
     ctx.pubsub.publish(ServerEvents.USER_VOICE_STATE_UPDATE, {
-      channelId: channelId,
+      channelId,
       userId: ctx.user.id,
-      state: newState
+      state: validatedInput
     });
   });
 

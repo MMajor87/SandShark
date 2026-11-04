@@ -121,10 +121,12 @@ const setVoiceServerMute = async (userId: number, muted: boolean) => {
 
   runtime.syncServerMute(userId);
 
+  const { micMuted, serverMuted } = runtime.getUserState(userId);
+
   pubsub.publish(ServerEvents.USER_VOICE_STATE_UPDATE, {
     channelId: runtime.id,
     userId,
-    state: runtime.getUserState(userId)
+    state: { micMuted, serverMuted }
   });
 };
 

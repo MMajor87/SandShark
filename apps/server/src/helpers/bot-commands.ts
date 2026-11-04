@@ -1,6 +1,8 @@
+import { ServerEvents } from '@sandshark/shared';
 import { and, count, eq, inArray, ne } from 'drizzle-orm';
 import { db } from '../db';
 import { botCommands } from '../db/schema';
+import { pubsub } from '../utils/pubsub';
 import {
   MAX_COMMANDS,
   type TBotCommandRow,
@@ -10,6 +12,11 @@ import {
 type TCommandScope = {
   botId: number;
   guildScoped: boolean;
+};
+
+// every member's slash menu lists bot commands, so any change is announced to all of them
+const publishBotCommandsChange = (botId: number) => {
+  pubsub.publish(ServerEvents.BOT_COMMANDS_CHANGE, { botId });
 };
 
 const inScope = ({ botId, guildScoped }: TCommandScope) =>
@@ -29,8 +36,7 @@ const upsertBotCommand = (
   command: TStoredCommand
 ): TBotCommandRow | undefined => {
   const now = Date.now();
-
-  return db.transaction((tx) => {
+  const saved = db.transaction((tx) => {
     const existing = tx
       .select({ id: botCommands.id })
       .from(botCommands)
@@ -61,6 +67,10 @@ const upsertBotCommand = (
       .returning()
       .get();
   });
+
+  if (saved) publishBotCommandsChange(scope.botId);
+
+  return saved;
 };
 
 // returns undefined when the edit renames the command onto another of the bot's commands
@@ -68,8 +78,8 @@ const updateBotCommand = (
   scope: TCommandScope,
   commandId: number,
   command: TStoredCommand
-): TBotCommandRow | undefined =>
-  db.transaction((tx) => {
+): TBotCommandRow | undefined => {
+  const saved = db.transaction((tx) => {
     const clash = tx
       .select({ id: botCommands.id })
       .from(botCommands)
@@ -87,10 +97,17 @@ const updateBotCommand = (
       .get();
   });
 
+  if (saved) publishBotCommandsChange(scope.botId);
+
+  return saved;
+};
+
 const deleteBotCommand = (scope: TCommandScope, commandId: number) => {
   db.delete(botCommands)
     .where(and(eq(botCommands.id, commandId), inScope(scope)))
     .run();
+
+  publishBotCommandsChange(scope.botId);
 };
 
 const commandKey = ({ type, name }: Pick<TStoredCommand, 'type' | 'name'>) =>
@@ -104,8 +121,7 @@ const replaceBotCommands = (
   commands: TStoredCommand[]
 ): TBotCommandRow[] => {
   const now = Date.now();
-
-  return db.transaction((tx) => {
+  const saved = db.transaction((tx) => {
     const existing = tx.select().from(botCommands).where(inScope(scope)).all();
     const existingByKey = new Map(
       existing.map((row) => [commandKey(row), row])
@@ -138,11 +154,16 @@ const replaceBotCommands = (
         .get();
     });
   });
+
+  publishBotCommandsChange(scope.botId);
+
+  return saved;
 };
 
 export {
   commandKey,
   deleteBotCommand,
+  publishBotCommandsChange,
   replaceBotCommands,
   updateBotCommand,
   upsertBotCommand,

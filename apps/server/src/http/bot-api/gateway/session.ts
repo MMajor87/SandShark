@@ -383,4 +383,8 @@ const closeBotGatewaySessions = (botId: number) => {
   }
 };
 
-export { closeBotGatewaySessions, GatewaySession };
+// a bot counts as connected once a session has identified, which is when it can receive
+// an interaction
+const isBotConnected = (botId: number) => sessionsByBot.has(botId);
+
+export { closeBotGatewaySessions, GatewaySession, isBotConnected };

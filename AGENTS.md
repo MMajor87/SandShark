@@ -159,6 +159,13 @@ Drizzle splits migration files on that literal string and hands each piece to
 separator wrong and every statement after the first is silently skipped — no error, the
 migration is still recorded as applied.
 
+Adding a foreign key column to an existing table generates `ALTER TABLE ... ADD ...
+REFERENCES t(id)` **without** the `ON DELETE` clause from `schema.ts`, though the snapshot
+records it. The column then defaults to `NO ACTION` and deleting the referenced row fails.
+Before committing, add the clause back to the generated SQL by hand
+(`REFERENCES users(id) ON DELETE set null`), as `0027_flimsy_wild_pack.sql` does, and cover
+the delete in a test.
+
 Rules: never edit a migration that's already been committed — add a new one. Never
 hand-edit `meta/` or `_journal.json`. `bun run db:check` verifies consistency. Local dev
 data lives in `apps/server/data`; delete that folder for a clean reset.

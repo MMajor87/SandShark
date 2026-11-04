@@ -3,6 +3,8 @@ import { getLocalStorageItemBool, LocalStorageKey } from '@/helpers/storage';
 import type { TConversation, TConversationKey } from '@/types';
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
+  TBotCommandInfo,
+  TBotEphemeralMessage,
   TCategory,
   TChannel,
   TChannelUserPermissionsMap,
@@ -106,6 +108,9 @@ export interface IServerState {
   threadsOpen: boolean;
   calendarOpen: boolean;
   upcomingCalendarEvents: TJoinedCalendarEvent[];
+  botCommands: TBotCommandInfo[];
+  // answers only this member sees, kept until they dismiss them or reload
+  botEphemeralMessages: TBotEphemeralMessage[];
 }
 
 const initialState: IServerState = {
@@ -171,6 +176,8 @@ const initialState: IServerState = {
   threadsOpen: false,
   calendarOpen: false,
   upcomingCalendarEvents: [],
+  botCommands: [],
+  botEphemeralMessages: [],
   hideOwnScreenShare: getLocalStorageItemBool(
     LocalStorageKey.HIDE_OWN_SCREEN_SHARE,
     false
@@ -1124,6 +1131,29 @@ export const serverSlice = createSlice({
       action: PayloadAction<TJoinedCalendarEvent[]>
     ) => {
       state.upcomingCalendarEvents = action.payload;
+    },
+    setBotCommands: (state, action: PayloadAction<TBotCommandInfo[]>) => {
+      state.botCommands = action.payload;
+    },
+    // the bot fills in or edits an ephemeral answer by sending it again
+    upsertBotEphemeralMessage: (
+      state,
+      action: PayloadAction<TBotEphemeralMessage>
+    ) => {
+      const index = state.botEphemeralMessages.findIndex(
+        (message) => message.id === action.payload.id
+      );
+
+      if (index === -1) {
+        state.botEphemeralMessages.push(action.payload);
+      } else {
+        state.botEphemeralMessages[index] = action.payload;
+      }
+    },
+    removeBotEphemeralMessage: (state, action: PayloadAction<number>) => {
+      state.botEphemeralMessages = state.botEphemeralMessages.filter(
+        (message) => message.id !== action.payload
+      );
     }
   }
 });

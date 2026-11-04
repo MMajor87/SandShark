@@ -152,5 +152,13 @@
   "soundboard": "Zvukový panel",
   "soundboardEmpty": "Zatím žádné zvuky. Správci serveru je mohou přidat v nastavení serveru.",
   "failedPlaySound": "Zvuk se nepodařilo přehrát",
-  "botBadge": "Bot"
+  "botBadge": "Bot",
+  "botUsedCommand": "{{user}} použil(a) /{{command}}",
+  "botIsThinking": "{{bot}} přemýšlí…",
+  "botEphemeralOnlyYou": "Toto vidíte jen vy",
+  "botEphemeralDismiss": "Zavřít",
+  "botCommandMembers": "Členové",
+  "botCommandRoles": "Role",
+  "botDidNotRespond": "Bot neodpověděl na /{{command}}.",
+  "failedRunBotCommand": "Příkaz se nepodařilo spustit"
 }

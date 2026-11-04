@@ -21,6 +21,7 @@ export enum MessageNodeType {
   ROLE_MENTION = 'role-mention',
   CHANNEL_REFERENCE = 'channel-reference',
   PLUGIN_COMMAND = 'plugin-command',
+  BOT_COMMAND = 'bot-command',
   // written by @tiptap/extension-emoji, not by our own nodes
   EMOJI = 'emoji'
 }

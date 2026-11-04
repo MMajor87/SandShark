@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { appSliceActions } from '../app/slice';
 import { openDialog } from '../dialogs/actions';
 import { store } from '../store';
+import { setBotCommands } from './bot-commands/actions';
 import {
   channelReadStateByIdSelector,
   currentVoiceChannelIdSelector,
@@ -135,6 +136,7 @@ export const joinServer = async (handshakeHash: string, password?: string) => {
   store.dispatch(serverSliceActions.setInitialData(data));
 
   setPluginCommands(data.commands);
+  setBotCommands(data.botCommands);
   setPluginCapabilityAccess(data.pluginCapabilityAccess);
 
   const components = await processPluginComponents(

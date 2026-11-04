@@ -1,5 +1,5 @@
-import { Permission } from '@sandshark/shared';
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { Permission, ServerEvents } from '@sandshark/shared';
+import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test';
 import { and, asc, eq } from 'drizzle-orm';
 import type http from 'http';
 import path from 'node:path';
@@ -11,6 +11,7 @@ import {
   messages,
   rolePermissions
 } from '../../db/schema';
+import { pubsub } from '../../utils/pubsub';
 
 // the seeded member role every new bot starts with
 const MEMBER_ROLE_ID = 2;
@@ -110,6 +111,7 @@ describe('discord.py compatibility', () => {
     async () => {
       const { caller } = await initTest(1);
       const { token, bot } = await caller.bots.create({ name: 'Py Bot' });
+      const published = spyOn(pubsub, 'publishFor');
 
       // members, and so new bots, cannot react by default
       await tdb.insert(rolePermissions).values({
@@ -132,7 +134,7 @@ describe('discord.py compatibility', () => {
         });
 
         expect(ready).toBe('READY Py Bot 1 General,Restricted Text');
-        expect(await stdout.waitForLine('SYNCED')).toBe('SYNCED roll 1');
+        expect(await stdout.waitForLine('SYNCED')).toBe('SYNCED roll,slow 2');
 
         const commands = await tdb
           .select()
@@ -144,7 +146,9 @@ describe('discord.py compatibility', () => {
           commands.map((command) => [command.name, command.guildScoped])
         ).toEqual([
           ['roll', false],
-          ['roll', true]
+          ['slow', false],
+          ['roll', true],
+          ['slow', true]
         ]);
         expect(commands[0]!.options).toEqual([
           {
@@ -158,6 +162,80 @@ describe('discord.py compatibility', () => {
           }
         ]);
 
+        const commandId = (name: string) =>
+          commands.find((command) => command.name === name)!.id;
+        const answers = () =>
+          tdb
+            .select()
+            .from(messages)
+            .where(eq(messages.userId, bot.id))
+            .orderBy(asc(messages.id));
+        const waitForAnswers = async (count: number) => {
+          for (let attempt = 0; attempt < 100; attempt++) {
+            const rows = await answers();
+
+            if (rows.length >= count && rows.every((row) => !row.loading)) {
+              return rows;
+            }
+
+            await Bun.sleep(50);
+          }
+
+          throw new Error(`the bot did not answer\n${stderr.all()}`);
+        };
+
+        await caller.bots.runCommand({
+          commandId: commandId('roll'),
+          channelId: 1,
+          values: { sides: 4 }
+        });
+        await caller.bots.runCommand({
+          commandId: commandId('slow'),
+          channelId: 1
+        });
+
+        const commandAnswers = await waitForAnswers(2);
+
+        expect(
+          commandAnswers.map((row) => [
+            row.content,
+            row.interactionCommandName,
+            row.editedAt
+          ])
+        ).toEqual([
+          ['<p>4</p>', 'roll', null],
+          ['<p>done</p>', 'slow', null]
+        ]);
+        expect(commandAnswers[0]!.embeds).toEqual([
+          {
+            title: 'Roll',
+            description: '<p><strong>4</strong></p>',
+            color: 0x3498db,
+            fields: [{ name: 'Sides', value: '<p>4</p>', inline: true }]
+          }
+        ]);
+
+        for (let attempt = 0; attempt < 100; attempt++) {
+          if (
+            published.mock.calls.some(
+              ([, topic]) => topic === ServerEvents.BOT_EPHEMERAL_MESSAGE
+            )
+          ) {
+            break;
+          }
+
+          await Bun.sleep(50);
+        }
+
+        const ephemeral = published.mock.calls.find(
+          ([, topic]) => topic === ServerEvents.BOT_EPHEMERAL_MESSAGE
+        );
+
+        expect(ephemeral?.[0]).toBe(1);
+        expect(ephemeral?.[2]).toMatchObject({
+          content: '<p>and one more</p>'
+        });
+
         const pingId = await caller.messages.send({
           channelId: 1,
           content: '<p>!ping</p>',
@@ -169,17 +247,16 @@ describe('discord.py compatibility', () => {
         });
         await child.exited;
 
-        const botMessages = await tdb
-          .select()
-          .from(messages)
-          .where(eq(messages.userId, bot.id));
+        const botMessages = await answers();
 
         expect(botMessages.map((message) => message.content)).toEqual([
+          '<p>4</p>',
+          '<p>done</p>',
           '<p>pong</p>',
-          // the seeded welcome message, the ping and the reply
-          '<p>history:3</p>'
+          // the seeded welcome message, the two command answers, the ping and the reply
+          '<p>history:5</p>'
         ]);
-        expect(botMessages[0]!.replyToMessageId).toBe(pingId);
+        expect(botMessages[2]!.replyToMessageId).toBe(pingId);
 
         const reactions = await tdb
           .select()

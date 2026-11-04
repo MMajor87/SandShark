@@ -6,7 +6,11 @@ import type { TEmojiItem } from '@/components/tiptap-input/helpers';
 import { LocalStorageKey } from '@/helpers/storage';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 
-import { findMissingRequiredCommandArg } from '@/components/tiptap-input/extensions/commands/helpers';
+import {
+  findMissingRequiredCommandArg,
+  type TSlashCommand
+} from '@/components/tiptap-input/extensions/commands/helpers';
+import { useBotCommands } from '@/features/server/bot-commands/hooks';
 import { useChannelById } from '@/features/server/channels/hooks';
 import {
   useCan,
@@ -132,10 +136,17 @@ const MessageCompose = memo(
       return t('typeAMessage');
     }, [channel, isThread, t]);
 
-    const pluginCommands = useMemo(
-      () => (can(Permission.USE_PLUGINS) ? allPluginCommands : undefined),
-      [can, allPluginCommands]
-    );
+    const botCommands = useBotCommands();
+
+    // a bot answers in the channel, not in a thread, so its commands are offered only there
+    const slashCommands = useMemo<TSlashCommand[] | undefined>(() => {
+      const plugin = can(Permission.USE_PLUGINS) ? allPluginCommands : [];
+      const bot = isThread ? [] : botCommands;
+
+      if (plugin.length === 0 && bot.length === 0) return undefined;
+
+      return [...plugin, ...bot];
+    }, [can, allPluginCommands, botCommands, isThread]);
 
     const {
       files,
@@ -329,7 +340,7 @@ const MessageCompose = memo(
               onArrowUp={onArrowUp}
               disabled={uploading || !canSendMessages}
               readOnly={sending}
-              commands={pluginCommands}
+              commands={slashCommands}
             />
           </div>
 

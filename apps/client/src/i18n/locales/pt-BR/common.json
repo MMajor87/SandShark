@@ -152,5 +152,13 @@
   "soundboard": "Painel de sons",
   "soundboardEmpty": "Ainda não há sons. Os administradores podem adicioná-los nas configurações do servidor.",
   "failedPlaySound": "Não foi possível tocar o som",
-  "botBadge": "Bot"
+  "botBadge": "Bot",
+  "botUsedCommand": "{{user}} usou /{{command}}",
+  "botIsThinking": "{{bot}} está pensando…",
+  "botEphemeralOnlyYou": "Só você pode ver isto",
+  "botEphemeralDismiss": "Dispensar",
+  "botCommandMembers": "Membros",
+  "botCommandRoles": "Cargos",
+  "botDidNotRespond": "O bot não respondeu a /{{command}}.",
+  "failedRunBotCommand": "Falha ao executar o comando"
 }

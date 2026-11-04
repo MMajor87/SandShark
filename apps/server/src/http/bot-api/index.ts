@@ -17,14 +17,19 @@ import {
   sendDiscordJson,
   sendDiscordRateLimit
 } from './errors';
+import { authenticateInteraction } from './interaction-auth';
 import { addOwnReactionRoute } from './routes/add-own-reaction';
 import { bulkOverwriteApplicationCommandsRoute } from './routes/bulk-overwrite-application-commands';
 import { createApplicationCommandRoute } from './routes/create-application-command';
 import { createDmRoute } from './routes/create-dm';
+import { createFollowupMessageRoute } from './routes/create-followup-message';
+import { createInteractionResponseRoute } from './routes/create-interaction-response';
 import { createMessageRoute } from './routes/create-message';
 import { deleteApplicationCommandRoute } from './routes/delete-application-command';
+import { deleteInteractionMessageRoute } from './routes/delete-interaction-message';
 import { deleteMessageRoute } from './routes/delete-message';
 import { editApplicationCommandRoute } from './routes/edit-application-command';
+import { editInteractionMessageRoute } from './routes/edit-interaction-message';
 import { editMessageRoute } from './routes/edit-message';
 import { getApplicationCommandRoute } from './routes/get-application-command';
 import { getApplicationCommandsRoute } from './routes/get-application-commands';
@@ -39,30 +44,39 @@ import { getGuildChannelsRoute } from './routes/get-guild-channels';
 import { getGuildMemberRoute } from './routes/get-guild-member';
 import { getGuildMembersRoute } from './routes/get-guild-members';
 import { getGuildRolesRoute } from './routes/get-guild-roles';
+import { getInteractionMessageRoute } from './routes/get-interaction-message';
 import { getUserRoute } from './routes/get-user';
 import { removeOwnReactionRoute } from './routes/remove-own-reaction';
 import { triggerTypingRoute } from './routes/trigger-typing';
-import { NO_CONTENT, type TBotRouteHandler } from './types';
+import {
+  NO_CONTENT,
+  type TBotRouteHandler,
+  type TInteractionRouteHandler
+} from './types';
 
 const BOT_API_PREFIX = '/api/v10';
 
 type TBotApiMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-type TBotRoute = {
+type TRoute<THandler> = {
   method: TBotApiMethod;
   segments: string[];
-  handler: TBotRouteHandler;
+  handler: THandler;
 };
 
-const route = (
+const route = <THandler = TBotRouteHandler>(
   method: TBotApiMethod,
   path: string,
-  handler: TBotRouteHandler
-): TBotRoute => ({ method, segments: path.split('/').slice(1), handler });
+  handler: THandler
+): TRoute<THandler> => ({
+  method,
+  segments: path.split('/').slice(1),
+  handler
+});
 
 // literal segments are listed before parameters at the same depth, so /users/@me wins
 // over /users/:userId
-const botRoutes: TBotRoute[] = [
+const botRoutes: TRoute<TBotRouteHandler>[] = [
   route('GET', '/gateway/bot', getGatewayBotRoute),
   route('GET', '/applications/@me', getCurrentApplicationRoute),
   route('GET', '/oauth2/applications/@me', getCurrentApplicationRoute),
@@ -138,7 +152,36 @@ const matchSegments = (routeSegments: string[], pathSegments: string[]) => {
   return params;
 };
 
-const findBotRoute = (method: TBotApiMethod, pathname: string) => {
+// answered with an interaction's token instead of the bot's, see interaction-auth
+const interactionRoutes: TRoute<TInteractionRouteHandler>[] = [
+  route(
+    'POST',
+    '/interactions/:interactionId/:token/callback',
+    createInteractionResponseRoute
+  ),
+  route('POST', '/webhooks/:applicationId/:token', createFollowupMessageRoute),
+  route(
+    'GET',
+    '/webhooks/:applicationId/:token/messages/:messageId',
+    getInteractionMessageRoute
+  ),
+  route(
+    'PATCH',
+    '/webhooks/:applicationId/:token/messages/:messageId',
+    editInteractionMessageRoute
+  ),
+  route(
+    'DELETE',
+    '/webhooks/:applicationId/:token/messages/:messageId',
+    deleteInteractionMessageRoute
+  )
+];
+
+const findRoute = <THandler>(
+  routes: TRoute<THandler>[],
+  method: TBotApiMethod,
+  pathname: string
+) => {
   const pathSegments = pathname
     .slice(BOT_API_PREFIX.length)
     .split('/')
@@ -146,7 +189,7 @@ const findBotRoute = (method: TBotApiMethod, pathname: string) => {
     .filter((segment) => segment.length > 0);
   let methodAllowed = false;
 
-  for (const candidate of botRoutes) {
+  for (const candidate of routes) {
     const params = matchSegments(candidate.segments, pathSegments);
 
     if (!params) continue;
@@ -193,64 +236,24 @@ type TBotApiContext = {
   url: URL;
 };
 
-const botApiRouteHandler = async (
-  req: http.IncomingMessage,
+const routeNotFound = (methodAllowed: boolean) =>
+  methodAllowed
+    ? new DiscordApiError(
+        405,
+        DiscordErrorCode.GENERAL,
+        '405: Method Not Allowed'
+      )
+    : new DiscordApiError(404, DiscordErrorCode.GENERAL, '404: Not Found');
+
+// runs a handler and writes its answer the way discord would, whichever credential the
+// route takes
+const respond = async (
   res: http.ServerResponse,
-  { info, pathname, url }: TBotApiContext
+  label: string,
+  run: () => Promise<unknown>
 ) => {
-  const ipKey = getClientRateLimitKey(info?.ip);
-  const bot = await getBotUserByAuthorization(req.headers.authorization);
-
-  if (!bot) {
-    const failure = authFailureLimiter.consume(ipKey);
-
-    if (!failure.allowed) {
-      sendDiscordRateLimit(res, failure.retryAfterMs);
-      return;
-    }
-
-    sendDiscordError(
-      res,
-      new DiscordApiError(401, DiscordErrorCode.GENERAL, '401: Unauthorized')
-    );
-    return;
-  }
-
-  const rateLimit = botLimiter.consume(`bot:${bot.id}`);
-
-  setRateLimitHeaders(res, rateLimit);
-
-  if (!rateLimit.allowed) {
-    sendDiscordRateLimit(res, rateLimit.retryAfterMs);
-    return;
-  }
-
-  const method = req.method as TBotApiMethod;
-  const { handler, params, methodAllowed } = findBotRoute(method, pathname);
-
-  if (!handler) {
-    sendDiscordError(
-      res,
-      methodAllowed
-        ? new DiscordApiError(
-            405,
-            DiscordErrorCode.GENERAL,
-            '405: Method Not Allowed'
-          )
-        : new DiscordApiError(404, DiscordErrorCode.GENERAL, '404: Not Found')
-    );
-    return;
-  }
-
   try {
-    const body = await handler({
-      req,
-      bot,
-      params,
-      url,
-      info,
-      origin: getPublicOrigin(req)
-    });
+    const body = await run();
 
     if (body === NO_CONTENT) {
       res.writeHead(204);
@@ -270,12 +273,7 @@ const botApiRouteHandler = async (
       return;
     }
 
-    logger.error(
-      'Bot API %s %s failed: %s',
-      method,
-      pathname,
-      getErrorMessage(error)
-    );
+    logger.error('Bot API %s failed: %s', label, getErrorMessage(error));
     sendDiscordError(
       res,
       new DiscordApiError(
@@ -285,6 +283,106 @@ const botApiRouteHandler = async (
       )
     );
   }
+};
+
+// the bot's one limit across every route, its interaction routes included
+const consumeBotLimit = (res: http.ServerResponse, botId: number) => {
+  const rateLimit = botLimiter.consume(`bot:${botId}`);
+
+  setRateLimitHeaders(res, rateLimit);
+
+  if (!rateLimit.allowed) {
+    throw new DiscordRateLimitError(rateLimit.retryAfterMs);
+  }
+};
+
+// an unknown interaction token counts against the address like an invalid bot token
+const authenticateInteractionRequest = async (
+  params: Record<string, string>,
+  ipKey: string
+) => {
+  try {
+    return await authenticateInteraction(params);
+  } catch (error) {
+    const failure = authFailureLimiter.consume(ipKey);
+
+    if (!failure.allowed) {
+      throw new DiscordRateLimitError(failure.retryAfterMs);
+    }
+
+    throw error;
+  }
+};
+
+const botApiRouteHandler = async (
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  { info, pathname, url }: TBotApiContext
+) => {
+  const ipKey = getClientRateLimitKey(info?.ip);
+  const method = req.method as TBotApiMethod;
+  const label = `${method} ${pathname}`;
+  const interactionRoute = findRoute(interactionRoutes, method, pathname);
+
+  if (interactionRoute.handler || interactionRoute.methodAllowed) {
+    const { handler, params } = interactionRoute;
+
+    await respond(res, label, async () => {
+      if (!handler) throw routeNotFound(true);
+
+      const authenticated = await authenticateInteractionRequest(params, ipKey);
+
+      consumeBotLimit(res, authenticated.bot.id);
+
+      return handler({
+        req,
+        params,
+        url,
+        info,
+        origin: getPublicOrigin(req),
+        ...authenticated
+      });
+    });
+    return;
+  }
+
+  const bot = await getBotUserByAuthorization(req.headers.authorization);
+
+  if (!bot) {
+    const failure = authFailureLimiter.consume(ipKey);
+
+    if (!failure.allowed) {
+      sendDiscordRateLimit(res, failure.retryAfterMs);
+      return;
+    }
+
+    sendDiscordError(
+      res,
+      new DiscordApiError(401, DiscordErrorCode.GENERAL, '401: Unauthorized')
+    );
+    return;
+  }
+
+  const { handler, params, methodAllowed } = findRoute(
+    botRoutes,
+    method,
+    pathname
+  );
+
+  await respond(res, label, async () => {
+    consumeBotLimit(res, bot.id);
+
+    if (!handler) throw routeNotFound(methodAllowed);
+
+    return handler({
+      req,
+      bot,
+      params,
+      url,
+      info,
+      origin: getPublicOrigin(req)
+    });
+  });
 };
 
 export { BOT_API_PREFIX, botApiRouteHandler };

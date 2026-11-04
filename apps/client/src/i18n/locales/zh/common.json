@@ -152,5 +152,13 @@
   "soundboard": "音效板",
   "soundboardEmpty": "还没有音效。服务器管理员可以在服务器设置中添加。",
   "failedPlaySound": "无法播放音效",
-  "botBadge": "机器人"
+  "botBadge": "机器人",
+  "botUsedCommand": "{{user}} 使用了 /{{command}}",
+  "botIsThinking": "{{bot}} 正在思考…",
+  "botEphemeralOnlyYou": "仅你可见",
+  "botEphemeralDismiss": "忽略",
+  "botCommandMembers": "成员",
+  "botCommandRoles": "角色",
+  "botDidNotRespond": "机器人没有回应 /{{command}}。",
+  "failedRunBotCommand": "无法运行该命令"
 }

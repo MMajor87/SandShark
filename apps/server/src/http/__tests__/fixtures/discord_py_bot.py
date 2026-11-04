@@ -28,7 +28,19 @@ tree = app_commands.CommandTree(client)
 
 @tree.command(name="roll", description="Roll a die")
 async def roll(interaction: discord.Interaction, sides: app_commands.Range[int, 2, 100]):
-    await interaction.response.send_message(str(sides))
+    embed = discord.Embed(title="Roll", description=f"**{sides}**", colour=0x3498DB)
+    embed.add_field(name="Sides", value=str(sides), inline=True)
+
+    await interaction.response.send_message(str(sides), embed=embed)
+
+
+# the usual way to take longer than three seconds: think first, then follow up, which fills
+# in the thinking message
+@tree.command(name="slow", description="Takes a moment")
+async def slow(interaction: discord.Interaction):
+    await interaction.response.defer()
+    await interaction.followup.send("done")
+    await interaction.followup.send("and one more", ephemeral=True)
 
 
 @client.event
@@ -62,4 +74,6 @@ async def on_message(message):
     await client.close()
 
 
-client.run(token, log_handler=None)
+# discord.py logs to stderr, which the test shows when the bot fails, so its tracebacks are
+# not lost
+client.run(token)

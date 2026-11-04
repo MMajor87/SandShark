@@ -152,5 +152,13 @@
   "soundboard": "Звуковая панель",
   "soundboardEmpty": "Пока нет звуков. Администраторы могут добавить их в настройках сервера.",
   "failedPlaySound": "Не удалось воспроизвести звук",
-  "botBadge": "Бот"
+  "botBadge": "Бот",
+  "botUsedCommand": "{{user}} использует /{{command}}",
+  "botIsThinking": "{{bot}} думает…",
+  "botEphemeralOnlyYou": "Это видите только вы",
+  "botEphemeralDismiss": "Скрыть",
+  "botCommandMembers": "Участники",
+  "botCommandRoles": "Роли",
+  "botDidNotRespond": "Бот не ответил на /{{command}}.",
+  "failedRunBotCommand": "Не удалось выполнить команду"
 }

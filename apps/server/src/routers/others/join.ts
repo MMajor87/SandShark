@@ -22,6 +22,7 @@ import { getSoundboardSounds } from '../../db/queries/soundboard';
 import { getFollowedThreadsForUser } from '../../db/queries/threads';
 import { getPublicUsers } from '../../db/queries/users';
 import { categories, users } from '../../db/schema';
+import { getBotCommandMenu } from '../../helpers/bot-command-menu';
 import { createMediaAccessToken } from '../../helpers/media-access-token';
 import { getCapabilityAccessRules } from '../../helpers/plugin-capability-access';
 import { safeCompare } from '../../helpers/safe-compare';
@@ -101,7 +102,8 @@ const joinServerRoute = rateLimitedProcedure(publicProcedure, {
       pluginsMetadata,
       hasJoinedBefore,
       pluginCapabilityAccess,
-      directMessages
+      directMessages,
+      botCommands
     ] = await Promise.all([
       db.select().from(categories),
       getChannelsForUser(ctx.user.id), // filter channels based on permissions and DM participation
@@ -115,7 +117,8 @@ const joinServerRoute = rateLimitedProcedure(publicProcedure, {
       pluginManager.getActivePluginMetadata(),
       hasUserJoinedBefore(ctx.user.id),
       getCapabilityAccessRules(),
-      getDirectMessageConversations(ctx.user.id)
+      getDirectMessageConversations(ctx.user.id),
+      getBotCommandMenu(ctx.user.id)
     ]);
 
     const followedThreads = await getFollowedThreadsForUser(
@@ -193,6 +196,7 @@ const joinServerRoute = rateLimitedProcedure(publicProcedure, {
       followedThreads,
       directMessages,
       commands: pluginManager.getCommands(),
+      botCommands,
       pluginIdsWithComponents: pluginManager.getPluginIdsWithComponents(),
       pluginCapabilityAccess,
       pluginsMetadata,

@@ -1,22 +1,26 @@
-import type { TCommandInfo } from '@sandshark/shared';
 import type { Editor } from '@tiptap/core';
 import { createSuggestionRenderer } from '../create-suggestion-renderer';
 import { SUGGESTION_LIMIT } from '../filter-by-query';
 import { CommandList } from './command-list';
+import { isBotCommand, type TSlashCommand } from './helpers';
 
 const COMMANDS_STORAGE_KEY = 'slashCommands';
 
-// commands match on plugin id and description too, so they cannot use filterByQuery
+// commands match on the plugin or bot and the description too, so they cannot use
+// filterByQuery
 const getCommands = ({
   editor,
   query
 }: {
   editor: Editor;
   query: string;
-}): TCommandInfo[] => {
-  const commands: TCommandInfo[] =
+}): TSlashCommand[] => {
+  const commands: TSlashCommand[] =
     (
-      editor.storage as unknown as Record<string, { commands?: TCommandInfo[] }>
+      editor.storage as unknown as Record<
+        string,
+        { commands?: TSlashCommand[] }
+      >
     )[COMMANDS_STORAGE_KEY]?.commands ?? [];
 
   if (!query) return commands.slice(0, SUGGESTION_LIMIT);
@@ -24,13 +28,19 @@ const getCommands = ({
   const normalizedQuery = query.toLowerCase();
 
   return commands
-    .filter(
-      (command) =>
+    .filter((command) => {
+      const providers = isBotCommand(command)
+        ? [command.botName]
+        : [command.pluginId, command.pluginName];
+
+      return (
         command.name.toLowerCase().includes(normalizedQuery) ||
-        command.pluginId.toLowerCase().startsWith(normalizedQuery) ||
-        command.pluginName.toLowerCase().startsWith(normalizedQuery) ||
+        providers.some((provider) =>
+          provider.toLowerCase().startsWith(normalizedQuery)
+        ) ||
         command.description?.toLowerCase().includes(normalizedQuery)
-    )
+      );
+    })
     .sort((a, b) => {
       const aName = a.name.toLowerCase();
       const bName = b.name.toLowerCase();

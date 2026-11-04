@@ -1,0 +1,1 @@
+ALTER TABLE `bot_ephemeral_messages` ADD `embeds` text;

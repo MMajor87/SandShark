@@ -1,6 +1,10 @@
 import type {
   ServerEvents,
   StreamKind,
+  TBotCommandsChange,
+  TBotEphemeralMessage,
+  TBotEphemeralMessageDelete,
+  TBotInteractionFailed,
   TCategory,
   TChannel,
   TChannelUserPermissionsMap,
@@ -25,6 +29,7 @@ import type {
 import type { Unsubscribable } from '@trpc/server/observable';
 import { observable, type Observable } from '@trpc/server/observable';
 import { EventEmitter } from 'events';
+import type { TBotInteractionEvent } from '../types';
 
 type Events = {
   [ServerEvents.NEW_MESSAGE]: TJoinedMessage;
@@ -131,6 +136,11 @@ type Events = {
   [ServerEvents.PLUGIN_CAPABILITY_ACCESS_CHANGE]: TPluginCapabilityAccessRule[];
   [ServerEvents.PLUGIN_PUSH]: TPluginPushEvent;
   [ServerEvents.PLUGIN_EPHEMERAL_RESPONSE]: TPluginEphemeralResponse;
+  [ServerEvents.BOT_INTERACTION_CREATE]: TBotInteractionEvent;
+  [ServerEvents.BOT_INTERACTION_FAILED]: TBotInteractionFailed;
+  [ServerEvents.BOT_COMMANDS_CHANGE]: TBotCommandsChange;
+  [ServerEvents.BOT_EPHEMERAL_MESSAGE]: TBotEphemeralMessage;
+  [ServerEvents.BOT_EPHEMERAL_MESSAGE_DELETE]: TBotEphemeralMessageDelete;
   [ServerEvents.PLUGIN_METADATA_CHANGE]: TPluginMetadata[];
 
   [ServerEvents.EMOJI_CREATE]: TJoinedEmoji;

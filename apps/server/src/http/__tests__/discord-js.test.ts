@@ -1,9 +1,11 @@
-import { Permission } from '@sandshark/shared';
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { Permission, ServerEvents } from '@sandshark/shared';
+import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test';
 import {
   Client,
+  EmbedBuilder,
   Events,
   GatewayIntentBits,
+  MessageFlags,
   SlashCommandBuilder,
   type Message
 } from 'discord.js';
@@ -17,6 +19,7 @@ import {
   messages,
   rolePermissions
 } from '../../db/schema';
+import { pubsub } from '../../utils/pubsub';
 
 // the seeded member role every new bot starts with
 const MEMBER_ROLE_ID = 2;
@@ -217,6 +220,185 @@ describe('discord.js compatibility', () => {
         ['ping', 'Pong, edited', false],
         ['ping', 'Replies with pong', true]
       ]);
+    } finally {
+      await client.destroy();
+    }
+  }, 30_000);
+
+  // the promise of #58: an unmodified discord.js bot answers slash commands the usual ways,
+  // and a member running them gets those answers
+  test('a bot answers slash commands with replies, ephemeral replies and deferrals', async () => {
+    const { caller } = await initTest(1);
+    const { token, bot } = await caller.bots.create({ name: 'Slash Bot' });
+    const published = spyOn(pubsub, 'publishFor');
+    const client = new Client({
+      intents: [GatewayIntentBits.Guilds],
+      rest: { api: `http://${host}/api` }
+    });
+
+    client.on(Events.InteractionCreate, async (interaction) => {
+      if (!interaction.isChatInputCommand()) return;
+
+      if (interaction.commandName === 'echo') {
+        await interaction.reply(interaction.options.getString('text', true));
+      } else if (interaction.commandName === 'secret') {
+        await interaction.reply({
+          content: 'only you',
+          flags: MessageFlags.Ephemeral
+        });
+      } else if (interaction.commandName === 'slow') {
+        await interaction.deferReply();
+        await interaction.editReply('done');
+        await interaction.followUp('and one more');
+      } else if (interaction.commandName === 'scores') {
+        await interaction.reply({
+          embeds: [
+            new EmbedBuilder()
+              .setTitle('Scores')
+              .setDescription('**Alice** leads')
+              .setColor(0x00ff00)
+              .addFields(
+                { name: 'Alice', value: '10', inline: true },
+                { name: 'Bob', value: '7', inline: true }
+              )
+              .setFooter({ text: 'Updated now' })
+          ]
+        });
+      }
+    });
+
+    try {
+      const ready = waitFor<Client<true>>((resolve) =>
+        client.once(Events.ClientReady, resolve)
+      );
+
+      await client.login(token);
+
+      const readyClient = await ready;
+
+      await readyClient.application.commands.set([
+        new SlashCommandBuilder()
+          .setName('echo')
+          .setDescription('Says it back')
+          .addStringOption((option) =>
+            option.setName('text').setDescription('What').setRequired(true)
+          )
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName('secret')
+          .setDescription('Whispers')
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName('slow')
+          .setDescription('Takes a moment')
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName('scores')
+          .setDescription('Shows the scores')
+          .toJSON()
+      ]);
+
+      const commands = await tdb
+        .select()
+        .from(botCommands)
+        .where(eq(botCommands.botId, bot.id));
+      const commandId = (name: string) =>
+        commands.find((command) => command.name === name)!.id;
+      const botMessages = () =>
+        tdb
+          .select()
+          .from(messages)
+          .where(eq(messages.userId, bot.id))
+          .orderBy(asc(messages.id));
+      const waitForMessages = async (count: number) => {
+        for (let attempt = 0; attempt < 100; attempt++) {
+          const rows = await botMessages();
+
+          if (rows.length >= count && rows.every((row) => !row.loading)) {
+            return rows;
+          }
+
+          await Bun.sleep(50);
+        }
+
+        throw new Error('the bot did not answer');
+      };
+
+      await caller.bots.runCommand({
+        commandId: commandId('echo'),
+        channelId: 1,
+        values: { text: 'hello there' }
+      });
+
+      const [echo] = await waitForMessages(1);
+
+      expect(echo).toMatchObject({
+        content: '<p>hello there</p>',
+        interactionUserId: 1,
+        interactionCommandName: 'echo'
+      });
+
+      await caller.bots.runCommand({
+        commandId: commandId('slow'),
+        channelId: 1
+      });
+
+      const answered = await waitForMessages(3);
+
+      expect(answered.map((row) => [row.content, row.editedAt])).toEqual([
+        ['<p>hello there</p>', null],
+        ['<p>done</p>', null],
+        ['<p>and one more</p>', null]
+      ]);
+
+      await caller.bots.runCommand({
+        commandId: commandId('scores'),
+        channelId: 1
+      });
+
+      const [, , , scores] = await waitForMessages(4);
+
+      expect(scores).toMatchObject({
+        content: '',
+        interactionCommandName: 'scores',
+        embeds: [
+          {
+            title: 'Scores',
+            description: '<p><strong>Alice</strong> leads</p>',
+            color: 0x00ff00,
+            fields: [
+              { name: 'Alice', value: '<p>10</p>', inline: true },
+              { name: 'Bob', value: '<p>7</p>', inline: true }
+            ],
+            footer: { text: 'Updated now' }
+          }
+        ]
+      });
+
+      await caller.bots.runCommand({
+        commandId: commandId('secret'),
+        channelId: 1
+      });
+
+      for (let attempt = 0; attempt < 100; attempt++) {
+        if (
+          published.mock.calls.some(
+            ([, topic]) => topic === ServerEvents.BOT_EPHEMERAL_MESSAGE
+          )
+        ) {
+          break;
+        }
+
+        await Bun.sleep(50);
+      }
+
+      const ephemeral = published.mock.calls.find(
+        ([, topic]) => topic === ServerEvents.BOT_EPHEMERAL_MESSAGE
+      );
+
+      expect(ephemeral?.[0]).toBe(1);
+      expect(ephemeral?.[2]).toMatchObject({ content: '<p>only you</p>' });
+      expect(await botMessages()).toHaveLength(4);
     } finally {
       await client.destroy();
     }

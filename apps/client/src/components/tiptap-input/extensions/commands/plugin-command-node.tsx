@@ -6,13 +6,14 @@ import {
   type NodeViewProps
 } from '@tiptap/react';
 import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   safeJsonParse,
   serializePluginCommandText,
   type TPluginCommandValues
 } from './helpers';
+import { useCommandChip } from './use-command-chip';
 
 type TPluginCommandAttrs = {
   pluginId: string;
@@ -113,7 +114,13 @@ const CommandArgInput = memo(
 const PluginCommandNodeView = memo(
   ({ node, updateAttributes, editor, getPos, extension }: NodeViewProps) => {
     const attrs = node.attrs as TPluginCommandAttrs;
-    const wrapperRef = useRef<HTMLSpanElement | null>(null);
+    const { onSubmit } = extension.options as TPluginCommandOptions;
+    const { wrapperRef, handleKeyNavigation } = useCommandChip({
+      node,
+      editor,
+      getPos,
+      onSubmit
+    });
 
     const argDefs = useMemo(
       () => safeJsonParse<TCommandArg[]>(attrs.args, []),
@@ -135,120 +142,6 @@ const PluginCommandNodeView = memo(
         values: JSON.stringify(nextValues)
       });
     };
-
-    const focusEditorAfterNode = () => {
-      const pos = typeof getPos === 'function' ? getPos() : null;
-
-      if (typeof pos === 'number') {
-        editor
-          .chain()
-          .setTextSelection(pos + node.nodeSize)
-          .focus()
-          .run();
-        return;
-      }
-
-      editor.chain().focus().run();
-    };
-
-    const handleKeyNavigation = (
-      event: ReactKeyboardEvent<HTMLInputElement | HTMLSelectElement>
-    ) => {
-      const isEnter =
-        event.key === 'Enter' &&
-        !event.shiftKey &&
-        !event.nativeEvent.isComposing;
-
-      if (event.key !== 'Tab' && !isEnter) {
-        return false;
-      }
-
-      const wrapper = wrapperRef.current;
-
-      if (!wrapper) {
-        return false;
-      }
-
-      const controls = Array.from(
-        wrapper.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
-          'input, select'
-        )
-      );
-
-      const currentIndex = controls.indexOf(event.currentTarget);
-
-      if (currentIndex === -1) {
-        return false;
-      }
-
-      event.preventDefault();
-
-      const isLast = currentIndex === controls.length - 1;
-
-      if (isEnter) {
-        if (!isLast) {
-          controls[currentIndex + 1]?.focus();
-
-          return true;
-        }
-
-        const { onSubmit } = extension.options as TPluginCommandOptions;
-
-        if (onSubmit) {
-          onSubmit();
-        } else {
-          focusEditorAfterNode();
-        }
-
-        return true;
-      }
-
-      if (event.shiftKey) {
-        if (currentIndex > 0) {
-          controls[currentIndex - 1]?.focus();
-        } else {
-          focusEditorAfterNode();
-        }
-
-        return true;
-      }
-
-      if (isLast) {
-        focusEditorAfterNode();
-      } else {
-        controls[currentIndex + 1]?.focus();
-      }
-
-      return true;
-    };
-
-    useEffect(() => {
-      const rafId = requestAnimationFrame(() => {
-        const wrapper = wrapperRef.current;
-
-        if (!wrapper) {
-          return;
-        }
-
-        const firstControl = wrapper.querySelector<
-          HTMLInputElement | HTMLSelectElement
-        >('input, select');
-
-        if (!firstControl) {
-          return;
-        }
-
-        firstControl.focus();
-
-        if (firstControl instanceof HTMLInputElement) {
-          firstControl.select();
-        }
-      });
-
-      return () => {
-        cancelAnimationFrame(rafId);
-      };
-    }, []);
 
     return (
       <NodeViewWrapper

@@ -26,6 +26,7 @@ import {
 import { extractMessageOpenGraph, extractSocialEmbeds } from './helpers';
 import { Media } from './media';
 import { extractMessageMedia } from './media-cache';
+import { MessageEmbeds } from './message-embeds';
 import { MessageRenderFallback } from './message-render-fallback';
 import { OpenGraph } from './open-graph';
 
@@ -144,6 +145,8 @@ const MessageRenderer = memo(
             </Tooltip>
           )}
         </div>
+
+        <MessageEmbeds embeds={message.embeds} messageId={message.id} />
 
         {message.pluginId &&
           message.pluginComponents &&

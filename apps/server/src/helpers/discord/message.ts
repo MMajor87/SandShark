@@ -10,6 +10,7 @@ import { db } from '../../db';
 import { getPublicUsers } from '../../db/queries/users';
 import { channels, emojis, messages } from '../../db/schema';
 import { channelSnowflake } from './channel';
+import { serializeEmbed } from './embed';
 import { roleSnowflake, type TGuildContext } from './guild';
 import {
   collectHtmlMentions,
@@ -17,11 +18,17 @@ import {
   type THtmlMentionLookups
 } from './markdown';
 import { encodeSnowflake, SnowflakeTag } from './snowflake';
-import { serializeUser, userSnowflake } from './user';
+import { serializeUser, userSnowflake, type TDiscordUserSource } from './user';
 
 const DiscordMessageType = {
   DEFAULT: 0,
-  REPLY: 19
+  REPLY: 19,
+  CHAT_INPUT_COMMAND: 20
+} as const;
+
+const DiscordMessageFlag = {
+  EPHEMERAL: 1 << 6,
+  LOADING: 1 << 7
 } as const;
 
 type TMessageSerializeOptions = {
@@ -41,8 +48,17 @@ const unique = <T>(values: T[]) => [...new Set(values)];
 // everything a page of messages refers to, loaded in one round of queries instead of per
 // message: authors, mentioned users, roles and channels, custom emoji and reply targets
 const loadMessageLookups = async (page: TJoinedMessage[]) => {
+  // mentions in embeds resolve like those in the content
   const mentions = page.map((message) =>
-    collectHtmlMentions(message.content ?? '')
+    collectHtmlMentions(
+      [
+        message.content ?? '',
+        ...(message.embeds ?? []).flatMap((embed) => [
+          embed.description ?? '',
+          ...(embed.fields ?? []).map((field) => field.value)
+        ])
+      ].join('')
+    )
   );
   const channelIds = unique([
     ...page.map((message) => message.channelId),
@@ -196,6 +212,48 @@ const serializeReactions = (
   }));
 };
 
+// an answer to a slash command is sent through the bot's interaction webhook, and the first
+// one says who ran which command. the interaction row is gone after fifteen minutes, so the
+// message itself stands in for its id from then on
+const serializeInteractionFields = (
+  message: TJoinedMessage,
+  author: TDiscordUserSource | undefined,
+  invoker: TDiscordUserSource | undefined,
+  guildId: string | undefined
+) => {
+  if (
+    message.interactionId === null &&
+    message.interactionCommandName === null
+  ) {
+    return {};
+  }
+
+  const applicationId = author ? userSnowflake(author) : undefined;
+  const fields = { webhook_id: applicationId, application_id: applicationId };
+
+  if (message.interactionCommandName === null || !invoker) return fields;
+
+  const id = encodeSnowflake(
+    SnowflakeTag.INTERACTION,
+    message.interactionId ?? message.id,
+    message.createdAt
+  );
+  const user = serializeUser(invoker);
+
+  return {
+    ...fields,
+    interaction_metadata: {
+      id,
+      type: 2,
+      user,
+      authorizing_integration_owners: guildId ? { '0': guildId } : {},
+      name: message.interactionCommandName,
+      command_type: 1
+    },
+    interaction: { id, type: 2, name: message.interactionCommandName, user }
+  };
+};
+
 const serializeMessages = async (
   page: TJoinedMessage[],
   options: TMessageSerializeOptions
@@ -217,10 +275,21 @@ const serializeMessages = async (
       message.replyToMessageId === null
         ? undefined
         : lookups.repliesById.get(message.replyToMessageId);
+    const invoker =
+      message.interactionUserId === null
+        ? undefined
+        : lookups.usersById.get(message.interactionUserId);
+    let type: number = DiscordMessageType.DEFAULT;
+
+    if (message.interactionCommandName !== null) {
+      type = DiscordMessageType.CHAT_INPUT_COMMAND;
+    } else if (reply) {
+      type = DiscordMessageType.REPLY;
+    }
 
     return {
       id: messageSnowflake(message),
-      type: reply ? DiscordMessageType.REPLY : DiscordMessageType.DEFAULT,
+      type,
       channel_id: channelId,
       ...(guildId ? { guild_id: guildId } : {}),
       author: author
@@ -250,10 +319,13 @@ const serializeMessages = async (
       attachments: message.files.map((file) =>
         serializeAttachment(file, options)
       ),
-      embeds: [],
+      embeds: (message.embeds ?? []).map((embed) =>
+        serializeEmbed(embed, htmlLookups)
+      ),
       reactions: serializeReactions(message.reactions, lookups, options.botId),
       pinned: message.pinned ?? false,
-      flags: 0,
+      flags: message.loading ? DiscordMessageFlag.LOADING : 0,
+      ...serializeInteractionFields(message, author, invoker, guildId),
       ...(reply
         ? {
             message_reference: {
@@ -269,6 +341,7 @@ const serializeMessages = async (
 };
 
 export {
+  DiscordMessageFlag,
   DiscordMessageType,
   messageSnowflake,
   serializeMessages,

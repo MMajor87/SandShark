@@ -67,6 +67,7 @@ Any library that lets you set the REST base URL can work. It should either read 
 - **Visibility.** A bot sees exactly what a member with the same roles sees. A channel it can't see is reported as *Unknown Channel*, never as *Missing Permissions*. Channel permission overwrites are always empty, because hidden channels aren't sent at all.
 - **Permissions.** SandShark's permissions are mapped onto Discord's permission bits. Bits with no SandShark equivalent are never set. The owner role is reported as Administrator.
 - **Message formatting.** Bold, italic, inline and block code, links, user, role and channel mentions, and custom emoji (`<:name:id>`) convert both ways. Underline, strikethrough and spoilers keep their text but lose the formatting.
+- **Embeds.** Up to 10 per message, with Discord's limits (6000 characters in all, 25 fields). Title, description, url, colour, timestamp, author, footer, fields, image and thumbnail are shown. Descriptions and field values take the same formatting as messages. Every url and image has to be `http` or `https`, so `attachment://` images aren't supported. A message can be embeds alone, and only bots can send them.
 - **Reactions.** Built-in emoji are named by their character (`👍`), and a bot's 👍 and a member's `:+1:` are the same reaction. Custom emoji use `name:id`.
 - **Avatars** aren't sent, because the libraries would build `cdn.discordapp.com` URLs from them.
 
@@ -83,16 +84,19 @@ Any library that lets you set the REST base URL can work. It should either read 
 | `GET /channels/{id}` | text, voice, category or a DM the bot is in |
 | `GET /channels/{id}/messages` | `limit` up to 100, and `before`, `after` or `around` |
 | `GET`, `PATCH`, `DELETE /channels/{id}/messages/{id}` | a bot can edit and delete its own messages, and other people's only with Manage messages |
-| `POST /channels/{id}/messages` | `content` up to 2000 characters, and `message_reference` for replies |
+| `POST /channels/{id}/messages` | `content` up to 2000 characters, `embeds`, and `message_reference` for replies |
 | `PUT`, `DELETE /channels/{id}/messages/{id}/reactions/{emoji}/@me` | |
 | `POST /channels/{id}/typing` | |
 | `POST /users/@me/channels` | opens a DM, if the server allows direct messages |
-| `GET`, `POST`, `PUT /applications/{id}/commands`, and `GET`, `PATCH`, `DELETE /applications/{id}/commands/{id}` | slash commands are stored, but can't be run from the client yet. The same routes under `/applications/{id}/guilds/{id}/commands` hold the guild's own list |
+| `GET`, `POST`, `PUT /applications/{id}/commands`, and `GET`, `PATCH`, `DELETE /applications/{id}/commands/{id}` | slash commands. The same routes under `/applications/{id}/guilds/{id}/commands` hold the guild's own list |
+| `POST /interactions/{id}/{token}/callback` | answers a slash command: a message (type 4) or a deferred "thinking" answer (type 5), either one ephemeral with flag 64 |
+| `POST /webhooks/{id}/{token}`, and `GET`, `PATCH`, `DELETE /webhooks/{id}/{token}/messages/{id or @original}` | follow ups, and reading, editing or deleting the answers. After a deferred answer the first follow up fills it in, as on Discord |
 
 **Gateway (`/api/v10/gateway`)**
 
 JSON encoding, with optional `zlib-stream` compression. HELLO, heartbeats, IDENTIFY with intents, READY then one GUILD_CREATE, and REQUEST_GUILD_MEMBERS. These events are sent, each only with its intent:
 
+- `INTERACTION_CREATE` for slash commands, which needs no intent
 - `MESSAGE_CREATE`, `MESSAGE_UPDATE`, `MESSAGE_DELETE` (guild and direct messages)
 - `MESSAGE_REACTION_ADD`, `MESSAGE_REACTION_REMOVE`
 - `TYPING_START`
@@ -104,13 +108,21 @@ Without the **message content** intent, guild messages arrive with their content
 
 ## Not supported yet
 
-- Running slash commands: bots can register them, but members can't use them yet, and there are no interactions (#58)
-- Embeds, buttons and other components, and webhooks
+- Slash command options that take a file, autocomplete, and user and message commands (the right click "Apps" menu)
+- Buttons, select menus and other components, modals, and webhooks other than an interaction's own
 - Uploading files from a bot (attachments can be read and downloaded)
 - Threads: replies inside a thread aren't sent or listed
 - Gateway resume: after a disconnect the bot identifies again, which the libraries do on their own
 - Voice. SandShark's voice doesn't use Discord's voice protocol.
 - Sharding, stage channels, forums, scheduled events, auto moderation, and the OAuth2 "add to server" flow
+
+## Slash commands
+
+A bot registers its commands as it would on Discord: discord.js with `application.commands.set` or `guild.commands.set`, discord.py with `tree.sync()`. Members find them in the message box's `/` menu next to plugin commands, each with fields for its options: members, channels and roles are picked from lists, and choices from a dropdown. A command with `default_member_permissions` is only offered to members with those permissions, and a bot's commands are offered in channels, not in threads, since the answer is posted in the channel.
+
+Answer them the usual ways: `reply`, `deferReply` then `editReply`, `followUp`, and ephemeral answers with `MessageFlags.Ephemeral` or `ephemeral=True`. An answer is a message from the bot, headed with who ran which command. An ephemeral answer is shown only to that member, below the channel's messages, until they dismiss it or reload. A deferred answer shows the bot thinking until it's filled in. A bot has three seconds to answer and fifteen minutes to edit or follow up, as on Discord.
+
+The bot posts its answer like any other message, so it needs to be able to see the channel and send messages there. A member can't run a command in a channel the bot can't see, or while the bot is offline.
 
 ## Limits
 

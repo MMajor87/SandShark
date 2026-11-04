@@ -152,5 +152,13 @@
   "soundboard": "Soundboard",
   "soundboardEmpty": "No sounds yet. Server admins can add them in server settings.",
   "failedPlaySound": "Failed to play sound",
-  "botBadge": "Bot"
+  "botBadge": "Bot",
+  "botUsedCommand": "{{user}} used /{{command}}",
+  "botIsThinking": "{{bot}} is thinking…",
+  "botEphemeralOnlyYou": "Only you can see this",
+  "botEphemeralDismiss": "Dismiss",
+  "botCommandMembers": "Members",
+  "botCommandRoles": "Roles",
+  "botDidNotRespond": "The bot didn't respond to /{{command}}.",
+  "failedRunBotCommand": "Failed to run the command"
 }

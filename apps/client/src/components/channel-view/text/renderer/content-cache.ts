@@ -29,12 +29,9 @@ const hashContent = (content: string) => {
 const getMessageContentCacheKey = (message: TJoinedMessage) =>
   `${message.id}:${message.editedAt ?? 0}:${hashContent(message.content ?? '')}`;
 
-const getParsedMessageHtml = (message: TJoinedMessage) => {
-  const cacheKey = getMessageContentCacheKey(message);
-  const cached = readFromCache(parsedMessageCache, cacheKey);
-
-  if (cached !== undefined) return cached;
-
+// message html as react, with the overrides messages render through. the message id lets
+// those overrides act on the message they belong to
+const parseMessageHtml = (html: string, messageId: number) => {
   const replace = (domNode: DOMNode) => {
     if (domNode instanceof Element && domNode.name === 'p') {
       return createElement(
@@ -52,9 +49,19 @@ const getParsedMessageHtml = (message: TJoinedMessage) => {
       );
     }
 
-    return serializer(domNode, message.id);
+    return serializer(domNode, messageId);
   };
-  const parsed = parse(message.content ?? '', { replace });
+
+  return parse(html, { replace });
+};
+
+const getParsedMessageHtml = (message: TJoinedMessage) => {
+  const cacheKey = getMessageContentCacheKey(message);
+  const cached = readFromCache(parsedMessageCache, cacheKey);
+
+  if (cached !== undefined) return cached;
+
+  const parsed = parseMessageHtml(message.content ?? '', message.id);
 
   writeToCache(parsedMessageCache, cacheKey, parsed);
 
@@ -88,4 +95,9 @@ const getYoutubeVideoIds = (message: TJoinedMessage) => {
   return youtubeVideoIds;
 };
 
-export { getIsEmojiOnly, getParsedMessageHtml, getYoutubeVideoIds };
+export {
+  getIsEmojiOnly,
+  getParsedMessageHtml,
+  getYoutubeVideoIds,
+  parseMessageHtml
+};

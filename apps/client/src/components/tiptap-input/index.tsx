@@ -2,7 +2,7 @@ import { useCustomEmojis } from '@/features/server/emojis/hooks';
 import { useReferenceableChannels } from '@/features/server/hooks';
 import { useRoles } from '@/features/server/roles/hooks';
 import { useFilteredUsers } from '@/features/server/users/hooks';
-import { TestId, type TCommandInfo } from '@sandshark/shared';
+import { TestId } from '@sandshark/shared';
 import Emoji, { gitHubEmojis } from '@tiptap/extension-emoji';
 import Link from '@tiptap/extension-link';
 import { EditorContent, useEditor } from '@tiptap/react';
@@ -23,10 +23,12 @@ import {
   CHANNEL_REF_STORAGE_KEY,
   ChannelReferenceSuggestion
 } from './extensions/channel-reference/suggestion';
+import { BotCommandNode } from './extensions/commands/bot-command-node';
 import {
   COMMANDS_STORAGE_KEY,
   CommandSuggestion
 } from './extensions/commands/command-suggestion';
+import type { TSlashCommand } from './extensions/commands/helpers';
 import { PluginCommandNode } from './extensions/commands/plugin-command-node';
 import { SlashCommands } from './extensions/commands/slash-commands-extension';
 import { EmojiSuggestion } from './extensions/emojis/suggestions';
@@ -54,7 +56,7 @@ type TTiptapInputProps = {
   onCancel?: () => void;
   onArrowUp?: () => void;
   onTyping?: () => void;
-  commands?: TCommandInfo[];
+  commands?: TSlashCommand[];
   ref?: Ref<TTiptapInputHandle>;
 };
 
@@ -140,7 +142,8 @@ const TiptapInput = memo(
           suggestion: ChannelReferenceSuggestion
         }),
         ChannelReferenceNode,
-        PluginCommandNode.configure({ onSubmit: submit })
+        PluginCommandNode.configure({ onSubmit: submit }),
+        BotCommandNode.configure({ onSubmit: submit })
       ];
 
       if (commands) {

@@ -7,6 +7,7 @@ import { bots, userRoles, users } from '../db/schema';
 import { closeBotGatewaySessions } from '../http/bot-api/gateway';
 import { enqueueActivityLog } from '../queues/activity-log';
 import { invariant } from '../utils/invariant';
+import { publishBotCommandsChange } from './bot-commands';
 import { createBotSecret, formatBotToken } from './bot-tokens';
 
 // a bot is a user that holds roles like anyone else, so every permission check applies to
@@ -86,6 +87,8 @@ const renameBot = async (
     .run();
 
   publishUser(bot.id, 'update');
+  // the slash menu names each command's bot
+  publishBotCommandsChange(bot.id);
   enqueueActivityLog({
     type: ActivityLogType.UPDATED_BOT,
     userId: actorUserId,

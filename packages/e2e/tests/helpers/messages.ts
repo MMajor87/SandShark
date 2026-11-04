@@ -74,6 +74,7 @@ const sendMessage = async (scope: TScope, content: string) => {
 };
 
 export {
+  composeEditor,
   getMockMessageNumbers,
   messageByText,
   messageItems,

@@ -149,7 +149,9 @@
         "@sandshark/shared": "workspace:*",
         "@types/bun": "latest",
         "@types/react": "^19",
+        "@types/ws": "^8.18.1",
         "drizzle-orm": "^0.44.5",
+        "ws": "^8.18.3",
       },
       "peerDependencies": {
         "@typescript-eslint/eslint-plugin": "^8.46.1",

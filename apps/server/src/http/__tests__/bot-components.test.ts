@@ -608,3 +608,73 @@ describe('answering a component', () => {
     ).toEqual([]);
   });
 });
+
+describe('select menus the server fills', () => {
+  const ENTITY_COMPONENTS = [
+    row({ type: BotComponentType.USER_SELECT, custom_id: 'who', max_values: 2 }),
+    row({ type: BotComponentType.MENTIONABLE_SELECT, custom_id: 'ping' }),
+    row({
+      type: BotComponentType.CHANNEL_SELECT,
+      custom_id: 'where',
+      channel_types: [0]
+    })
+  ];
+
+  test('hand the bot the picks as snowflakes, described in resolved', async () => {
+    const { bot, post, press, lastEvent } = await setup();
+    const { message } = await post(GENERAL, ENTITY_COMPONENTS);
+
+    expect(message.components![0]!.components[0]).toMatchObject({
+      type: BotComponentType.USER_SELECT,
+      customId: 'who',
+      maxValues: 2
+    });
+
+    await press(1, {
+      messageId: message.id,
+      customId: 'who',
+      values: ['user:2', 'user:3']
+    });
+
+    const event = lastEvent();
+    const payload = (await buildInteractionPayload(event, bot.id, {
+      botId: bot.id,
+      origin: 'http://localhost',
+      mediaToken: ''
+    })) as TJson;
+    const data = payload.data as TJson;
+    const values = data.values as string[];
+    const resolved = data.resolved as Record<string, TJson>;
+    const memberTwo = await tdb.select().from(users).where(eq(users.id, 2)).get();
+
+    expect(data.component_type).toBe(BotComponentType.USER_SELECT);
+    expect(values).toHaveLength(2);
+    expect(values[0]).toBe(userSnowflake(memberTwo!));
+    expect(Object.keys(resolved.users!).sort()).toEqual([...values].sort());
+    expect(Object.keys(resolved.members!).sort()).toEqual([...values].sort());
+  });
+
+  test('a mentionable takes members and roles', async () => {
+    const { post, press, lastEvent } = await setup();
+    const { message } = await post(GENERAL, ENTITY_COMPONENTS);
+
+    await press(1, { messageId: message.id, customId: 'ping', values: ['role:2'] });
+
+    expect(lastEvent()).toMatchObject({ values: ['role:2'] });
+  });
+
+  test.each([
+    ['a kind the menu does not take', 'who', ['role:2'], 'That choice is not one of the options.'],
+    ['a member who does not exist', 'who', ['user:999'], 'That member could not be found.'],
+    ['a channel the member cannot see', 'where', ['channel:3'], 'That channel could not be found.'],
+    ['a channel of a type the menu excludes', 'where', ['channel:2'], 'That kind of channel is not allowed here.'],
+    ['nothing picked', 'ping', [], 'That choice is not one of the options.']
+  ])('refuse %s', async (_, customId, values, message) => {
+    const { post, press } = await setup();
+    const { message: posted } = await post(GENERAL, ENTITY_COMPONENTS);
+
+    await expect(
+      press(2, { messageId: posted.id, customId, values })
+    ).rejects.toThrow(message);
+  });
+});

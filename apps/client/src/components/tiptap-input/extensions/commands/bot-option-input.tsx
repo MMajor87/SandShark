@@ -1,11 +1,10 @@
 import { useChannels } from '@/features/server/channels/hooks';
 import { useRoles } from '@/features/server/roles/hooks';
 import { useUsers } from '@/features/server/users/hooks';
+import { discordChannelType } from '@/helpers/discord-channel-type';
 import {
   BotCommandOptionType,
-  ChannelType,
-  type TBotCommandOption,
-  type TChannel
+  type TBotCommandOption
 } from '@sandshark/shared';
 import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { memo, useCallback, useMemo } from 'react';
@@ -21,10 +20,6 @@ type TBotOptionInputProps = {
 };
 
 type TChoice = { value: string; label: string };
-
-// discord's channel type numbers, which a bot restricts a channel option by
-const discordChannelType = (channel: TChannel) =>
-  channel.type === ChannelType.VOICE ? 2 : 0;
 
 const SELECT_CLASS =
   'h-5 max-w-40 rounded border bg-background px-1 text-[11px]';

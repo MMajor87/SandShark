@@ -77,7 +77,11 @@ const loadInteractionContext = async (event: TBotInteractionEvent) => {
     channels: new Set()
   };
 
-  if (event.kind === 'command') collectReferences(event.options, referenced);
+  if (event.kind === 'command') {
+    collectReferences(event.options, referenced);
+  } else {
+    collectEntityValues(event.values, referenced);
+  }
 
   const [guild, publicUsers, channelRows, categoryRows] = await Promise.all([
     getGuildContext(),
@@ -100,6 +104,34 @@ const loadInteractionContext = async (event: TBotInteractionEvent) => {
 };
 
 type TInteractionContext = Awaited<ReturnType<typeof loadInteractionContext>>;
+
+const ENTITY_VALUE = /^(user|role|channel):(\d+)$/;
+
+// what a server filled select menu sent, "user:5" and the like. a string select's values
+// match nothing here
+const collectEntityValues = (values: string[], ids: TReferencedIds) => {
+  for (const value of values) {
+    const [, kind, id] = ENTITY_VALUE.exec(value) ?? [];
+
+    if (kind === 'user') ids.users.add(Number(id));
+    else if (kind === 'role') ids.roles.add(Number(id));
+    else if (kind === 'channel') ids.channels.add(Number(id));
+  }
+};
+
+const entityValueSnowflake = (value: string, context: TInteractionContext) => {
+  const [, kind, id] = ENTITY_VALUE.exec(value) ?? [];
+
+  if (kind === 'user') return userSnowflake(context.usersById.get(Number(id))!);
+
+  if (kind === 'channel') {
+    return channelSnowflake(context.channelsById.get(Number(id))!);
+  }
+
+  return roleSnowflake(
+    context.guild.roles.find((role) => role.id === Number(id))!
+  );
+};
 
 const serializeOptionValue = (
   option: TInvocationOption,
@@ -231,9 +263,7 @@ const buildInteractionData = async (
       data: {
         custom_id: event.customId,
         component_type: event.componentType,
-        ...(event.componentType === BotComponentType.STRING_SELECT
-          ? { values: event.values }
-          : {})
+        ...componentValues(event, context, invokerBits)
       },
       ...(message ? { message } : {})
     };
@@ -253,6 +283,25 @@ const buildInteractionData = async (
         : {}),
       ...(Object.keys(resolved).length > 0 ? { resolved } : {})
     }
+  };
+};
+
+// a string select sends its values as they are. a server filled one sends snowflakes and
+// describes them in resolved, the way a command's options are
+const componentValues = (
+  event: Extract<TBotInteractionEvent, { kind: 'component' }>,
+  context: TInteractionContext,
+  invokerBits: bigint
+) => {
+  if (event.componentType === BotComponentType.BUTTON) return {};
+
+  if (event.componentType === BotComponentType.STRING_SELECT) {
+    return { values: event.values };
+  }
+
+  return {
+    values: event.values.map((value) => entityValueSnowflake(value, context)),
+    resolved: serializeResolved(context, invokerBits)
   };
 };
 

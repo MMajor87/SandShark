@@ -283,4 +283,9 @@ const resolveInvocation = async (
   };
 };
 
-export { resolveInvocation, type TInvocationInput };
+export {
+  assertReferencesExist,
+  resolveInvocation,
+  type TCollectedIds,
+  type TInvocationInput
+};

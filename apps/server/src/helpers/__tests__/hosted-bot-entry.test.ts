@@ -34,9 +34,10 @@ describe('resolveHostedBotEntry', () => {
       'other.js': ''
     });
 
-    expect(await resolveHostedBotEntry(botPath)).toBe(
-      path.join(botPath, 'src', 'bot.js')
-    );
+    expect(await resolveHostedBotEntry(botPath)).toEqual({
+      language: 'javascript',
+      file: path.join(botPath, 'src', 'bot.js')
+    });
   });
 
   test('falls back to main when the start script does more than run a file', async () => {
@@ -48,17 +49,44 @@ describe('resolveHostedBotEntry', () => {
       'dist/index.js': ''
     });
 
-    expect(await resolveHostedBotEntry(botPath)).toBe(
-      path.join(botPath, 'dist', 'index.js')
-    );
+    expect(await resolveHostedBotEntry(botPath)).toEqual({
+      language: 'javascript',
+      file: path.join(botPath, 'dist', 'index.js')
+    });
   });
 
   test('falls back to an index at the root, typescript included', async () => {
     await write({ 'index.ts': '' });
 
-    expect(await resolveHostedBotEntry(botPath)).toBe(
-      path.join(botPath, 'index.ts')
-    );
+    expect(await resolveHostedBotEntry(botPath)).toEqual({
+      language: 'javascript',
+      file: path.join(botPath, 'index.ts')
+    });
+  });
+
+  test('runs a python bot from its main.py, then its bot.py', async () => {
+    await write({ 'bot.py': '', 'main.py': '', 'requirements.txt': '' });
+
+    expect(await resolveHostedBotEntry(botPath)).toEqual({
+      language: 'python',
+      file: path.join(botPath, 'main.py')
+    });
+
+    await fs.rm(path.join(botPath, 'main.py'));
+
+    expect(await resolveHostedBotEntry(botPath)).toEqual({
+      language: 'python',
+      file: path.join(botPath, 'bot.py')
+    });
+  });
+
+  test('prefers the javascript entry when a folder has both', async () => {
+    await write({ 'index.js': '', 'main.py': '' });
+
+    expect(await resolveHostedBotEntry(botPath)).toEqual({
+      language: 'javascript',
+      file: path.join(botPath, 'index.js')
+    });
   });
 
   test('never runs a file outside the bot folder', async () => {

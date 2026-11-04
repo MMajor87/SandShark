@@ -30,12 +30,17 @@ import { config } from '../../config';
 import { hostedBots, rolePermissions, settings } from '../../db/schema';
 import { getUnsupportedCalls } from '../../helpers/bot-compat-report';
 import { fileManager } from '../../helpers/file-manager';
+import { findPython } from '../../helpers/hosted-bot-python';
 import { HOSTED_BOTS_PATH } from '../../helpers/paths';
 import { getHostedBotPath, HostedBotRuntime } from '../../runtimes/hosted-bot';
 import { pubsub } from '../../utils/pubsub';
 
 // the seeded member role user 2 holds
 const MEMBER_ROLE_ID = 2;
+
+// python bots can only run where a python 3 is installed, which the ci runners and most
+// dev machines have. without one, only the refusals below are covered
+const python = await findPython();
 
 let server: http.Server;
 const originalServer = { ...config.server };
@@ -73,9 +78,12 @@ const createHostedBot = async (files: Record<string, string>) => {
 
   await fs.mkdir(botPath, { recursive: true });
   await Promise.all(
-    Object.entries(files).map(([name, content]) =>
-      fs.writeFile(path.join(botPath, name), content)
-    )
+    Object.entries(files).map(async ([name, content]) => {
+      const file = path.join(botPath, name);
+
+      await fs.mkdir(path.dirname(file), { recursive: true });
+      await fs.writeFile(file, content);
+    })
   );
 
   return { caller, bot, token, botPath };
@@ -860,7 +868,9 @@ setInterval(() => {}, 1000);
 
       await expect(
         caller.bots.installHostedDependencies({ botId: bot.id })
-      ).rejects.toThrow('This bot has no package.json to install from.');
+      ).rejects.toThrow(
+        'This bot has no package.json, requirements.txt or pyproject.toml to install from.'
+      );
 
       await fs.writeFile(
         path.join(botPath, 'package.json'),
@@ -873,5 +883,139 @@ setInterval(() => {}, 1000);
         HostedBotStatus.STOPPED
       );
     }, 70_000);
+  });
+
+  describe('python', () => {
+    test('refuses to start a python bot when the server has no python', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({ 'main.py': '' });
+
+      spyOn(Bun, 'which').mockReturnValue(null);
+
+      await expect(caller.bots.startHosted({ botId: bot.id })).rejects.toThrow(
+        'This bot is written in Python, and Python 3 was not found on this server.'
+      );
+    });
+
+    test('says why a python install could not run', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({
+        'main.py': '',
+        'requirements.txt': ''
+      });
+
+      spyOn(Bun, 'which').mockReturnValue(null);
+
+      await caller.bots.installHostedDependencies({ botId: bot.id });
+      await waitForLog(bot.id, 'installing dependencies failed');
+
+      expect(logText(bot.id)).toContain(
+        'Python 3 was not found on this server'
+      );
+    });
+
+    test.skipIf(!python)(
+      'moves aiohttp to this server and refuses any other way to discord',
+      async () => {
+        await enableHosting();
+
+        // aiohttp as discord.py uses it, reduced to the one method the shim patches. the
+        // url it is handed is answered back, so the bot can see where it was sent
+        const { caller, bot } = await createHostedBot({
+          'aiohttp/__init__.py': `
+class ClientSession:
+    async def _request(self, method, str_or_url, **kwargs):
+        return str(str_or_url)
+`,
+          'main.py': `
+import asyncio
+import json
+import os
+import time
+import urllib.request
+
+import aiohttp
+
+
+async def main():
+    session = aiohttp.ClientSession()
+    api = await session._request('GET', 'https://discord.com/api/v10/users/@me')
+    gateway = await session._request('GET', 'wss://gateway.discord.gg/?v=10&encoding=json')
+
+    try:
+        await session._request('GET', 'https://cdn.discordapp.com/avatars/1/2.png')
+    except ConnectionRefusedError:
+        pass
+
+    return api, gateway
+
+
+api, gateway = asyncio.run(main())
+request = urllib.request.Request(
+    api, headers={'Authorization': 'Bot ' + os.environ['DISCORD_TOKEN']}
+)
+
+with urllib.request.urlopen(request) as response:
+    print('whoami', response.status, json.load(response)['username'])
+
+print('gateway', gateway == os.environ['SANDSHARK_GATEWAY_URL'] + '?v=10&encoding=json')
+
+try:
+    urllib.request.urlopen('https://discord.com/api/v10/gateway')
+except OSError:
+    pass
+
+print('done')
+
+while True:
+    time.sleep(1)
+`
+        });
+
+        await caller.bots.startHosted({ botId: bot.id });
+        await waitForLog(bot.id, 'done');
+
+        const text = logText(bot.id);
+
+        expect(text).toContain('started main.py');
+        expect(text).toContain('whoami 200 Hosted');
+        expect(text).toContain('gateway True');
+        expect(text).toContain('refused a connection to cdn.discordapp.com');
+        expect(text).toContain('refused a connection to discord.com');
+      },
+      30_000
+    );
+
+    test.skipIf(!python)(
+      'installs requirements into a venv of its own and runs the bot on it',
+      async () => {
+        await enableHosting();
+
+        const { caller, bot, botPath } = await createHostedBot({
+          'requirements.txt': '',
+          'main.py': `
+import sys
+import time
+
+print('prefix', sys.prefix)
+
+while True:
+    time.sleep(1)
+`
+        });
+
+        await caller.bots.installHostedDependencies({ botId: bot.id });
+        await waitForLog(bot.id, 'dependencies installed', 120_000);
+        await caller.bots.startHosted({ botId: bot.id });
+        await waitForLog(bot.id, 'prefix');
+
+        expect(logText(bot.id)).toContain(
+          `prefix ${path.join(botPath, '.venv')}`
+        );
+      },
+      150_000
+    );
   });
 });

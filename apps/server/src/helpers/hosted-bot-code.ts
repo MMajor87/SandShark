@@ -12,6 +12,7 @@ import { logger } from '../logger';
 import { getHostedBotPath, HostedBotRuntime } from '../runtimes/hosted-bot';
 import { invariant } from '../utils/invariant';
 import { unzipBlobToDirectory } from '../utils/zip';
+import { hasHostedBotDependencies } from './hosted-bot-install';
 import { TMP_PATH } from './paths';
 
 const MAX_ARCHIVE_MB = HOSTED_BOT_MAX_ARCHIVE_SIZE / 1024 / 1024;
@@ -29,9 +30,6 @@ const findCodeRoot = async (dir: string) => {
   return dir;
 };
 
-const hasPackageJson = (botId: number) =>
-  Bun.file(path.join(getHostedBotPath(botId), 'package.json')).exists();
-
 // off the request path: the install can take minutes, and its output goes to the bot's log
 const installInBackground = (botId: number) => {
   HostedBotRuntime.install(botId).catch((error) => {
@@ -40,9 +38,10 @@ const installInBackground = (botId: number) => {
 };
 
 const installHostedBotDependencies = async (botId: number) => {
-  invariant(await hasPackageJson(botId), {
+  invariant(await hasHostedBotDependencies(getHostedBotPath(botId)), {
     code: 'BAD_REQUEST',
-    message: 'This bot has no package.json to install from.'
+    message:
+      'This bot has no package.json, requirements.txt or pyproject.toml to install from.'
   });
 
   installInBackground(botId);
@@ -88,7 +87,7 @@ const replaceHostedBotCode = async (
     codeUpdatedAt: Date.now()
   });
 
-  if (await hasPackageJson(botId)) {
+  if (await hasHostedBotDependencies(botPath)) {
     installInBackground(botId);
     return;
   }

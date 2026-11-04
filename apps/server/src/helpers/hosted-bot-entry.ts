@@ -9,6 +9,12 @@ const SINGLE_FILE_START =
   /^(?:node|bun|tsx|ts-node)(?:\s+--?[\w-]+)*\s+([^\s&|;<>]+)$/;
 
 const DEFAULT_ENTRIES = ['index.js', 'index.ts'];
+const PYTHON_ENTRIES = ['main.py', 'bot.py'];
+
+type THostedBotEntry = {
+  language: 'javascript' | 'python';
+  file: string;
+};
 
 type TPackageJson = {
   main?: unknown;
@@ -39,9 +45,22 @@ const isFileInside = async (botPath: string, file: string) => {
   }
 };
 
+const findFirstFile = async (botPath: string, candidates: string[]) => {
+  for (const candidate of candidates) {
+    if (await isFileInside(botPath, candidate)) {
+      return path.resolve(botPath, candidate);
+    }
+  }
+
+  return undefined;
+};
+
 // the file `npm start` would end up running: the start script's file, then main, then an
-// index at the root. undefined when the folder holds nothing to run
-const resolveHostedBotEntry = async (botPath: string) => {
+// index at the root. a folder with none of those is a python bot if it has a main.py or a
+// bot.py. undefined when the folder holds nothing to run
+const resolveHostedBotEntry = async (
+  botPath: string
+): Promise<THostedBotEntry | undefined> => {
   const packageJson = await readPackageJson(botPath);
   const candidates: string[] = [];
   const start = packageJson?.scripts?.start;
@@ -58,13 +77,16 @@ const resolveHostedBotEntry = async (botPath: string) => {
 
   candidates.push(...DEFAULT_ENTRIES);
 
-  for (const candidate of candidates) {
-    if (await isFileInside(botPath, candidate)) {
-      return path.resolve(botPath, candidate);
-    }
-  }
+  const script = await findFirstFile(botPath, candidates);
+
+  if (script) return { language: 'javascript', file: script };
+
+  const pythonScript = await findFirstFile(botPath, PYTHON_ENTRIES);
+
+  if (pythonScript) return { language: 'python', file: pythonScript };
 
   return undefined;
 };
 
 export { resolveHostedBotEntry };
+export type { THostedBotEntry };

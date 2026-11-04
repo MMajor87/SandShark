@@ -71,18 +71,20 @@ Instead of running the bot on another machine, you can give its code to SandShar
 
 What the server does for a hosted bot:
 
-- **Points it at this server.** Before the bot's own code runs, a small shim moves `https://discord.com/api` to this server's API and `gateway.discord.gg` to this server's gateway. A bot that calls `client.login()` works unchanged.
+- **Points it at this server.** Before the bot's own code runs, a small shim moves `https://discord.com/api` to this server's API and `gateway.discord.gg` to this server's gateway. A bot that calls `client.login()` or `client.run(token)` works unchanged.
 - **Blocks Discord itself.** Every other connection to a Discord host is refused, so the bot's token can't be sent to Discord, even by a library the shim doesn't know about. Other addresses are left alone, so weather, AI and game APIs keep working.
 - **Gives it a token.** A fresh token is made on every start and given as `DISCORD_TOKEN`, `TOKEN` and `BOT_TOKEN`, plus any names you add under **Extra token variables**. Starting a hosted bot ends any copy of it running elsewhere.
 - **Gives it nothing else of the server's.** The bot runs from its own folder with a clean environment: its token, your variables, and the few system variables a program needs to run.
-- **Runs the right file.** It picks the file a `start` script such as `node bot.js` runs, then `main` in `package.json`, then `index.js` or `index.ts`. TypeScript runs without a build step.
-- **Installs dependencies.** Bots with a `package.json` have their dependencies installed after every upload or update, and on **Install dependencies**. The install doesn't see the token or your variables.
+- **Runs the right file.** It picks the file a `start` script such as `node bot.js` runs, then `main` in `package.json`, then `index.js` or `index.ts`. TypeScript runs without a build step. A folder with none of those is run as a Python bot from `main.py`, or else `bot.py`.
+- **Installs dependencies.** Dependencies are installed after every upload or update, and on **Install dependencies**: `package.json` with Bun, and `requirements.txt` (or else `pyproject.toml`) with pip into a `.venv` in the bot's folder. The install doesn't see the token or your variables.
 - **Keeps the bot's data.** An upload replaces the files it contains and keeps everything else, so data the bot saves next to its code survives updates.
 - **Keeps it running.** A crash is restarted after a short wait that grows each time. Five crashes within half a minute of starting leave the bot **Crashed** until you start it again. Enabled bots start with the server.
 
 **Compatibility** lists the calls a bot made that SandShark doesn't support yet, each counted once per endpoint and written to the log the first time. A few lists that bots fetch while starting, the server's emojis, stickers and scheduled events, are answered empty instead of refused and marked **answered empty**. When a bot that works on Discord misbehaves here, this is the first place to look.
 
-Hosted bots run on the server's own runtime, which is Bun. Most JavaScript and TypeScript bots run as they are, but packages with native add-ons such as `canvas` may not. Python bots aren't supported yet.
+JavaScript and TypeScript bots run on the server's own runtime, which is Bun. Most run as they are, but packages with native add-ons such as `canvas` may not.
+
+Python bots need Python 3 installed on the server, found as `python3` or `python`, with its `venv` module (on Debian and Ubuntu, the `python3-venv` package). The Docker image doesn't include Python. On Windows, install it from python.org: the Microsoft Store's Python can't be started by other programs. The shim moves aiohttp's requests, which covers discord.py, its forks such as nextcord, disnake and py-cord, and hikari. Libraries that reach Discord another way are refused rather than redirected.
 
 > **Hosted code is trusted code.** A hosted bot runs as the server's own user and can read everything the server can, including the database and uploaded files. There is no sandbox, as with plugins. Only run code you trust, and only give **Host bots** to people you would trust with the server itself.
 

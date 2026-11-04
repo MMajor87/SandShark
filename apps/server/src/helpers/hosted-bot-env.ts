@@ -2,6 +2,7 @@ import { HOSTED_BOT_DEFAULT_TOKEN_ENV_NAMES } from '@sandshark/shared';
 import { config } from '../config';
 import { BOT_GATEWAY_PATH } from '../http/bot-api/gateway/protocol';
 import { getHost } from './get-host';
+import { HOSTED_BOT_PYTHON_SHIM_DIR } from './hosted-bot-python-shim';
 
 // what a bot still needs from the host to run at all. nothing else of the server's own
 // environment is passed on, since it can hold the server's secrets
@@ -26,7 +27,8 @@ const RESERVED_ENV_NAMES = [
   'SANDSHARK_GATEWAY_URL',
   'BUN_BE_BUN',
   'NODE_OPTIONS',
-  'BUN_OPTIONS'
+  'BUN_OPTIONS',
+  'PYTHONPATH'
 ];
 
 // the bot runs on this machine, so it reaches the server on the loopback address whatever
@@ -78,6 +80,10 @@ const buildHostedBotEnv = ({
   result.SANDSHARK_API_URL = `${origin}/api`;
   result.SANDSHARK_GATEWAY_URL = `${origin.replace(/^http/, 'ws')}${BOT_GATEWAY_PATH}`;
   result.NODE_ENV = 'production';
+  // the python shim is found through this, a javascript bot never looks at it. unbuffered,
+  // so a python bot's prints reach the log as they happen and not when it exits
+  result.PYTHONPATH = HOSTED_BOT_PYTHON_SHIM_DIR;
+  result.PYTHONUNBUFFERED = '1';
 
   return result;
 };

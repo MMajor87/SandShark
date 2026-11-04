@@ -65,6 +65,13 @@ export type THostedBot = {
   unsupported: THostedBotUnsupportedCall[];
 };
 
+// what a running bot's process uses, read when asked. cpu is the share of one core used
+// since the previous read, so it is unknown on the first
+export type THostedBotUsage = {
+  memoryBytes: number;
+  cpuPercent: number | null;
+};
+
 // the part of a hosted bot that only the running process knows, published as it changes
 export type THostedBotState = Pick<
   THostedBot,

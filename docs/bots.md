@@ -81,6 +81,7 @@ What the server does for a hosted bot:
 - **Installs dependencies.** Dependencies are installed after every upload or update, and on **Install dependencies**: `package.json` with Bun, and `requirements.txt` (or else `pyproject.toml`) with pip into a `.venv` in the bot's folder. The install doesn't see the token or your variables.
 - **Keeps the bot's data.** An upload replaces the files it contains and keeps everything else, so data the bot saves next to its code survives updates.
 - **Keeps it running.** A crash is restarted after a short wait that grows each time. Five crashes within half a minute of starting leave the bot **Crashed** until you start it again. Enabled bots start with the server.
+- **Shows what it uses.** While the bot runs, its memory and its share of one CPU core are shown next to its status, on Linux servers only, which includes the Docker image. Processes the bot starts itself aren't counted. There are no limits on either.
 
 **Compatibility** lists the calls a bot made that SandShark doesn't support yet, each counted once per endpoint and written to the log the first time. A few lists that bots fetch while starting, the server's emojis, stickers and scheduled events, are answered empty instead of refused and marked **answered empty**. When a bot that works on Discord misbehaves here, this is the first place to look.
 

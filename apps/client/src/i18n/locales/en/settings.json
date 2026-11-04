@@ -609,6 +609,8 @@
   "hostedStatus_running": "Running",
   "hostedStatus_crashed": "Crashed",
   "hostedRestarts": "Restarts: {{count}}",
+  "hostedMemory": "Memory: {{value}}",
+  "hostedCpu": "CPU: {{value}}%",
   "hostedStart": "Start",
   "hostedStop": "Stop",
   "hostedRestart": "Restart",

@@ -609,6 +609,8 @@
   "hostedStatus_running": "En ejecución",
   "hostedStatus_crashed": "Caído",
   "hostedRestarts": "Reinicios: {{count}}",
+  "hostedMemory": "Memoria: {{value}}",
+  "hostedCpu": "CPU: {{value}} %",
   "hostedStart": "Iniciar",
   "hostedStop": "Detener",
   "hostedRestart": "Reiniciar",

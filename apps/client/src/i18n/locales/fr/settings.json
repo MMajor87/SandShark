@@ -609,6 +609,8 @@
   "hostedStatus_running": "En cours",
   "hostedStatus_crashed": "Planté",
   "hostedRestarts": "Redémarrages : {{count}}",
+  "hostedMemory": "Mémoire : {{value}}",
+  "hostedCpu": "CPU : {{value}} %",
   "hostedStart": "Démarrer",
   "hostedStop": "Arrêter",
   "hostedRestart": "Redémarrer",

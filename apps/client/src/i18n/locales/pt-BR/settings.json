@@ -609,6 +609,8 @@
   "hostedStatus_running": "Rodando",
   "hostedStatus_crashed": "Travou",
   "hostedRestarts": "Reinícios: {{count}}",
+  "hostedMemory": "Memória: {{value}}",
+  "hostedCpu": "CPU: {{value}}%",
   "hostedStart": "Iniciar",
   "hostedStop": "Parar",
   "hostedRestart": "Reiniciar",

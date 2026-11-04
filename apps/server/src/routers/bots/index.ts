@@ -15,6 +15,7 @@ import { getBotsRoute } from './get-bots';
 import { getCommandsRoute } from './get-commands';
 import { getHostedRoute } from './get-hosted';
 import { getHostedLogsRoute } from './get-hosted-logs';
+import { getHostedUsageRoute } from './get-hosted-usage';
 import { installHostedDependenciesRoute } from './install-hosted-dependencies';
 import { pressComponentRoute } from './press-component';
 import { renameBotRoute } from './rename-bot';
@@ -49,6 +50,7 @@ const botsRouter = t.router({
   onInteractionFailed: onInteractionFailedRoute,
   getHosted: getHostedRoute,
   getHostedLogs: getHostedLogsRoute,
+  getHostedUsage: getHostedUsageRoute,
   startHosted: startHostedRoute,
   stopHosted: stopHostedRoute,
   restartHosted: restartHostedRoute,

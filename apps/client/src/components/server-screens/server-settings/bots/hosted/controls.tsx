@@ -9,6 +9,7 @@ import { Play, RotateCw, Square } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { HostedUsage } from './usage';
 
 const STATUS_VARIANTS = {
   [HostedBotStatus.STOPPED]: 'secondary',
@@ -60,6 +61,7 @@ const HostedControls = memo(({ hosted }: THostedControlsProps) => {
       <Badge variant={STATUS_VARIANTS[status]}>
         {t(`hostedStatus_${status}`)}
       </Badge>
+      {status === HostedBotStatus.RUNNING && <HostedUsage botId={botId} />}
       {restarts > 0 && (
         <span className="text-xs text-muted-foreground">
           {t('hostedRestarts', { count: restarts })}

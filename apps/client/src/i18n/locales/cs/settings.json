@@ -609,6 +609,8 @@
   "hostedStatus_running": "Běží",
   "hostedStatus_crashed": "Spadl",
   "hostedRestarts": "Restarty: {{count}}",
+  "hostedMemory": "Paměť: {{value}}",
+  "hostedCpu": "CPU: {{value}} %",
   "hostedStart": "Spustit",
   "hostedStop": "Zastavit",
   "hostedRestart": "Restartovat",

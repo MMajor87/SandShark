@@ -618,6 +618,8 @@
   "hostedStatus_running": "Работает",
   "hostedStatus_crashed": "Упал",
   "hostedRestarts": "Перезапусков: {{count}}",
+  "hostedMemory": "Память: {{value}}",
+  "hostedCpu": "ЦП: {{value}}%",
   "hostedStart": "Запустить",
   "hostedStop": "Остановить",
   "hostedRestart": "Перезапустить",

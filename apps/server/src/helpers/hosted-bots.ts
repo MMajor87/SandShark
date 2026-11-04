@@ -18,6 +18,7 @@ import {
   getUnsupportedCalls
 } from './bot-compat-report';
 import { resolveHostedBotEntry } from './hosted-bot-entry';
+import { findBotPython, PYTHON_MISSING_MESSAGE } from './hosted-bot-python';
 
 const getHostedBotView = async (botId: number): Promise<THostedBot> => {
   const row = await getHostedBot(botId);
@@ -35,18 +36,26 @@ const getHostedBotView = async (botId: number): Promise<THostedBot> => {
   };
 };
 
-const assertHasCode = async (botId: number) => {
-  const entry = await resolveHostedBotEntry(getHostedBotPath(botId));
+const assertCanRun = async (botId: number) => {
+  const botPath = getHostedBotPath(botId);
+  const entry = await resolveHostedBotEntry(botPath);
 
   invariant(entry, {
     code: 'BAD_REQUEST',
     message: 'This bot has no code to run yet.'
   });
+
+  if (entry.language !== 'python') return;
+
+  invariant(await findBotPython(botPath), {
+    code: 'BAD_REQUEST',
+    message: PYTHON_MISSING_MESSAGE
+  });
 };
 
 // enabled is what survives a server restart: an enabled bot is started again at boot
 const startHostedBot = async (botId: number) => {
-  await assertHasCode(botId);
+  await assertCanRun(botId);
 
   await upsertHostedBot(botId, { enabled: true });
   await HostedBotRuntime.start(botId);
@@ -57,9 +66,9 @@ const stopHostedBot = async (botId: number) => {
   await HostedBotRuntime.stop(botId);
 };
 
-// the code check runs before the stop, so a bot with nothing to run is not stopped either
+// the check runs before the stop, so a bot that could not run is not stopped either
 const restartHostedBot = async (botId: number) => {
-  await assertHasCode(botId);
+  await assertCanRun(botId);
 
   await HostedBotRuntime.stop(botId);
   await startHostedBot(botId);

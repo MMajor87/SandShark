@@ -10,8 +10,17 @@ import fs from 'fs/promises';
 import path from 'path';
 import { getHostedBot } from '../db/queries/hosted-bots';
 import { writeNewBotToken } from '../helpers/bot-tokens';
-import { resolveHostedBotEntry } from '../helpers/hosted-bot-entry';
+import {
+  resolveHostedBotEntry,
+  type THostedBotEntry
+} from '../helpers/hosted-bot-entry';
 import { buildHostedBotEnv, buildInstallEnv } from '../helpers/hosted-bot-env';
+import { getHostedBotInstallSteps } from '../helpers/hosted-bot-install';
+import {
+  findBotPython,
+  PYTHON_MISSING_MESSAGE
+} from '../helpers/hosted-bot-python';
+import { writeHostedBotPythonShim } from '../helpers/hosted-bot-python-shim';
 import { writeHostedBotShim } from '../helpers/hosted-bot-shim';
 import { HOSTED_BOT_LOGS_PATH, HOSTED_BOTS_PATH } from '../helpers/paths';
 import { closeBotGatewaySessions } from '../http/bot-api/gateway';
@@ -34,6 +43,28 @@ const getHostedBotPath = (botId: number) =>
 
 const getHostedBotLogPath = (botId: number) =>
   path.join(HOSTED_BOT_LOGS_PATH, `${botId}.log`);
+
+// what runs the bot's entry: its python, or this server's own binary with the shim preloaded.
+// undefined when a python bot has no python to run on
+const buildHostedBotCommand = async (
+  botPath: string,
+  entry: THostedBotEntry
+) => {
+  if (entry.language === 'javascript') {
+    const shimPath = await writeHostedBotShim();
+
+    return [process.execPath, '--preload', shimPath, entry.file];
+  }
+
+  const [python] = await Promise.all([
+    findBotPython(botPath),
+    writeHostedBotPythonShim()
+  ]);
+
+  if (!python) return undefined;
+
+  return [python, entry.file];
+};
 
 class HostedBotRuntime {
   private static runtimes = new Map<number, HostedBotRuntime>();
@@ -182,21 +213,30 @@ class HostedBotRuntime {
     let code: number | null = null;
 
     try {
-      const installer = Bun.spawn({
-        cmd: [process.execPath, 'install'],
-        cwd: getHostedBotPath(this.botId),
-        env: buildInstallEnv(),
-        stdin: 'ignore',
-        stdout: 'pipe',
-        stderr: 'pipe'
-      });
+      const botPath = getHostedBotPath(this.botId);
+      const steps = await getHostedBotInstallSteps(botPath);
 
-      this.installer = installer;
-      await Promise.all([
-        this.pipe(installer.stdout, 'stdout'),
-        this.pipe(installer.stderr, 'stderr')
-      ]);
-      code = await installer.exited;
+      code = 0;
+
+      for (const cmd of steps) {
+        const installer = Bun.spawn({
+          cmd,
+          cwd: botPath,
+          env: buildInstallEnv(),
+          stdin: 'ignore',
+          stdout: 'pipe',
+          stderr: 'pipe'
+        });
+
+        this.installer = installer;
+        await Promise.all([
+          this.pipe(installer.stdout, 'stdout'),
+          this.pipe(installer.stderr, 'stderr')
+        ]);
+        code = await installer.exited;
+
+        if (code !== 0) break;
+      }
     } catch (error) {
       this.log('system', `could not install: ${String(error)}`);
     } finally {
@@ -241,13 +281,20 @@ class HostedBotRuntime {
       return;
     }
 
+    const cmd = await buildHostedBotCommand(botPath, entry);
+
+    if (!cmd) {
+      this.wanted = false;
+      this.log('system', PYTHON_MISSING_MESSAGE);
+      this.setStatus(HostedBotStatus.CRASHED);
+      return;
+    }
+
     // a fresh token on every start, which also ends any copy of the bot running elsewhere
     // on the old one
     const token = await writeNewBotToken(this.botId);
 
     closeBotGatewaySessions(this.botId);
-
-    const shimPath = await writeHostedBotShim();
 
     if (!this.wanted) {
       this.setStatus(HostedBotStatus.STOPPED);
@@ -264,7 +311,7 @@ class HostedBotRuntime {
 
     try {
       child = Bun.spawn({
-        cmd: [process.execPath, '--preload', shimPath, entry],
+        cmd,
         cwd: botPath,
         env,
         stdin: 'ignore',
@@ -282,7 +329,7 @@ class HostedBotRuntime {
 
     this.process = child;
     this.startedAt = spawnedAt;
-    this.log('system', `started ${path.relative(botPath, entry)}`);
+    this.log('system', `started ${path.relative(botPath, entry.file)}`);
     this.setStatus(HostedBotStatus.RUNNING);
 
     const output = Promise.all([

@@ -2,18 +2,24 @@ import { Dialog } from '@/components/dialogs/dialogs';
 import { SettingsSection } from '@/components/server-screens/settings-shell/section';
 import { openDialog, requestTextInput } from '@/features/dialogs/actions';
 import { useAdminBots } from '@/features/server/admin/hooks';
+import { useBotHostingEnabled, useCan } from '@/features/server/hooks';
 import { getTRPCClient } from '@/lib/trpc';
-import { getTrpcError, TestId } from '@sandshark/shared';
+import { getTrpcError, Permission, TestId } from '@sandshark/shared';
 import { Button, LoadingCard } from '@sandshark/ui';
 import { Plus } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { BotRow } from './bot-row';
+import { HostingToggle } from './hosting-toggle';
 
 const Bots = memo(() => {
   const { t } = useTranslation('settings');
   const { bots, loading, refetch } = useAdminBots();
+  const can = useCan();
+  const hostingEnabled = useBotHostingEnabled();
+  const canHostBots = can(Permission.HOST_BOTS);
+  const canHost = canHostBots && hostingEnabled;
 
   const onCreate = useCallback(async () => {
     const name = await requestTextInput({
@@ -50,9 +56,10 @@ const Bots = memo(() => {
         </Button>
       }
     >
+      {canHostBots && <HostingToggle />}
       <div className="space-y-2">
         {bots.map((bot) => (
-          <BotRow key={bot.id} bot={bot} refetch={refetch} />
+          <BotRow key={bot.id} bot={bot} refetch={refetch} canHost={canHost} />
         ))}
         {bots.length === 0 && (
           <p className="py-6 text-center text-sm text-muted-foreground">

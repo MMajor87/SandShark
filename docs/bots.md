@@ -60,6 +60,32 @@ Use `http://` and `ws://` instead if your server doesn't use TLS.
 
 Any library that lets you set the REST base URL can work. It should either read the gateway address from `GET /api/v10/gateway/bot`, or let you set the gateway address to `wss://<your server>/api/v10/gateway`. Check that it doesn't fall back to Discord's address, for the reason in the warning above.
 
+## Run it on the server
+
+Instead of running the bot on another machine, you can give its code to SandShark, which runs it, restarts it when it crashes, and shows its log. Use this when the bot is written for Discord and you don't want to change a line of it.
+
+1. In **Server settings → Bots**, turn on **Run bots on this server**. This needs the **Host bots** permission, which only the owner role has by default.
+2. Open a bot's **Hosting** panel and give it its code: either **Upload zip** with the bot's folder, or a public **GitHub repository**, with an optional branch, tag or commit, then **Update from GitHub**.
+3. Add the variables the bot reads, such as API keys, under **Variables**. Values are stored on the server and never shown again.
+4. Choose **Start**.
+
+What the server does for a hosted bot:
+
+- **Points it at this server.** Before the bot's own code runs, a small shim moves `https://discord.com/api` to this server's API and `gateway.discord.gg` to this server's gateway. A bot that calls `client.login()` works unchanged.
+- **Blocks Discord itself.** Every other connection to a Discord host is refused, so the bot's token can't be sent to Discord, even by a library the shim doesn't know about. Other addresses are left alone, so weather, AI and game APIs keep working.
+- **Gives it a token.** A fresh token is made on every start and given as `DISCORD_TOKEN`, `TOKEN` and `BOT_TOKEN`, plus any names you add under **Extra token variables**. Starting a hosted bot ends any copy of it running elsewhere.
+- **Gives it nothing else of the server's.** The bot runs from its own folder with a clean environment: its token, your variables, and the few system variables a program needs to run.
+- **Runs the right file.** It picks the file a `start` script such as `node bot.js` runs, then `main` in `package.json`, then `index.js` or `index.ts`. TypeScript runs without a build step.
+- **Installs dependencies.** Bots with a `package.json` have their dependencies installed after every upload or update, and on **Install dependencies**. The install doesn't see the token or your variables.
+- **Keeps the bot's data.** An upload replaces the files it contains and keeps everything else, so data the bot saves next to its code survives updates.
+- **Keeps it running.** A crash is restarted after a short wait that grows each time. Five crashes within half a minute of starting leave the bot **Crashed** until you start it again. Enabled bots start with the server.
+
+**Compatibility** lists the calls a bot made that SandShark doesn't support yet, each counted once per endpoint and written to the log the first time. A few lists that bots fetch while starting, the server's emojis, stickers and scheduled events, are answered empty instead of refused and marked **answered empty**. When a bot that works on Discord misbehaves here, this is the first place to look.
+
+Hosted bots run on the server's own runtime, which is Bun. Most JavaScript and TypeScript bots run as they are, but packages with native add-ons such as `canvas` may not. Python bots aren't supported yet.
+
+> **Hosted code is trusted code.** A hosted bot runs as the server's own user and can read everything the server can, including the database and uploaded files. There is no sandbox, as with plugins. Only run code you trust, and only give **Host bots** to people you would trust with the server itself.
+
 ## How SandShark maps onto Discord
 
 - **One server is one guild.** Its id is stable. The `@everyone` role has the guild's id and carries the default role's permissions, as on Discord. The default role is also listed as a role of its own.

@@ -668,7 +668,10 @@ const createDesktopWindow = ({
         replaceMisspelling: (word) => window.webContents.replaceMisspelling(word),
         addToDictionary: (word) =>
           window.webContents.session.addWordToSpellCheckerDictionary(word),
-        copyLink: (url) => clipboard.writeText(url)
+        // the clipboard is asynchronous since electron 44
+        copyLink: (url) => {
+          clipboard.writeText(url).catch(console.error);
+        }
       });
 
       if (template.length === 0) return;

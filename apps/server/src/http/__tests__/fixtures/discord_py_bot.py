@@ -43,6 +43,19 @@ async def slow(interaction: discord.Interaction):
     await interaction.followup.send("and one more", ephemeral=True)
 
 
+class PickView(discord.ui.View):
+    @discord.ui.button(label="Pick me", style=discord.ButtonStyle.primary, custom_id="pick")
+    async def pick(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(content="picked", view=None)
+
+
+# a view answers its button by editing the message it is on. discord.py finds the view by
+# the message id and custom id, so the interaction has to carry the message it came from
+@tree.command(name="choose", description="Offers a button")
+async def choose(interaction: discord.Interaction):
+    await interaction.response.send_message("Pick one", view=PickView())
+
+
 @client.event
 async def on_ready():
     guild = client.guilds[0]

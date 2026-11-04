@@ -1,6 +1,9 @@
 import { Permission, ServerEvents } from '@sandshark/shared';
 import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test';
 import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   Client,
   EmbedBuilder,
   Events,
@@ -237,6 +240,16 @@ describe('discord.js compatibility', () => {
     });
 
     client.on(Events.InteractionCreate, async (interaction) => {
+      // the usual button handler: answer by updating the message the button is on
+      if (interaction.isButton()) {
+        await interaction.update({
+          content: `voted ${interaction.customId}`,
+          components: []
+        });
+
+        return;
+      }
+
       if (!interaction.isChatInputCommand()) return;
 
       if (interaction.commandName === 'echo') {
@@ -250,6 +263,22 @@ describe('discord.js compatibility', () => {
         await interaction.deferReply();
         await interaction.editReply('done');
         await interaction.followUp('and one more');
+      } else if (interaction.commandName === 'vote') {
+        await interaction.reply({
+          content: 'Vote now',
+          components: [
+            new ActionRowBuilder<ButtonBuilder>().addComponents(
+              new ButtonBuilder()
+                .setCustomId('up')
+                .setLabel('Up')
+                .setStyle(ButtonStyle.Success),
+              new ButtonBuilder()
+                .setCustomId('down')
+                .setLabel('Down')
+                .setStyle(ButtonStyle.Danger)
+            )
+          ]
+        });
       } else if (interaction.commandName === 'scores') {
         await interaction.reply({
           embeds: [
@@ -295,6 +324,10 @@ describe('discord.js compatibility', () => {
         new SlashCommandBuilder()
           .setName('scores')
           .setDescription('Shows the scores')
+          .toJSON(),
+        new SlashCommandBuilder()
+          .setName('vote')
+          .setDescription('Asks for a vote')
           .toJSON()
       ]);
 
@@ -399,6 +432,49 @@ describe('discord.js compatibility', () => {
       expect(ephemeral?.[0]).toBe(1);
       expect(ephemeral?.[2]).toMatchObject({ content: '<p>only you</p>' });
       expect(await botMessages()).toHaveLength(4);
+
+      await caller.bots.runCommand({
+        commandId: commandId('vote'),
+        channelId: 1
+      });
+
+      const [, , , , vote] = await waitForMessages(5);
+
+      expect(vote).toMatchObject({
+        content: '<p>Vote now</p>',
+        components: [
+          {
+            type: 1,
+            components: [
+              { type: 2, style: 3, label: 'Up', customId: 'up' },
+              { type: 2, style: 4, label: 'Down', customId: 'down' }
+            ]
+          }
+        ]
+      });
+
+      await caller.bots.pressComponent({ messageId: vote!.id, customId: 'up' });
+
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const [row] = await tdb
+          .select()
+          .from(messages)
+          .where(eq(messages.id, vote!.id));
+
+        if (row?.content === '<p>voted up</p>') break;
+
+        await Bun.sleep(50);
+      }
+
+      const [voted] = await tdb
+        .select()
+        .from(messages)
+        .where(eq(messages.id, vote!.id));
+
+      expect(voted).toMatchObject({
+        content: '<p>voted up</p>',
+        components: null
+      });
     } finally {
       await client.destroy();
     }

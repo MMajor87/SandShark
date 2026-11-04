@@ -93,6 +93,7 @@ const runCommandRoute = rateLimitedProcedure(protectedProcedure, {
     });
 
     ctx.pubsub.publishFor(command.botId, ServerEvents.BOT_INTERACTION_CREATE, {
+      kind: 'command',
       interactionId: interaction.id,
       token,
       createdAt: interaction.createdAt,

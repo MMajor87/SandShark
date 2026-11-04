@@ -4,6 +4,7 @@ export * from './events';
 export * from './extensions';
 export * from './helpers';
 export * from './logs';
+export * from './message-components';
 export * from './message-embeds';
 export * from './plugins';
 export * from './statics';

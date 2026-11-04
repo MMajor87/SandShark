@@ -1,4 +1,8 @@
-import { Permission, type TMessageEmbed } from '@sandshark/shared';
+import {
+  Permission,
+  type TBotActionRow,
+  type TMessageEmbed
+} from '@sandshark/shared';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { messages } from '../db/schema';
@@ -16,6 +20,7 @@ type TMessageForWrite = {
   pinned: boolean | null;
   loading: boolean;
   embeds: TMessageEmbed[] | null;
+  components: TBotActionRow[] | null;
   createdAt: number;
 };
 
@@ -46,6 +51,7 @@ const loadMessage = async (messageId: number): Promise<TMessageForWrite> => {
       pinned: messages.pinned,
       loading: messages.loading,
       embeds: messages.embeds,
+      components: messages.components,
       createdAt: messages.createdAt
     })
     .from(messages)

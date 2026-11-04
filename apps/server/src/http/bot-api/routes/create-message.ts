@@ -28,7 +28,7 @@ const createMessageRoute: TBotRouteHandler = async (request) => {
   if (!parsed.success) throw invalidFormBody();
 
   const { message_reference: reference } = parsed.data;
-  const { html, embeds } = await toStoredBody(parsed.data, {
+  const { html, embeds, components } = await toStoredBody(parsed.data, {
     requireContent: true
   });
 
@@ -37,7 +37,7 @@ const createMessageRoute: TBotRouteHandler = async (request) => {
     ? await loadMessageId(channel.id, reference.message_id)
     : undefined;
   const guild = await getGuildContext();
-  const caller = createBotCaller(bot, info, { embeds });
+  const caller = createBotCaller(bot, info, { embeds, components });
   const messageId = await callProcedure(
     () =>
       caller.messages.send({

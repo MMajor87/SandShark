@@ -163,17 +163,21 @@ const loadOwnCommand = async (
   return command;
 };
 
-const serializeForBot = (
+const messageSerializeOptions = (
   { bot, origin }: TBotRequest,
+  guild: TGuildContext
+) => ({
+  guild,
+  botId: bot.id,
+  origin,
+  mediaToken: createMediaAccessToken(bot.id, bot.tokenVersion)
+});
+
+const serializeForBot = (
+  request: TBotRequest,
   guild: TGuildContext,
   page: TJoinedMessage[]
-) =>
-  serializeMessages(page, {
-    guild,
-    botId: bot.id,
-    origin,
-    mediaToken: createMediaAccessToken(bot.id, bot.tokenVersion)
-  });
+) => serializeMessages(page, messageSerializeOptions(request, guild));
 
 export {
   getGuildMembers,
@@ -183,6 +187,7 @@ export {
   loadMessageId,
   loadOwnCommand,
   loadVisibleChannel,
+  messageSerializeOptions,
   readJsonArray,
   readJsonBody,
   serializeForBot

@@ -1,5 +1,6 @@
 import {
   DEFAULT_LOCALE,
+  type TBotActionRow,
   type TJoinedUser,
   type TMessageEmbed
 } from '@sandshark/shared';
@@ -22,12 +23,14 @@ type TBotCallerExtras = {
   interaction?: TBotInteractionContext;
   // the embeds of the message this write sends or edits
   embeds?: TMessageEmbed[];
+  // its buttons and select menus
+  components?: TBotActionRow[];
 };
 
 const createBotCaller = (
   bot: TJoinedUser,
   info: TConnectionInfo | undefined,
-  { interaction, embeds }: TBotCallerExtras = {}
+  { interaction, embeds, components }: TBotCallerExtras = {}
 ) => {
   const ctx: Context = {
     pubsub,
@@ -47,7 +50,8 @@ const createBotCaller = (
     throwValidationError,
     saveUserIp: async () => {},
     botInteraction: interaction,
-    botEmbeds: embeds
+    botEmbeds: embeds,
+    botComponents: components
   };
 
   return appRouter.createCaller(ctx);

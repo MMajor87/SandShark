@@ -68,6 +68,7 @@ Any library that lets you set the REST base URL can work. It should either read 
 - **Permissions.** SandShark's permissions are mapped onto Discord's permission bits. Bits with no SandShark equivalent are never set. The owner role is reported as Administrator.
 - **Message formatting.** Bold, italic, inline and block code, links, user, role and channel mentions, and custom emoji (`<:name:id>`) convert both ways. Underline, strikethrough and spoilers keep their text but lose the formatting.
 - **Embeds.** Up to 10 per message, with Discord's limits (6000 characters in all, 25 fields). Title, description, url, colour, timestamp, author, footer, fields, image and thumbnail are shown. Descriptions and field values take the same formatting as messages. Every url and image has to be `http` or `https`, so `attachment://` images aren't supported. A message can be embeds alone, and only bots can send them.
+- **Buttons and select menus.** Action rows with up to five buttons, in all five styles including link buttons, or one string select menu, on any message or ephemeral answer, with Discord's rules. A member's click arrives as an `INTERACTION_CREATE` of type 3 carrying the message, and the bot answers by updating that message (`interaction.update`, `edit_message`), deferring the update, or replying. Buttons on an ephemeral answer work for its member only, for as long as the answer is kept.
 - **Reactions.** Built-in emoji are named by their character (`👍`), and a bot's 👍 and a member's `:+1:` are the same reaction. Custom emoji use `name:id`.
 - **Avatars** aren't sent, because the libraries would build `cdn.discordapp.com` URLs from them.
 
@@ -109,7 +110,7 @@ Without the **message content** intent, guild messages arrive with their content
 ## Not supported yet
 
 - Slash command options that take a file, autocomplete, and user and message commands (the right click "Apps" menu)
-- Buttons, select menus and other components, modals, and webhooks other than an interaction's own
+- User, role, channel and mentionable select menus, modals and text inputs, Discord's newer layout components, and webhooks other than an interaction's own
 - Uploading files from a bot (attachments can be read and downloaded)
 - Threads: replies inside a thread aren't sent or listed
 - Gateway resume: after a disconnect the bot identifies again, which the libraries do on their own

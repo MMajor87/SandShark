@@ -1,3 +1,4 @@
+import type { TBotActionRow } from './message-components';
 import type { TMessageEmbed } from './message-embeds';
 
 // discord's application command types. chat input commands are the slash commands; user
@@ -52,6 +53,7 @@ export type TBotEphemeralMessage = {
   commandName: string;
   content: string;
   embeds: TMessageEmbed[] | null;
+  components: TBotActionRow[] | null;
   loading: boolean;
   createdAt: number;
   updatedAt: number;

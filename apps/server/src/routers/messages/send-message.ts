@@ -146,6 +146,7 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
     // a bot's message may be embeds alone, as on discord
     const { botInteraction } = ctx;
     const embeds = ctx.botEmbeds?.length ? ctx.botEmbeds : null;
+    const components = ctx.botComponents?.length ? ctx.botComponents : null;
     const isLoading = !!botInteraction?.loading;
     const mayBeEmpty = isLoading || embeds !== null;
 
@@ -364,6 +365,7 @@ const sendMessageRoute = rateLimitedProcedure(protectedProcedure, {
             : null,
           loading: isLoading,
           embeds,
+          components,
           createdAt: Date.now()
         })
         .returning()

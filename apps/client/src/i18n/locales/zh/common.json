@@ -160,5 +160,7 @@
   "botCommandMembers": "成员",
   "botCommandRoles": "角色",
   "botDidNotRespond": "机器人没有回应 /{{command}}。",
-  "failedRunBotCommand": "无法运行该命令"
+  "failedRunBotCommand": "无法运行该命令",
+  "failedUseComponent": "操作失败，请重试",
+  "botSelectApply": "应用"
 }

@@ -2,6 +2,7 @@ import {
   ChannelPermission,
   UserStatus,
   type Permission,
+  type TBotActionRow,
   type TLocale,
   type TMessageEmbed,
   type TUser
@@ -64,6 +65,8 @@ export type Context = {
   botInteraction?: TBotInteractionContext;
   // embeds a bot sends with a message. set only by the bot api, a member cannot send one
   botEmbeds?: TMessageEmbed[];
+  // buttons and select menus a bot sends with a message, set the same way
+  botComponents?: TBotActionRow[];
 };
 
 const t = initTRPC.context<Context>().create();

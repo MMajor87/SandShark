@@ -170,7 +170,11 @@ const bindGatewayEvents = (session: TGatewaySessionApi): Unsubscribable[] => {
     // interactions need no intent on discord, every session of the bot gets them
     pubsub.subscribeFor(botId, ServerEvents.BOT_INTERACTION_CREATE).subscribe({
       next: guarded(async (event) => {
-        const payload = await buildInteractionPayload(event, botId);
+        const payload = await buildInteractionPayload(
+          event,
+          botId,
+          session.serializeOptions
+        );
 
         if (payload) session.dispatch('INTERACTION_CREATE', payload);
       })

@@ -18,14 +18,14 @@ const editMessageRoute: TBotRouteHandler = async (request) => {
 
   if (!parsed.success) throw invalidFormBody();
 
-  const { html, embeds } = await toStoredBody(parsed.data, {
+  const { html, embeds, components } = await toStoredBody(parsed.data, {
     requireContent: false
   });
 
   const channel = await loadVisibleChannel(bot.id, params.channelId!);
   const messageId = await loadMessageId(channel.id, params.messageId!);
   const guild = await getGuildContext();
-  const caller = createBotCaller(bot, info, { embeds });
+  const caller = createBotCaller(bot, info, { embeds, components });
   const unknownMessage = {
     code: DiscordErrorCode.UNKNOWN_MESSAGE,
     what: 'Message'
@@ -36,7 +36,7 @@ const editMessageRoute: TBotRouteHandler = async (request) => {
   );
 
   // an edit changes what it names and keeps the rest, as on discord
-  if (html !== undefined || embeds !== undefined) {
+  if (html !== undefined || embeds !== undefined || components !== undefined) {
     await callProcedure(
       () =>
         caller.messages.edit({

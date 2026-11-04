@@ -134,7 +134,9 @@ describe('discord.py compatibility', () => {
         });
 
         expect(ready).toBe('READY Py Bot 1 General,Restricted Text');
-        expect(await stdout.waitForLine('SYNCED')).toBe('SYNCED roll,slow 2');
+        expect(await stdout.waitForLine('SYNCED')).toBe(
+          'SYNCED roll,slow,choose 3'
+        );
 
         const commands = await tdb
           .select()
@@ -147,8 +149,10 @@ describe('discord.py compatibility', () => {
         ).toEqual([
           ['roll', false],
           ['slow', false],
+          ['choose', false],
           ['roll', true],
-          ['slow', true]
+          ['slow', true],
+          ['choose', true]
         ]);
         expect(commands[0]!.options).toEqual([
           {
@@ -236,6 +240,49 @@ describe('discord.py compatibility', () => {
           content: '<p>and one more</p>'
         });
 
+        await caller.bots.runCommand({
+          commandId: commandId('choose'),
+          channelId: 1
+        });
+
+        const [, , choice] = await waitForAnswers(3);
+
+        expect(choice).toMatchObject({
+          content: '<p>Pick one</p>',
+          components: [
+            {
+              type: 1,
+              components: [{ type: 2, label: 'Pick me', customId: 'pick' }]
+            }
+          ]
+        });
+
+        await caller.bots.pressComponent({
+          messageId: choice!.id,
+          customId: 'pick'
+        });
+
+        for (let attempt = 0; attempt < 100; attempt++) {
+          const [row] = await tdb
+            .select()
+            .from(messages)
+            .where(eq(messages.id, choice!.id));
+
+          if (row?.content === '<p>picked</p>') break;
+
+          await Bun.sleep(50);
+        }
+
+        const [picked] = await tdb
+          .select()
+          .from(messages)
+          .where(eq(messages.id, choice!.id));
+
+        expect(picked).toMatchObject({
+          content: '<p>picked</p>',
+          components: null
+        });
+
         const pingId = await caller.messages.send({
           channelId: 1,
           content: '<p>!ping</p>',
@@ -252,11 +299,12 @@ describe('discord.py compatibility', () => {
         expect(botMessages.map((message) => message.content)).toEqual([
           '<p>4</p>',
           '<p>done</p>',
+          '<p>picked</p>',
           '<p>pong</p>',
-          // the seeded welcome message, the two command answers, the ping and the reply
-          '<p>history:5</p>'
+          // the seeded welcome message, the three command answers, the ping and the reply
+          '<p>history:6</p>'
         ]);
-        expect(botMessages[2]!.replyToMessageId).toBe(pingId);
+        expect(botMessages[3]!.replyToMessageId).toBe(pingId);
 
         const reactions = await tdb
           .select()

@@ -160,5 +160,7 @@
   "botCommandMembers": "Участники",
   "botCommandRoles": "Роли",
   "botDidNotRespond": "Бот не ответил на /{{command}}.",
-  "failedRunBotCommand": "Не удалось выполнить команду"
+  "failedRunBotCommand": "Не удалось выполнить команду",
+  "failedUseComponent": "Не получилось, попробуйте ещё раз",
+  "botSelectApply": "Применить"
 }

@@ -1,29 +1,29 @@
-import type { TJoinedMessage } from '@sandshark/shared';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { botEphemeralMessages, messages } from '../../db/schema';
 import {
   createBotEphemeralMessage,
   deleteBotEphemeralMessage,
+  getBotInteractionById,
   updateBotEphemeralMessage,
-  type TBotEphemeralRow
+  type TBotEphemeralRow,
+  type TBotInteraction
 } from '../../helpers/bot-interactions';
+import {
+  ephemeralSnowflake,
+  serializeEphemeralMessage
+} from '../../helpers/discord/ephemeral';
 import { getGuildContext } from '../../helpers/discord/guild';
 import { DiscordMessageFlag } from '../../helpers/discord/message';
 import { resolveMessageSnowflake } from '../../helpers/discord/resolve';
-import {
-  decodeSnowflake,
-  encodeSnowflake,
-  SnowflakeTag
-} from '../../helpers/discord/snowflake';
+import { decodeSnowflake, SnowflakeTag } from '../../helpers/discord/snowflake';
 import { callProcedure } from './call-procedure';
 import { createBotCaller } from './context';
 import { DiscordErrorCode, notFound } from './errors';
-import { serializeForBot } from './helpers';
+import { messageSerializeOptions, serializeForBot } from './helpers';
 import {
   emptyMessage,
   hasStoredContent,
-  toStoredBody,
   zMessageBody,
   type TMessageBody,
   type TStoredBody
@@ -35,9 +35,11 @@ const zInteractionMessage = zMessageBody;
 
 type TInteractionMessage = TMessageBody;
 
+// an ephemeral answer belongs to the interaction that posted it, its owner, which is not
+// the interaction of a button pressed on it later
 type TInteractionMessageTarget =
   | { kind: 'message'; id: number }
-  | { kind: 'ephemeral'; row: TBotEphemeralRow };
+  | { kind: 'ephemeral'; row: TBotEphemeralRow; owner: TBotInteraction };
 
 const isEphemeral = (flags: number | undefined) =>
   ((flags ?? 0) & DiscordMessageFlag.EPHEMERAL) !== 0;
@@ -57,17 +59,18 @@ const postInteractionMessage = async (
   { bot, info, interaction }: TInteractionRequest,
   { stored, ephemeral, original, loading }: TPostOptions
 ): Promise<TInteractionMessageTarget> => {
-  const { html, embeds } = stored;
+  const { html, embeds, components } = stored;
 
   if (ephemeral) {
     const row = createBotEphemeralMessage(interaction, {
       content: html ?? '',
       embeds: embeds?.length ? embeds : null,
+      components: components?.length ? components : null,
       loading,
       original
     });
 
-    return { kind: 'ephemeral', row };
+    return { kind: 'ephemeral', row, owner: interaction };
   }
 
   const caller = createBotCaller(bot, info, {
@@ -78,7 +81,8 @@ const postInteractionMessage = async (
       original,
       loading
     },
-    embeds
+    embeds,
+    components
   });
   const messageId = await callProcedure(
     () =>
@@ -96,7 +100,10 @@ const postInteractionMessage = async (
 const unknownMessage = () =>
   notFound(DiscordErrorCode.UNKNOWN_MESSAGE, 'Message');
 
-const findEphemeral = (interactionId: number, condition: 'original' | number) =>
+const findOwnEphemeral = (
+  interactionId: number,
+  condition: 'original' | number
+) =>
   db
     .select()
     .from(botEphemeralMessages)
@@ -111,35 +118,61 @@ const findEphemeral = (interactionId: number, condition: 'original' | number) =>
     .limit(1)
     .get();
 
-const findInteractionMessages = (interactionId: number) =>
+const findOwnMessages = (interactionId: number) =>
   db
-    .select({ id: messages.id, commandName: messages.interactionCommandName })
+    .select({ id: messages.id, invokerId: messages.interactionUserId })
     .from(messages)
     .where(eq(messages.interactionId, interactionId))
     .all();
 
-// the first answer, unless the bot has deleted it
-const findOriginalAnswer = (
-  interactionId: number
-): TInteractionMessageTarget | undefined => {
-  const ephemeral = findEphemeral(interactionId, 'original');
+// the ephemeral answer a button was pressed on, with the interaction that posted it
+const findComponentEphemeral = async (
+  interaction: TBotInteraction
+): Promise<TInteractionMessageTarget | undefined> => {
+  if (interaction.ephemeralMessageId === null) return undefined;
 
-  if (ephemeral) return { kind: 'ephemeral', row: ephemeral };
+  const row = db
+    .select()
+    .from(botEphemeralMessages)
+    .where(eq(botEphemeralMessages.id, interaction.ephemeralMessageId))
+    .limit(1)
+    .get();
+  const owner = row ? getBotInteractionById(row.interactionId) : undefined;
 
-  const original = findInteractionMessages(interactionId).find(
-    (row) => row.commandName !== null
-  );
-
-  return original ? { kind: 'message', id: original.id } : undefined;
+  return row && owner ? { kind: 'ephemeral', row, owner } : undefined;
 };
 
-// "@original" or the snowflake of one of this interaction's answers, never anything else
+// the first answer, unless the bot has deleted it. a button or select menu answered by
+// updating its message has no answer of its own, and its message stands in, as on discord
+const findOriginalAnswer = async (
+  interaction: TBotInteraction
+): Promise<TInteractionMessageTarget | undefined> => {
+  const ephemeral = findOwnEphemeral(interaction.id, 'original');
+
+  if (ephemeral)
+    return { kind: 'ephemeral', row: ephemeral, owner: interaction };
+
+  const original = findOwnMessages(interaction.id).find(
+    (row) => row.invokerId !== null
+  );
+
+  if (original) return { kind: 'message', id: original.id };
+
+  if (interaction.messageId !== null) {
+    return { kind: 'message', id: interaction.messageId };
+  }
+
+  return findComponentEphemeral(interaction);
+};
+
+// "@original" or the snowflake of one of this interaction's answers, or of the message its
+// button was on, never anything else
 const findInteractionMessage = async (
   { interaction }: TInteractionRequest,
   messageParam: string
 ): Promise<TInteractionMessageTarget> => {
   if (messageParam === '@original') {
-    const original = findOriginalAnswer(interaction.id);
+    const original = await findOriginalAnswer(interaction);
 
     if (!original) throw unknownMessage();
 
@@ -149,20 +182,20 @@ const findInteractionMessage = async (
   const decoded = decodeSnowflake(messageParam);
 
   if (decoded?.tag === SnowflakeTag.EPHEMERAL_MESSAGE) {
-    const ephemeral = findEphemeral(interaction.id, decoded.idBits);
+    const own = findOwnEphemeral(interaction.id, decoded.idBits);
+    const target: TInteractionMessageTarget | undefined = own
+      ? { kind: 'ephemeral', row: own, owner: interaction }
+      : await findComponentEphemeral(interaction);
 
     if (
-      !ephemeral ||
-      encodeSnowflake(
-        SnowflakeTag.EPHEMERAL_MESSAGE,
-        ephemeral.id,
-        ephemeral.createdAt
-      ) !== messageParam
+      target?.kind !== 'ephemeral' ||
+      target.row.id !== decoded.idBits ||
+      ephemeralSnowflake(target.row) !== messageParam
     ) {
       throw unknownMessage();
     }
 
-    return { kind: 'ephemeral', row: ephemeral };
+    return target;
   }
 
   const messageId = await resolveMessageSnowflake(
@@ -171,44 +204,13 @@ const findInteractionMessage = async (
   );
   const belongs =
     messageId !== undefined &&
-    findInteractionMessages(interaction.id).some((row) => row.id === messageId);
+    (messageId === interaction.messageId ||
+      findOwnMessages(interaction.id).some((row) => row.id === messageId));
 
   if (!belongs) throw unknownMessage();
 
   return { kind: 'message', id: messageId };
 };
-
-// an ephemeral answer has no message row, so it is shaped like one for the serializer and
-// given its own id and the ephemeral flag
-const ephemeralAsMessage = (
-  { bot, interaction }: TInteractionRequest,
-  row: TBotEphemeralRow
-): TJoinedMessage => ({
-  id: row.id,
-  content: row.content,
-  userId: bot.id,
-  pluginId: null,
-  pluginComponents: null,
-  channelId: interaction.channelId,
-  parentMessageId: null,
-  replyToMessageId: null,
-  editable: true,
-  metadata: null,
-  createdAt: row.createdAt,
-  updatedAt: row.updatedAt,
-  pinned: false,
-  pinnedAt: null,
-  pinnedBy: null,
-  editedAt: null,
-  editedBy: null,
-  interactionId: interaction.id,
-  interactionUserId: row.original ? interaction.userId : null,
-  interactionCommandName: row.original ? interaction.commandName : null,
-  loading: row.loading,
-  embeds: row.embeds,
-  files: [],
-  reactions: []
-});
 
 const serializeInteractionMessage = async (
   request: TInteractionRequest,
@@ -217,19 +219,11 @@ const serializeInteractionMessage = async (
   const guild = await getGuildContext();
 
   if (target.kind === 'ephemeral') {
-    const [serialized] = await serializeForBot(request, guild, [
-      ephemeralAsMessage(request, target.row)
-    ]);
-
-    return {
-      ...serialized,
-      id: encodeSnowflake(
-        SnowflakeTag.EPHEMERAL_MESSAGE,
-        target.row.id,
-        target.row.createdAt
-      ),
-      flags: serialized!.flags | DiscordMessageFlag.EPHEMERAL
-    };
+    return serializeEphemeralMessage(
+      target.row,
+      target.owner,
+      messageSerializeOptions(request, guild)
+    );
   }
 
   const caller = createBotCaller(request.bot, request.info);
@@ -261,11 +255,15 @@ const isLoadingAnswer = (target: TInteractionMessageTarget) => {
 const editInteractionMessage = async (
   request: TInteractionRequest,
   target: TInteractionMessageTarget,
-  body: TMessageBody
+  stored: TStoredBody
 ): Promise<TInteractionMessageTarget> => {
-  const stored = await toStoredBody(body, { requireContent: false });
-
-  if (stored.html === undefined && stored.embeds === undefined) return target;
+  if (
+    stored.html === undefined &&
+    stored.embeds === undefined &&
+    stored.components === undefined
+  ) {
+    return target;
+  }
 
   if (target.kind === 'ephemeral') {
     const next = {
@@ -275,18 +273,21 @@ const editInteractionMessage = async (
 
     if (!hasStoredContent(next)) throw emptyMessage();
 
-    const row = updateBotEphemeralMessage(request.interaction, target.row.id, {
+    const components = stored.components ?? target.row.components ?? undefined;
+    const row = updateBotEphemeralMessage(target.owner, target.row.id, {
       content: next.html,
-      embeds: next.embeds?.length ? next.embeds : null
+      embeds: next.embeds?.length ? next.embeds : null,
+      components: components?.length ? components : null
     });
 
     if (!row) throw unknownMessage();
 
-    return { kind: 'ephemeral', row };
+    return { kind: 'ephemeral', row, owner: target.owner };
   }
 
   const caller = createBotCaller(request.bot, request.info, {
-    embeds: stored.embeds
+    embeds: stored.embeds,
+    components: stored.components
   });
   const unknown = { code: DiscordErrorCode.UNKNOWN_MESSAGE, what: 'Message' };
   let content = stored.html;
@@ -315,7 +316,7 @@ const deleteInteractionMessage = async (
   target: TInteractionMessageTarget
 ) => {
   if (target.kind === 'ephemeral') {
-    deleteBotEphemeralMessage(request.interaction, target.row.id);
+    deleteBotEphemeralMessage(target.owner, target.row.id);
 
     return;
   }
@@ -338,5 +339,6 @@ export {
   postInteractionMessage,
   serializeInteractionMessage,
   zInteractionMessage,
-  type TInteractionMessage
+  type TInteractionMessage,
+  type TInteractionMessageTarget
 };

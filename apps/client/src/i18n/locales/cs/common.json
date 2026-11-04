@@ -160,5 +160,7 @@
   "botCommandMembers": "Členové",
   "botCommandRoles": "Role",
   "botDidNotRespond": "Bot neodpověděl na /{{command}}.",
-  "failedRunBotCommand": "Příkaz se nepodařilo spustit"
+  "failedRunBotCommand": "Příkaz se nepodařilo spustit",
+  "failedUseComponent": "Nepodařilo se, zkuste to znovu",
+  "botSelectApply": "Použít"
 }

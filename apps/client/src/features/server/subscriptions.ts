@@ -2,6 +2,7 @@ import { logDebug } from '@/helpers/browser-logger';
 import { getTRPCClient } from '@/lib/trpc';
 import { type TPublicServerSettings } from '@sandshark/shared';
 import { setPublicServerSettings } from './actions';
+import { subscribeToBotCommands } from './bot-commands/subscriptions';
 import { subscribeToCategories } from './categories/subscriptions';
 import { subscribeToChannels } from './channels/subscriptions';
 import { subscribeToDirectMessages } from './dms/subscriptions';
@@ -47,7 +48,8 @@ const initSubscriptions = () => {
     subscribeToThreads,
     subscribeToVoice,
     subscribeToCategories,
-    subscribeToPlugins
+    subscribeToPlugins,
+    subscribeToBotCommands
   ];
 
   const unsubscribes = subscriptors.map((subscriptor) => subscriptor());

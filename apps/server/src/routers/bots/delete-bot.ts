@@ -2,6 +2,7 @@ import { Permission } from '@sandshark/shared';
 import { z } from 'zod';
 import { config } from '../../config';
 import { getBotById } from '../../db/queries/bots';
+import { publishBotCommandsChange } from '../../helpers/bot-commands';
 import { deleteUserAccount } from '../../helpers/delete-user-account';
 import { closeBotGatewaySessions } from '../../http/bot-api/gateway';
 import { invariant } from '../../utils/invariant';
@@ -24,6 +25,8 @@ const deleteBotRoute = rateLimitedProcedure(protectedProcedure, {
 
     await deleteUserAccount(bot.id, { wipe: false, deletedBy: ctx.user.id });
     closeBotGatewaySessions(bot.id);
+    // its commands went with it, through the cascade
+    publishBotCommandsChange(bot.id);
   });
 
 export { deleteBotRoute };

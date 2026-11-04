@@ -13,6 +13,8 @@ import {
   type TJoinedMessage
 } from '@sandshark/shared';
 import { memo, useCallback, useMemo, useState } from 'react';
+import { BotThinking } from './bot-thinking';
+import { InteractionHeader } from './interaction-header';
 import { MessageActions } from './message-actions';
 import { MessageEditInline } from './message-edit-inline';
 import { MessageRenderer } from './renderer';
@@ -80,6 +82,18 @@ const Message = memo(
       }
     }, [editingMessageId, message.id, onEditComplete]);
 
+    let content = (
+      <MessageRenderer
+        message={message}
+        disableFiles={disableFiles}
+        disableReactions={disableReactions}
+      />
+    );
+
+    if (message.loading) {
+      content = <BotThinking botId={message.userId} />;
+    }
+
     const messageRow = (
       <div
         className={cn(
@@ -93,11 +107,13 @@ const Message = memo(
       >
         {!isEditing ? (
           <>
-            <MessageRenderer
-              message={message}
-              disableFiles={disableFiles}
-              disableReactions={disableReactions}
-            />
+            {message.interactionCommandName && (
+              <InteractionHeader
+                userId={message.interactionUserId}
+                commandName={message.interactionCommandName}
+              />
+            )}
+            {content}
             {!isThreadReply && replyCount > 0 && (
               <ThreadRepliesButton
                 messageId={message.id}

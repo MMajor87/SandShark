@@ -107,7 +107,6 @@ Without the **message content** intent, guild messages arrive with their content
 
 ## Not supported yet
 
-- Running slash commands from the app: the server runs them and bots answer them, but the composer's `/` menu doesn't list bot commands yet (#58)
 - Slash command options that take a file, autocomplete, and user and message commands (the right click "Apps" menu)
 - Embeds, buttons and other components, modals, and webhooks other than an interaction's own
 - Uploading files from a bot (attachments can be read and downloaded)
@@ -118,9 +117,9 @@ Without the **message content** intent, guild messages arrive with their content
 
 ## Slash commands
 
-A bot registers its commands as it would on Discord: discord.js with `application.commands.set` or `guild.commands.set`, discord.py with `tree.sync()`. Members see them once the client lists them (#58), and a command with `default_member_permissions` is only offered to members with those permissions.
+A bot registers its commands as it would on Discord: discord.js with `application.commands.set` or `guild.commands.set`, discord.py with `tree.sync()`. Members find them in the message box's `/` menu next to plugin commands, each with fields for its options: members, channels and roles are picked from lists, and choices from a dropdown. A command with `default_member_permissions` is only offered to members with those permissions, and a bot's commands are offered in channels, not in threads, since the answer is posted in the channel.
 
-Answer them the usual ways: `reply`, `deferReply` then `editReply`, `followUp`, and ephemeral answers with `MessageFlags.Ephemeral` or `ephemeral=True`. An answer is a message from the bot, headed with who ran which command. An ephemeral answer is shown only to that member and isn't kept after they reload. A bot has three seconds to answer and fifteen minutes to edit or follow up, as on Discord.
+Answer them the usual ways: `reply`, `deferReply` then `editReply`, `followUp`, and ephemeral answers with `MessageFlags.Ephemeral` or `ephemeral=True`. An answer is a message from the bot, headed with who ran which command. An ephemeral answer is shown only to that member, below the channel's messages, until they dismiss it or reload. A deferred answer shows the bot thinking until it's filled in. A bot has three seconds to answer and fifteen minutes to edit or follow up, as on Discord.
 
 The bot posts its answer like any other message, so it needs to be able to see the channel and send messages there. A member can't run a command in a channel the bot can't see, or while the bot is offline.
 

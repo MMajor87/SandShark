@@ -152,5 +152,13 @@
   "soundboard": "Panel de sonidos",
   "soundboardEmpty": "Aún no hay sonidos. Los administradores pueden añadirlos en los ajustes del servidor.",
   "failedPlaySound": "No se pudo reproducir el sonido",
-  "botBadge": "Bot"
+  "botBadge": "Bot",
+  "botUsedCommand": "{{user}} usó /{{command}}",
+  "botIsThinking": "{{bot}} está pensando…",
+  "botEphemeralOnlyYou": "Solo tú puedes ver esto",
+  "botEphemeralDismiss": "Descartar",
+  "botCommandMembers": "Miembros",
+  "botCommandRoles": "Roles",
+  "botDidNotRespond": "El bot no respondió a /{{command}}.",
+  "failedRunBotCommand": "No se pudo ejecutar el comando"
 }

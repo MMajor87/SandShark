@@ -1,13 +1,13 @@
-import type { TCommandInfo } from '@sandshark/shared';
 import { Extension } from '@tiptap/core';
 import { PluginKey } from '@tiptap/pm/state';
 import Suggestion from '@tiptap/suggestion';
 import { COMMANDS_STORAGE_KEY, CommandSuggestion } from './command-suggestion';
+import { isBotCommand, type TSlashCommand } from './helpers';
 
 export const SlashCommandsPluginKey = new PluginKey('slashCommands');
 
 export interface SlashCommandsOptions {
-  commands: TCommandInfo[];
+  commands: TSlashCommand[];
   suggestion: typeof CommandSuggestion;
 }
 
@@ -26,7 +26,7 @@ export const SlashCommands = Extension.create<SlashCommandsOptions>({
   },
   addProseMirrorPlugins() {
     return [
-      Suggestion<TCommandInfo, TCommandInfo>({
+      Suggestion<TSlashCommand, TSlashCommand>({
         editor: this.editor,
         pluginKey: SlashCommandsPluginKey,
         char: this.options.suggestion.char,
@@ -35,6 +35,28 @@ export const SlashCommands = Extension.create<SlashCommandsOptions>({
         items: this.options.suggestion.items,
         render: this.options.suggestion.render,
         command: ({ editor, range, props }) => {
+          // a bot command always becomes a chip, which is what carries its id
+          if (isBotCommand(props)) {
+            editor
+              .chain()
+              .focus()
+              .deleteRange(range)
+              .insertContent({
+                type: 'botCommand',
+                attrs: {
+                  commandId: props.commandId,
+                  commandName: props.name,
+                  subcommand: JSON.stringify(props.subcommand),
+                  options: JSON.stringify(props.options),
+                  values: '{}'
+                }
+              })
+              .insertContent(' ')
+              .run();
+
+            return;
+          }
+
           const hasArgs = (props.args?.length ?? 0) > 0;
 
           if (!hasArgs) {

@@ -59,6 +59,7 @@ export enum ServerEvents {
   // server side only, the bot gateway turns it into INTERACTION_CREATE
   BOT_INTERACTION_CREATE = 'botInteractionCreate',
   BOT_INTERACTION_FAILED = 'botInteractionFailed',
+  BOT_COMMANDS_CHANGE = 'botCommandsChange',
   BOT_EPHEMERAL_MESSAGE = 'botEphemeralMessage',
   BOT_EPHEMERAL_MESSAGE_DELETE = 'botEphemeralMessageDelete',
 

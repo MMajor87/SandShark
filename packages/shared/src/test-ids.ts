@@ -62,5 +62,6 @@ export enum TestId {
   BOT_ROW = 'bot-row',
   BOT_RESET_TOKEN = 'bot-reset-token',
   BOT_TOKEN_VALUE = 'bot-token-value',
-  BOT_BADGE = 'bot-badge'
+  BOT_BADGE = 'bot-badge',
+  BOT_EPHEMERAL_MESSAGE = 'bot-ephemeral-message'
 }

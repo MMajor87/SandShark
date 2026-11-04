@@ -15,6 +15,11 @@ const onEphemeralMessageDeleteRoute = protectedProcedure.subscription(
     )
 );
 
+// a bot registered, changed or removed commands, so the menu is fetched again
+const onCommandsChangeRoute = protectedProcedure.subscription(async ({ ctx }) =>
+  ctx.pubsub.subscribe(ServerEvents.BOT_COMMANDS_CHANGE)
+);
+
 // a command this member ran that the bot never answered
 const onInteractionFailedRoute = protectedProcedure.subscription(
   async ({ ctx }) =>
@@ -22,6 +27,7 @@ const onInteractionFailedRoute = protectedProcedure.subscription(
 );
 
 export {
+  onCommandsChangeRoute,
   onEphemeralMessageDeleteRoute,
   onEphemeralMessageRoute,
   onInteractionFailedRoute

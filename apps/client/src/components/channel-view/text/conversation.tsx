@@ -1,4 +1,5 @@
 import { MessageCompose } from '@/components/message-compose';
+import { parseBotCommandInvocation } from '@/components/tiptap-input/extensions/commands/helpers';
 import { useThreadSidebar } from '@/features/app/hooks';
 import { getConversationKey } from '@/features/server/helpers';
 import { useChannelCan, useTypingUsers } from '@/features/server/hooks';
@@ -28,6 +29,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { BotEphemeralMessages } from './bot-ephemeral-messages';
 import { ChatInputDivider } from './chat-input-divider';
 import { DEFAULT_MAX_HEIGHT_VH } from './helpers';
 import { useArrowUpEdit } from './hooks/use-arrow-up-edit';
@@ -144,6 +146,24 @@ const Conversation = memo(
       async (message: string, files: { id: string }[]) => {
         sendTypingSignal.cancel();
 
+        // a bot command chip is run, the bot answers it, nothing is sent as a message
+        const invocation = parseBotCommandInvocation(message);
+
+        if (invocation) {
+          try {
+            const trpc = getTRPCClient();
+
+            await trpc.bots.runCommand.mutate({ ...invocation, channelId });
+          } catch (error) {
+            toast.error(getTrpcError(error, t('failedRunBotCommand')));
+            return false;
+          }
+
+          setNewMessageHandler('');
+
+          return true;
+        }
+
         const trpc = getTRPCClient();
 
         try {
@@ -237,6 +257,7 @@ const Conversation = memo(
                 onEditComplete={handleEditComplete}
               />
             ))}
+            {!isThread && <BotEphemeralMessages channelId={channelId} />}
           </div>
         </div>
 

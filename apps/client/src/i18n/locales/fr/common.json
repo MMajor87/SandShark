@@ -152,5 +152,13 @@
   "soundboard": "Table de sons",
   "soundboardEmpty": "Aucun son pour l'instant. Les administrateurs peuvent en ajouter dans les paramètres du serveur.",
   "failedPlaySound": "Impossible de jouer le son",
-  "botBadge": "Bot"
+  "botBadge": "Bot",
+  "botUsedCommand": "{{user}} a utilisé /{{command}}",
+  "botIsThinking": "{{bot}} réfléchit…",
+  "botEphemeralOnlyYou": "Vous seul pouvez voir ceci",
+  "botEphemeralDismiss": "Ignorer",
+  "botCommandMembers": "Membres",
+  "botCommandRoles": "Rôles",
+  "botDidNotRespond": "Le bot n'a pas répondu à /{{command}}.",
+  "failedRunBotCommand": "Impossible d'exécuter la commande"
 }

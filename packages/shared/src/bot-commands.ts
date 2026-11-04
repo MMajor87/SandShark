@@ -66,3 +66,20 @@ export type TBotInteractionFailed = {
   channelId: number;
   commandName: string;
 };
+
+// one entry of the composer's slash menu for a bot command. a command with subcommands is
+// listed once per subcommand, named by its whole path ("config set")
+export type TBotCommandInfo = {
+  commandId: number;
+  botId: number;
+  botName: string;
+  name: string;
+  description: string;
+  // the subcommand group and subcommand under the command, outermost first
+  subcommand: string[];
+  options: TBotCommandOption[];
+};
+
+export type TBotCommandsChange = {
+  botId: number;
+};

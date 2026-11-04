@@ -1,4 +1,5 @@
 import {
+  getErrorMessage,
   ServerEvents,
   sha256,
   type TBotEphemeralMessage
@@ -7,6 +8,7 @@ import { randomBytes } from 'crypto';
 import { and, eq, lt } from 'drizzle-orm';
 import { db } from '../db';
 import { botEphemeralMessages, botInteractions } from '../db/schema';
+import { logger } from '../logger';
 import { pubsub } from '../utils/pubsub';
 
 type TBotInteraction = typeof botInteractions.$inferSelect;
@@ -65,29 +67,42 @@ const claimBotInteractionResponse = (interactionId: number) =>
     .returning({ id: botInteractions.id })
     .get();
 
-// tells the member when the bot lets the three seconds pass without answering
+const notifyIfUnanswered = (interaction: TBotInteraction) => {
+  const current = db
+    .select({ responded: botInteractions.responded })
+    .from(botInteractions)
+    .where(
+      and(
+        eq(botInteractions.id, interaction.id),
+        eq(botInteractions.createdAt, interaction.createdAt)
+      )
+    )
+    .limit(1)
+    .get();
+
+  if (!current || current.responded) return;
+
+  pubsub.publishFor(interaction.userId, ServerEvents.BOT_INTERACTION_FAILED, {
+    interactionId: interaction.id,
+    botId: interaction.botId,
+    channelId: interaction.channelId,
+    commandName: interaction.commandName
+  });
+};
+
+// tells the member when the bot lets the three seconds pass without answering. the check
+// runs outside any request, so a failure is logged here rather than left unhandled
 const watchBotInteractionResponse = (interaction: TBotInteraction) => {
   setTimeout(() => {
-    const current = db
-      .select({ responded: botInteractions.responded })
-      .from(botInteractions)
-      .where(
-        and(
-          eq(botInteractions.id, interaction.id),
-          eq(botInteractions.createdAt, interaction.createdAt)
-        )
-      )
-      .limit(1)
-      .get();
-
-    if (!current || current.responded) return;
-
-    pubsub.publishFor(interaction.userId, ServerEvents.BOT_INTERACTION_FAILED, {
-      interactionId: interaction.id,
-      botId: interaction.botId,
-      channelId: interaction.channelId,
-      commandName: interaction.commandName
-    });
+    try {
+      notifyIfUnanswered(interaction);
+    } catch (error) {
+      logger.error(
+        'Failed to check whether interaction %d was answered: %s',
+        interaction.id,
+        getErrorMessage(error)
+      );
+    }
   }, RESPONSE_WINDOW_MS).unref();
 };
 

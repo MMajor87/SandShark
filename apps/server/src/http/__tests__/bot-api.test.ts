@@ -5,6 +5,7 @@ import { createTestBot, initTest } from '../../__tests__/helpers';
 import { tdb, testsBaseUrl } from '../../__tests__/setup';
 import { config } from '../../config';
 import { categories, channels, roles, users } from '../../db/schema';
+import { getUnsupportedCalls } from '../../helpers/bot-compat-report';
 import {
   categorySnowflake,
   channelSnowflake
@@ -172,6 +173,49 @@ describe('bot api', () => {
       });
 
       expect(wrongMethod.status).toBe(405);
+    });
+
+    test('unsupported calls are counted in the bot report, by endpoint', async () => {
+      const { bot, token } = await createTestBot();
+
+      await botFetch('/guilds/123/bans', token);
+      await botFetch('/guilds/456/bans', token);
+      await botFetch('/users/@me', token, { method: 'DELETE' });
+
+      expect(getUnsupportedCalls(bot.id)).toEqual([
+        expect.objectContaining({
+          call: 'GET /guilds/{id}/bans',
+          count: 2,
+          stubbed: false
+        }),
+        expect.objectContaining({
+          call: 'DELETE /users/@me',
+          count: 1,
+          stubbed: false
+        })
+      ]);
+    });
+
+    test('lists bots fetch while starting are answered empty, and still reported', async () => {
+      const { bot, token } = await createTestBot();
+
+      for (const list of ['emojis', 'stickers', 'scheduled-events']) {
+        const response = await botFetch(`/guilds/1/${list}`, token);
+
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual([]);
+      }
+
+      expect(
+        getUnsupportedCalls(bot.id).map(({ call, stubbed }) => ({
+          call,
+          stubbed
+        }))
+      ).toEqual([
+        { call: 'GET /guilds/{id}/emojis', stubbed: true },
+        { call: 'GET /guilds/{id}/stickers', stubbed: true },
+        { call: 'GET /guilds/{id}/scheduled-events', stubbed: true }
+      ]);
     });
   });
 

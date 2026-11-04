@@ -117,6 +117,13 @@ class HostedBotRuntime {
     return runtime.getState();
   };
 
+  // a line from the server about the bot, written to its log only if it is hosted here
+  public static note = (botId: number, message: string) => {
+    const runtime = HostedBotRuntime.runtimes.get(botId);
+
+    if (runtime) runtime.log('system', message);
+  };
+
   public static getLogs = (botId: number) => {
     const runtime = HostedBotRuntime.runtimes.get(botId);
 

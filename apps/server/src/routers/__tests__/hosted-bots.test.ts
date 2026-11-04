@@ -28,6 +28,7 @@ import {
 import { tdb } from '../../__tests__/setup';
 import { config } from '../../config';
 import { hostedBots, rolePermissions, settings } from '../../db/schema';
+import { getUnsupportedCalls } from '../../helpers/bot-compat-report';
 import { fileManager } from '../../helpers/file-manager';
 import { HOSTED_BOTS_PATH } from '../../helpers/paths';
 import { getHostedBotPath, HostedBotRuntime } from '../../runtimes/hosted-bot';
@@ -592,6 +593,65 @@ setInterval(() => {}, 1000);
       expect(
         (await caller.bots.getHosted({ botId: bot.id })).tokenEnvNames
       ).toEqual(['MY_TOKEN', 'OTHER']);
+    });
+  });
+
+  describe('compatibility report', () => {
+    test('a hosted bot logs each unsupported call once and counts the rest', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({
+        'index.js': `
+const call = (path) =>
+  fetch('https://discord.com/api/v10' + path, {
+    headers: { Authorization: 'Bot ' + process.env.DISCORD_TOKEN }
+  });
+await call('/guilds/1/bans');
+await call('/guilds/2/bans');
+await call('/guilds/1/emojis');
+console.log('called');
+setInterval(() => {}, 1000);
+`
+      });
+
+      await caller.bots.startHosted({ botId: bot.id });
+      await waitForLog(bot.id, 'called');
+
+      const lines = HostedBotRuntime.getLogs(bot.id)
+        .map(({ message }) => message)
+        .filter((message) => message.startsWith('unsupported'));
+
+      expect(lines).toEqual([
+        'unsupported: GET /guilds/{id}/bans',
+        'unsupported, answered empty: GET /guilds/{id}/emojis'
+      ]);
+
+      const { unsupported } = await caller.bots.getHosted({ botId: bot.id });
+
+      expect(
+        unsupported.map(({ call, count, stubbed }) => ({
+          call,
+          count,
+          stubbed
+        }))
+      ).toEqual([
+        { call: 'GET /guilds/{id}/bans', count: 2, stubbed: false },
+        { call: 'GET /guilds/{id}/emojis', count: 1, stubbed: true }
+      ]);
+    });
+
+    test('deleting the bot forgets its report', async () => {
+      await enableHosting();
+
+      const { caller, bot, token } = await createHostedBot({});
+
+      await botApiRequest('/guilds/1/bans', token);
+
+      expect(getUnsupportedCalls(bot.id)).toHaveLength(1);
+
+      await caller.bots.delete({ botId: bot.id });
+
+      expect(getUnsupportedCalls(bot.id)).toEqual([]);
     });
   });
 

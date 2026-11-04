@@ -11,6 +11,7 @@ import {
 } from '../../__tests__/helpers';
 import { tdb } from '../../__tests__/setup';
 import { channels, users } from '../../db/schema';
+import { getUnsupportedCalls } from '../../helpers/bot-compat-report';
 import { channelSnowflake } from '../../helpers/discord/channel';
 import { userSnowflake } from '../../helpers/discord/user';
 import { getUserStatus } from '../../utils/wss';
@@ -304,6 +305,44 @@ describe('bot gateway', () => {
       client.send({ op: 2, d: { token, intents: 0 } });
 
       expect(await client.closed).toBe(4005);
+    });
+
+    test('an unknown opcode closes the connection and is reported', async () => {
+      const { bot, client } = await identified();
+
+      client.send({ op: 99, d: null });
+
+      expect(await client.closed).toBe(4001);
+      expect(getUnsupportedCalls(bot.id)).toEqual([
+        expect.objectContaining({ call: 'gateway: opcode 99', stubbed: false })
+      ]);
+    });
+
+    test('a presence or voice state update is accepted, and reported as dropped', async () => {
+      const { bot, client } = await identified();
+
+      try {
+        client.send({ op: 3, d: { status: 'online', activities: [] } });
+        client.send({ op: 3, d: { status: 'idle', activities: [] } });
+        client.send({ op: 4, d: { guild_id: '1', channel_id: null } });
+        client.send({ op: 1, d: null });
+        await client.next((p) => p.op === 11);
+
+        expect(getUnsupportedCalls(bot.id)).toEqual([
+          expect.objectContaining({
+            call: 'gateway: presence update',
+            count: 2,
+            stubbed: true
+          }),
+          expect.objectContaining({
+            call: 'gateway: voice state update',
+            count: 1,
+            stubbed: true
+          })
+        ]);
+      } finally {
+        await client.close();
+      }
     });
 
     test('an unsupported version or encoding', async () => {

@@ -9,6 +9,7 @@ import type { Unsubscribable } from '@trpc/server/observable';
 import { randomBytes } from 'node:crypto';
 import type WebSocket from 'ws';
 import { getPublicUserById } from '../../../db/queries/users';
+import { recordUnsupportedCall } from '../../../helpers/bot-compat-report';
 import { getBotUserByAuthorization } from '../../../helpers/bot-tokens';
 import { getGuildContext } from '../../../helpers/discord/guild';
 import { createMediaAccessToken } from '../../../helpers/media-access-token';
@@ -202,9 +203,22 @@ class GatewaySession implements TGatewaySessionApi {
       case GatewayOpcode.VOICE_STATE_UPDATE:
         if (!this.identified) {
           this.close(GatewayCloseCode.NOT_AUTHENTICATED, 'Not authenticated.');
+          return;
         }
+
+        recordUnsupportedCall(
+          this.bot.id,
+          payload.op === GatewayOpcode.PRESENCE_UPDATE
+            ? 'gateway: presence update'
+            : 'gateway: voice state update',
+          true
+        );
         return;
       default:
+        if (this.identified) {
+          recordUnsupportedCall(this.bot.id, `gateway: opcode ${payload.op}`);
+        }
+
         this.close(GatewayCloseCode.UNKNOWN_OPCODE, 'Unknown opcode.');
     }
   }

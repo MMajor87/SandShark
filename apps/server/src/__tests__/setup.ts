@@ -5,6 +5,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { migrateDatabase } from '../db/migrate';
 import { clearAccountDeleteIntentsForTests } from '../helpers/account-delete-intents';
+import { clearUnsupportedCallsForTests } from '../helpers/bot-compat-report';
 import { DATA_PATH } from '../helpers/paths';
 import { clearVoiceMoveGrantsForTests } from '../helpers/voice-move-grants';
 import { createHttpServer } from '../http';
@@ -97,6 +98,7 @@ beforeEach(async () => {
   pluginManager.clearHooks();
   clearRateLimitersForTests();
   clearVoiceMoveGrantsForTests();
+  clearUnsupportedCallsForTests();
   clearAccountDeleteIntentsForTests();
   VoiceRuntime.clearServerMutesForTests();
   clearUserSocketsForTests();

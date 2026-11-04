@@ -20,6 +20,11 @@ export enum HostedBotJsRuntime {
   NODE = 'node'
 }
 
+// starter code an admin can host in one click, for a bot that has none yet
+export enum HostedBotTemplate {
+  PING = 'ping'
+}
+
 export type THostedBotSource = {
   type: HostedBotSourceType;
   url: string | null;

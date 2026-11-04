@@ -1,7 +1,8 @@
 import {
   HOSTED_BOT_GITHUB_URL_REGEX,
   HOSTED_BOT_MAX_ARCHIVE_SIZE,
-  HostedBotSourceType
+  HostedBotSourceType,
+  type HostedBotTemplate
 } from '@sandshark/shared';
 import { randomUUIDv7 } from 'bun';
 import fs from 'fs/promises';
@@ -13,6 +14,7 @@ import { getHostedBotPath, HostedBotRuntime } from '../runtimes/hosted-bot';
 import { invariant } from '../utils/invariant';
 import { unzipBlobToDirectory } from '../utils/zip';
 import { hasHostedBotDependencies } from './hosted-bot-install';
+import { HOSTED_BOT_TEMPLATES } from './hosted-bot-templates';
 import { TMP_PATH } from './paths';
 
 const MAX_ARCHIVE_MB = HOSTED_BOT_MAX_ARCHIVE_SIZE / 1024 / 1024;
@@ -45,6 +47,32 @@ const installHostedBotDependencies = async (botId: number) => {
   });
 
   installInBackground(botId);
+};
+
+// records where the new code came from, and installs its dependencies, which restarts the
+// bot if it was running, or else restarts it on the new code straight away
+const onHostedBotCodeChanged = async (
+  botId: number,
+  source: { type: HostedBotSourceType; url: string | null; ref: string | null }
+) => {
+  await upsertHostedBot(botId, {
+    sourceType: source.type,
+    sourceUrl: source.url,
+    sourceRef: source.ref,
+    codeUpdatedAt: Date.now()
+  });
+
+  if (await hasHostedBotDependencies(getHostedBotPath(botId))) {
+    installInBackground(botId);
+    return;
+  }
+
+  const { enabled } = (await getHostedBot(botId)) ?? { enabled: false };
+
+  if (enabled) {
+    await HostedBotRuntime.stop(botId);
+    await HostedBotRuntime.start(botId);
+  }
 };
 
 // the archive's files replace the ones of the same name and everything else stays, so data
@@ -80,24 +108,35 @@ const replaceHostedBotCode = async (
     await fs.rm(staging, { recursive: true, force: true });
   }
 
-  await upsertHostedBot(botId, {
-    sourceType: source.type,
-    sourceUrl: source.url,
-    sourceRef: source.ref,
-    codeUpdatedAt: Date.now()
+  await onHostedBotCodeChanged(botId, source);
+};
+
+// the template's files are the bot's own from then on, to change and upload like any code
+const writeHostedBotTemplate = async (
+  botId: number,
+  template: HostedBotTemplate
+) => {
+  const row = await getHostedBot(botId);
+
+  invariant(!row?.codeUpdatedAt, {
+    code: 'BAD_REQUEST',
+    message: 'This bot already has code. Upload or update it instead.'
   });
 
-  if (await hasHostedBotDependencies(botPath)) {
-    installInBackground(botId);
-    return;
-  }
+  const botPath = getHostedBotPath(botId);
 
-  const { enabled } = (await getHostedBot(botId)) ?? { enabled: false };
+  await fs.mkdir(botPath, { recursive: true });
+  await Promise.all(
+    Object.entries(HOSTED_BOT_TEMPLATES[template]).map(([name, content]) =>
+      fs.writeFile(path.join(botPath, name), content)
+    )
+  );
 
-  if (enabled) {
-    await HostedBotRuntime.stop(botId);
-    await HostedBotRuntime.start(botId);
-  }
+  await onHostedBotCodeChanged(botId, {
+    type: HostedBotSourceType.UPLOAD,
+    url: null,
+    ref: null
+  });
 };
 
 const setHostedBotGithubSource = async (
@@ -181,5 +220,6 @@ export {
   installHostedBotDependencies,
   replaceHostedBotCode,
   setHostedBotGithubSource,
-  updateHostedBotFromGithub
+  updateHostedBotFromGithub,
+  writeHostedBotTemplate
 };

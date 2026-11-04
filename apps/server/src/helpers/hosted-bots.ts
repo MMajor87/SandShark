@@ -1,4 +1,8 @@
-import { HOSTED_BOT_MAX_ENV_VARS, type THostedBot } from '@sandshark/shared';
+import {
+  HOSTED_BOT_MAX_ENV_VARS,
+  HostedBotJsRuntime,
+  type THostedBot
+} from '@sandshark/shared';
 import fs from 'fs/promises';
 import { upsertHostedBot } from '../db/mutations/hosted-bots';
 import {
@@ -18,7 +22,11 @@ import {
   getUnsupportedCalls
 } from './bot-compat-report';
 import { resolveHostedBotEntry } from './hosted-bot-entry';
-import { findBotPython, PYTHON_MISSING_MESSAGE } from './hosted-bot-python';
+import {
+  findHostedBotInterpreter,
+  getMissingInterpreterMessage
+} from './hosted-bot-interpreter';
+import { findNode, NODE_MISSING_MESSAGE } from './hosted-bot-node';
 
 const getHostedBotView = async (botId: number): Promise<THostedBot> => {
   const row = await getHostedBot(botId);
@@ -28,6 +36,7 @@ const getHostedBotView = async (botId: number): Promise<THostedBot> => {
     enabled: row?.enabled ?? false,
     envNames: Object.keys(row?.env ?? {}).sort(),
     tokenEnvNames: row?.tokenEnvNames ?? [],
+    jsRuntime: row?.jsRuntime ?? HostedBotJsRuntime.BUN,
     source: row?.sourceType
       ? { type: row.sourceType, url: row.sourceUrl, ref: row.sourceRef }
       : null,
@@ -38,18 +47,25 @@ const getHostedBotView = async (botId: number): Promise<THostedBot> => {
 
 const assertCanRun = async (botId: number) => {
   const botPath = getHostedBotPath(botId);
-  const entry = await resolveHostedBotEntry(botPath);
+  const [entry, row] = await Promise.all([
+    resolveHostedBotEntry(botPath),
+    getHostedBot(botId)
+  ]);
 
   invariant(entry, {
     code: 'BAD_REQUEST',
     message: 'This bot has no code to run yet.'
   });
 
-  if (entry.language !== 'python') return;
+  const interpreter = await findHostedBotInterpreter(
+    botPath,
+    entry,
+    row?.jsRuntime ?? HostedBotJsRuntime.BUN
+  );
 
-  invariant(await findBotPython(botPath), {
+  invariant(interpreter, {
     code: 'BAD_REQUEST',
-    message: PYTHON_MISSING_MESSAGE
+    message: getMissingInterpreterMessage(entry)
   });
 };
 
@@ -104,6 +120,22 @@ const setHostedBotEnvVar = async (
 
 const setHostedBotTokenEnvNames = async (botId: number, names: string[]) => {
   await upsertHostedBot(botId, { tokenEnvNames: [...new Set(names)] });
+};
+
+// the bot runs on it from its next start. node has to be there to be chosen, so a bot is
+// never left set to a runtime it cannot start on
+const setHostedBotJsRuntime = async (
+  botId: number,
+  jsRuntime: HostedBotJsRuntime
+) => {
+  if (jsRuntime === HostedBotJsRuntime.NODE) {
+    invariant(await findNode(), {
+      code: 'BAD_REQUEST',
+      message: NODE_MISSING_MESSAGE
+    });
+  }
+
+  await upsertHostedBot(botId, { jsRuntime });
 };
 
 // the bots row and the hosted row go with the user through the cascade, the files do not
@@ -164,6 +196,7 @@ export {
   removeHostedBot,
   restartHostedBot,
   setHostedBotEnvVar,
+  setHostedBotJsRuntime,
   setHostedBotTokenEnvNames,
   startEnabledHostedBots,
   startHostedBot,

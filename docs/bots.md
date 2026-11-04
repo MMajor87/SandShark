@@ -82,7 +82,7 @@ What the server does for a hosted bot:
 
 **Compatibility** lists the calls a bot made that SandShark doesn't support yet, each counted once per endpoint and written to the log the first time. A few lists that bots fetch while starting, the server's emojis, stickers and scheduled events, are answered empty instead of refused and marked **answered empty**. When a bot that works on Discord misbehaves here, this is the first place to look.
 
-JavaScript and TypeScript bots run on the server's own runtime, which is Bun. Most run as they are, but packages with native add-ons such as `canvas` may not.
+JavaScript and TypeScript bots run on the server's own runtime, which is Bun. Most run as they are, but packages with native add-ons such as `canvas` may not. For those, set **Runtime** to **Node.js**, which needs Node.js 20 or newer installed on the server. Dependencies are still installed with Bun, which only runs the install scripts of well-known packages: list any other package that builds a native add-on under `trustedDependencies` in `package.json`.
 
 Python bots need Python 3 installed on the server, found as `python3` or `python`, with its `venv` module (on Debian and Ubuntu, the `python3-venv` package). The Docker image doesn't include Python. On Windows, install it from python.org: the Microsoft Store's Python can't be started by other programs. The shim moves aiohttp's requests, which covers discord.py, its forks such as nextcord, disnake and py-cord, and hikari. Libraries that reach Discord another way are refused rather than redirected.
 

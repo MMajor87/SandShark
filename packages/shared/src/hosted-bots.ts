@@ -13,6 +13,13 @@ export enum HostedBotSourceType {
   GITHUB = 'github'
 }
 
+// what runs a javascript bot. bun is the server's own runtime and needs nothing installed,
+// node is for bots whose native add-ons bun cannot load
+export enum HostedBotJsRuntime {
+  BUN = 'bun',
+  NODE = 'node'
+}
+
 export type THostedBotSource = {
   type: HostedBotSourceType;
   url: string | null;
@@ -47,6 +54,7 @@ export type THostedBot = {
   restarts: number;
   envNames: string[];
   tokenEnvNames: string[];
+  jsRuntime: HostedBotJsRuntime;
   source: THostedBotSource | null;
   codeUpdatedAt: number | null;
   unsupported: THostedBotUnsupportedCall[];

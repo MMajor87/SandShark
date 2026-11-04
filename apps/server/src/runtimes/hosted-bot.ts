@@ -1,4 +1,5 @@
 import {
+  HostedBotJsRuntime,
   HostedBotStatus,
   ServerEvents,
   type THostedBotLogEntry,
@@ -8,6 +9,7 @@ import {
 import type { Subprocess } from 'bun';
 import fs from 'fs/promises';
 import path from 'path';
+import { pathToFileURL } from 'url';
 import { getHostedBot } from '../db/queries/hosted-bots';
 import { writeNewBotToken } from '../helpers/bot-tokens';
 import {
@@ -17,9 +19,9 @@ import {
 import { buildHostedBotEnv, buildInstallEnv } from '../helpers/hosted-bot-env';
 import { getHostedBotInstallSteps } from '../helpers/hosted-bot-install';
 import {
-  findBotPython,
-  PYTHON_MISSING_MESSAGE
-} from '../helpers/hosted-bot-python';
+  findHostedBotInterpreter,
+  getMissingInterpreterMessage
+} from '../helpers/hosted-bot-interpreter';
 import { writeHostedBotPythonShim } from '../helpers/hosted-bot-python-shim';
 import { writeHostedBotShim } from '../helpers/hosted-bot-shim';
 import { HOSTED_BOT_LOGS_PATH, HOSTED_BOTS_PATH } from '../helpers/paths';
@@ -44,26 +46,31 @@ const getHostedBotPath = (botId: number) =>
 const getHostedBotLogPath = (botId: number) =>
   path.join(HOSTED_BOT_LOGS_PATH, `${botId}.log`);
 
-// what runs the bot's entry: its python, or this server's own binary with the shim preloaded.
-// undefined when a python bot has no python to run on
+// what runs the bot's entry, with the shim for its language loaded before it. undefined when
+// the program it runs on is not installed on this server
 const buildHostedBotCommand = async (
   botPath: string,
-  entry: THostedBotEntry
+  entry: THostedBotEntry,
+  jsRuntime: HostedBotJsRuntime
 ) => {
-  if (entry.language === 'javascript') {
-    const shimPath = await writeHostedBotShim();
+  const interpreter = await findHostedBotInterpreter(botPath, entry, jsRuntime);
 
-    return [process.execPath, '--preload', shimPath, entry.file];
+  if (!interpreter) return undefined;
+
+  if (entry.language === 'python') {
+    await writeHostedBotPythonShim();
+
+    return [interpreter, entry.file];
   }
 
-  const [python] = await Promise.all([
-    findBotPython(botPath),
-    writeHostedBotPythonShim()
-  ]);
+  const shimPath = await writeHostedBotShim();
 
-  if (!python) return undefined;
+  if (jsRuntime === HostedBotJsRuntime.NODE) {
+    // node only takes a module to import as a url, a windows path reads as a url scheme
+    return [interpreter, '--import', pathToFileURL(shimPath).href, entry.file];
+  }
 
-  return [python, entry.file];
+  return [interpreter, '--preload', shimPath, entry.file];
 };
 
 class HostedBotRuntime {
@@ -276,16 +283,23 @@ class HostedBotRuntime {
 
     if (!entry) {
       this.wanted = false;
-      this.log('system', 'nothing to run: no start script, main or index file');
+      this.log(
+        'system',
+        'nothing to run: no start script, main, index, main.py or bot.py file'
+      );
       this.setStatus(HostedBotStatus.CRASHED);
       return;
     }
 
-    const cmd = await buildHostedBotCommand(botPath, entry);
+    const cmd = await buildHostedBotCommand(
+      botPath,
+      entry,
+      row?.jsRuntime ?? HostedBotJsRuntime.BUN
+    );
 
     if (!cmd) {
       this.wanted = false;
-      this.log('system', PYTHON_MISSING_MESSAGE);
+      this.log('system', getMissingInterpreterMessage(entry));
       this.setStatus(HostedBotStatus.CRASHED);
       return;
     }

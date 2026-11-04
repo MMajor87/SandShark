@@ -1,4 +1,5 @@
 import {
+  HostedBotJsRuntime,
   HostedBotSourceType,
   HostedBotStatus,
   Permission,
@@ -30,6 +31,7 @@ import { config } from '../../config';
 import { hostedBots, rolePermissions, settings } from '../../db/schema';
 import { getUnsupportedCalls } from '../../helpers/bot-compat-report';
 import { fileManager } from '../../helpers/file-manager';
+import { findNode } from '../../helpers/hosted-bot-node';
 import { findPython } from '../../helpers/hosted-bot-python';
 import { HOSTED_BOTS_PATH } from '../../helpers/paths';
 import { getHostedBotPath, HostedBotRuntime } from '../../runtimes/hosted-bot';
@@ -41,6 +43,8 @@ const MEMBER_ROLE_ID = 2;
 // python bots can only run where a python 3 is installed, which the ci runners and most
 // dev machines have. without one, only the refusals below are covered
 const python = await findPython();
+// the same for node, which only bots set to run on it need
+const node = await findNode();
 
 let server: http.Server;
 const originalServer = { ...config.server };
@@ -1016,6 +1020,176 @@ while True:
         );
       },
       150_000
+    );
+  });
+
+  describe('node', () => {
+    const NODE_MISSING =
+      'This bot is set to run on Node.js, and Node.js 20 or newer was not found on this server.';
+
+    test('a bot runs on bun until told otherwise', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({});
+
+      expect((await caller.bots.getHosted({ botId: bot.id })).jsRuntime).toBe(
+        HostedBotJsRuntime.BUN
+      );
+
+      await caller.bots.setHostedJsRuntime({
+        botId: bot.id,
+        jsRuntime: HostedBotJsRuntime.BUN
+      });
+
+      const row = await tdb
+        .select({ jsRuntime: hostedBots.jsRuntime })
+        .from(hostedBots)
+        .where(eq(hostedBots.botId, bot.id))
+        .get();
+
+      expect(row?.jsRuntime).toBe(HostedBotJsRuntime.BUN);
+    });
+
+    test('needs the host bots permission and a runtime it knows', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({});
+      const { caller: memberCaller } = await initTest(2);
+
+      await expect(
+        memberCaller.bots.setHostedJsRuntime({
+          botId: bot.id,
+          jsRuntime: HostedBotJsRuntime.BUN
+        })
+      ).rejects.toThrow('Insufficient permissions');
+      await expect(
+        caller.bots.setHostedJsRuntime({
+          botId: bot.id,
+          // @ts-expect-error a runtime that does not exist
+          jsRuntime: 'deno'
+        })
+      ).rejects.toThrow();
+    });
+
+    test('refuses node when the server has none', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({});
+
+      spyOn(Bun, 'which').mockReturnValue(null);
+
+      await expect(
+        caller.bots.setHostedJsRuntime({
+          botId: bot.id,
+          jsRuntime: HostedBotJsRuntime.NODE
+        })
+      ).rejects.toThrow(NODE_MISSING);
+      expect((await caller.bots.getHosted({ botId: bot.id })).jsRuntime).toBe(
+        HostedBotJsRuntime.BUN
+      );
+    });
+
+    test('refuses to start a bot set to node once node is gone', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({ 'index.js': WHOAMI_BOT });
+
+      await tdb.insert(hostedBots).values({
+        botId: bot.id,
+        jsRuntime: HostedBotJsRuntime.NODE,
+        createdAt: Date.now()
+      });
+
+      spyOn(Bun, 'which').mockReturnValue(null);
+
+      await expect(caller.bots.startHosted({ botId: bot.id })).rejects.toThrow(
+        NODE_MISSING
+      );
+    });
+
+    test.skipIf(!node)(
+      'runs the bot on node with the same shim',
+      async () => {
+        await enableHosting();
+
+        const { caller, bot } = await createHostedBot({
+          'package.json': JSON.stringify({ type: 'module' }),
+          'index.js': `console.log('runtime ' + (typeof Bun === 'undefined' ? 'node' : 'bun'));
+${WHOAMI_BOT}`
+        });
+
+        await caller.bots.setHostedJsRuntime({
+          botId: bot.id,
+          jsRuntime: HostedBotJsRuntime.NODE
+        });
+        await caller.bots.startHosted({ botId: bot.id });
+        await waitForLog(bot.id, 'whoami');
+
+        expect(logText(bot.id)).toContain('runtime node');
+        expect(logText(bot.id)).toContain('whoami 200 Hosted');
+      },
+      30_000
+    );
+
+    // discord.js sends its requests through undici on node, not through fetch
+    test.skipIf(!node)(
+      'an unmodified discord.js bot logs in on node',
+      async () => {
+        await enableHosting();
+
+        const { caller, bot } = await createHostedBot({
+          'package.json': JSON.stringify({ scripts: { start: 'node bot.js' } }),
+          'bot.js': `
+const { Client, GatewayIntentBits } = require('discord.js');
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+client.once('clientReady', () => console.log('ready as ' + client.user.username));
+client.login();
+`
+        });
+
+        await caller.bots.setHostedJsRuntime({
+          botId: bot.id,
+          jsRuntime: HostedBotJsRuntime.NODE
+        });
+        await caller.bots.startHosted({ botId: bot.id });
+        await waitForLog(bot.id, 'ready as', 30_000);
+
+        expect(logText(bot.id)).toContain('ready as Hosted');
+      },
+      40_000
+    );
+
+    test.skipIf(!node)(
+      'refuses a raw socket to discord on node',
+      async () => {
+        await enableHosting();
+
+        const { caller, bot } = await createHostedBot({
+          'package.json': JSON.stringify({ type: 'module' }),
+          'index.js': `
+import net from 'node:net';
+
+await new Promise((resolve) => {
+  net.connect({ host: 'gateway.discord.gg', port: 443 }).on('error', resolve);
+});
+
+console.log('done');
+setInterval(() => {}, 1000);
+`
+        });
+
+        await caller.bots.setHostedJsRuntime({
+          botId: bot.id,
+          jsRuntime: HostedBotJsRuntime.NODE
+        });
+        await caller.bots.startHosted({ botId: bot.id });
+        await waitForLog(bot.id, 'done');
+
+        expect(logText(bot.id)).toContain(
+          'refused a connection to gateway.discord.gg'
+        );
+      },
+      30_000
     );
   });
 });

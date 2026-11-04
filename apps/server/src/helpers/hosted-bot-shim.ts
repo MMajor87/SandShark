@@ -11,6 +11,7 @@ import { HOSTED_BOTS_PATH } from './paths';
 // library the rewrite does not know about may carry it to discord. traffic to any other
 // host is left alone, bots call weather, ai and game apis
 const HOSTED_BOT_SHIM_SOURCE = String.raw`
+import dns from 'node:dns';
 import http from 'node:http';
 import https from 'node:https';
 
@@ -76,11 +77,14 @@ globalThis.fetch = async (input, init) => {
 
 const OriginalWebSocket = globalThis.WebSocket;
 
-globalThis.WebSocket = class extends OriginalWebSocket {
-  constructor(url, protocols) {
-    super(rewrite(url), protocols);
-  }
-};
+// node before 22 has no WebSocket of its own, its libraries bring one built on node:https
+if (OriginalWebSocket) {
+  globalThis.WebSocket = class extends OriginalWebSocket {
+    constructor(url, protocols) {
+      super(rewrite(url), protocols);
+    }
+  };
+}
 
 // node's own clients are only guarded, a library using them for discord is rare enough
 // that refusing is better than rewriting options objects of every shape
@@ -104,6 +108,61 @@ const guard = (module) => {
 
 guard(http);
 guard(https);
+
+// on node, discord.js sends its requests through undici rather than fetch, and undici's
+// copies all share the one dispatcher stored under this symbol. node only creates it on its
+// first fetch, so a fetch that never leaves the process creates it here, and every request
+// through it is rewritten like a fetch. bun has no such dispatcher, its fetch is its own
+const DISPATCHER = Symbol.for('undici.globalDispatcher.1');
+
+if (!globalThis.Bun) {
+  originalFetch('data:,').catch(() => {});
+}
+
+const dispatcher = globalThis[DISPATCHER];
+
+if (dispatcher) {
+  globalThis[DISPATCHER] = new Proxy(dispatcher, {
+    get(target, property) {
+      if (property === 'dispatch') {
+        return (options, handler) => {
+          const url = String(new URL(options.path, options.origin));
+          const rewritten = rewrite(url);
+
+          if (rewritten === url) return target.dispatch(options, handler);
+
+          const next = new URL(rewritten);
+
+          return target.dispatch(
+            { ...options, origin: next.origin, path: next.pathname + next.search },
+            handler
+          );
+        };
+      }
+
+      const value = Reflect.get(target, property);
+
+      return typeof value === 'function' ? value.bind(target) : value;
+    }
+  });
+}
+
+// below every client on node, a name lookup of a discord host is refused, so a library that
+// brings its own undici agent or socket still cannot reach discord
+const originalLookup = dns.lookup;
+
+dns.lookup = (hostname, ...args) => {
+  if (!DISCORD_HOST.test(String(hostname))) {
+    return originalLookup.call(dns, hostname, ...args);
+  }
+
+  const error = refuse(hostname);
+  const callback = args.at(-1);
+
+  if (typeof callback !== 'function') throw error;
+
+  process.nextTick(callback, error);
+};
 `;
 
 const HOSTED_BOT_SHIM_PATH = path.join(

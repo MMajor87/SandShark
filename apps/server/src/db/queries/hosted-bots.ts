@@ -9,6 +9,7 @@ const getHostedBot = (botId: number) =>
       enabled: hostedBots.enabled,
       env: hostedBots.env,
       tokenEnvNames: hostedBots.tokenEnvNames,
+      jsRuntime: hostedBots.jsRuntime,
       sourceType: hostedBots.sourceType,
       sourceUrl: hostedBots.sourceUrl,
       sourceRef: hostedBots.sourceRef,

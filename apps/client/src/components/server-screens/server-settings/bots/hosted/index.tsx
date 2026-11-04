@@ -7,6 +7,7 @@ import { HostedEnv } from './env';
 import { useHostedBot } from './hooks/use-hosted-bot';
 import { HostedLogs } from './logs';
 import { HostedReport } from './report';
+import { HostedRuntime } from './runtime';
 import { HostedSource } from './source';
 
 type TPanelSectionProps = {
@@ -41,6 +42,9 @@ const HostedBotPanel = memo(({ botId }: THostedBotPanelProps) => {
       <HostedControls hosted={hosted} />
       <PanelSection title={t('hostedSourceTitle')}>
         <HostedSource hosted={hosted} />
+      </PanelSection>
+      <PanelSection title={t('hostedRuntimeTitle')}>
+        <HostedRuntime hosted={hosted} onChanged={refetch} />
       </PanelSection>
       <PanelSection title={t('hostedEnvTitle')}>
         <HostedEnv hosted={hosted} onChanged={refetch} />

@@ -1,3 +1,15 @@
+# SandShark 1.3.0
+
+- Adds bots. Create and manage them from the new Bots tab in server settings. Bots show with a Bot badge, their slash commands appear in the message box's `/` menu, and their answers can carry embeds, buttons, select menus and forms. Answers only you can see are shown below the channel until you dismiss them.
+- Adds a Hosting panel for each bot, for servers that run bots themselves: start, stop and restart, upload its code or point it at a GitHub repository, set its variables, and follow its log and compatibility report.
+- Puts the calendar in the sidebar, next to direct messages and threads, with a badge for unanswered invitations. Answer going, maybe or can't go, and edit events you organize.
+- Adds right click menus to messages (reply, reply in thread, copy text or link, pin, edit, delete), to members and voice users (direct message and moderation), and to direct messages (close). Text fields get a native cut, copy, paste and spellcheck menu. A right click release no longer picks the menu item under the pointer.
+- Upgrades Electron from 39 to 45.
+
+## Upgrade notes
+
+This version needs SandShark Server 0.4.0 and shows as disconnected on an older server, so upgrade the server before installing it. Desktop 1.2.0 updates itself to this version. The Windows installer does not deploy a server. This installer remains unsigned.
+
 # SandShark 1.2.0
 
 - Adds a soundboard. Play a server's sounds from the new soundboard button in the voice controls; everyone in the voice channel hears them and sees the sound's emoji on your voice card. Set how loud sounds play for you, or turn them off, under Notifications in your settings.

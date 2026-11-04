@@ -1,3 +1,19 @@
+# SandShark Server 0.4.0
+
+- Adds bot accounts and a Discord compatible bot API (REST v10 and the gateway). A bot written with discord.js or discord.py runs against SandShark by pointing it at this server, with no code changes. See [the bots guide](https://github.com/MMajor87/SandShark/blob/main/docs/bots.md) for what is supported.
+- Bots can register slash commands and answer them with replies, deferred and ephemeral answers, embeds, buttons, select menus, modals and autocomplete.
+- Adds bot hosting, off by default. With it turned on, people with the new "Host bots" permission can give a bot's code to the server, as a zip or a public GitHub repository, and the server runs it, restarts it when it crashes and shows its log. An unmodified Discord bot works as is: its Discord traffic is pointed at this server, and every other connection to Discord is refused. Hosted code runs as the server's own user, with no sandbox, so only run code you trust.
+- Each bot gets a compatibility report of the Discord calls it made that SandShark does not support yet.
+- Adds two role permissions, both given to the owner role only: "Manage bots" and "Host bots".
+- Calendar events can now be edited, and invitees can answer going, maybe or can't go.
+- Fixes the screen share button flipping back to "Start screen share" while sharing, when the camera was turned on just before.
+
+## Compatibility and upgrade
+
+Use SandShark Desktop 1.3.0 with this server. Upgrade the server first: Desktop 1.3.0 cannot connect to an older server, while Desktop 1.2.0 keeps working with this one, without the bot features. Stop the server and back up its entire data directory before upgrading. Migrations run automatically at startup. No configuration changes are needed. Bot hosting stays off until an owner turns it on in Server settings, Bots.
+
+The release publishes Linux x64/arm64, Windows x64, and macOS arm64 binaries, plus the versioned Docker image `ghcr.io/mmajor87/sandshark-server:0.4.0`. The workflow does not move a `latest` image tag. The desktop release remains GitHub's Latest release for desktop updater compatibility.
+
 # SandShark Server 0.3.0
 
 - Adds a soundboard. Admins upload short sounds (MP3, OGG, WAV or WebM, up to 1 MB and 10 seconds, at most 50 per server) and people in a voice channel play them for everyone in it.

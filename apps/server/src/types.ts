@@ -1,4 +1,4 @@
-import type { BotCommandOptionType } from '@sandshark/shared';
+import type { BotCommandOptionType, BotComponentType } from '@sandshark/shared';
 import type { botCommands } from './db/schema';
 
 type TBotCommand = typeof botCommands.$inferSelect;
@@ -25,16 +25,34 @@ export type TInvocationOption = {
   options?: TInvocationOption[];
 };
 
-// handed to the bot's gateway sessions, the only place the plain token exists
-export type TBotInteractionEvent = {
+type TBotInteractionEventBase = {
   interactionId: number;
   token: string;
   createdAt: number;
   userId: number;
   channelId: number;
+};
+
+export type TBotCommandInteractionEvent = TBotInteractionEventBase & {
+  kind: 'command';
   command: Pick<
     TBotCommand,
     'id' | 'createdAt' | 'name' | 'type' | 'guildScoped'
   >;
   options: TInvocationOption[];
 };
+
+// a button pressed or a select menu chosen, on a message or on an ephemeral answer
+export type TBotComponentInteractionEvent = TBotInteractionEventBase & {
+  kind: 'component';
+  customId: string;
+  componentType: BotComponentType;
+  values: string[];
+  messageId: number | null;
+  ephemeralMessageId: number | null;
+};
+
+// handed to the bot's gateway sessions, the only place the plain token exists
+export type TBotInteractionEvent =
+  | TBotCommandInteractionEvent
+  | TBotComponentInteractionEvent;

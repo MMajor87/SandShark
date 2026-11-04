@@ -1,22 +1,27 @@
-import { BotCommandOptionType } from '@sandshark/shared';
-import { inArray } from 'drizzle-orm';
+import { BotCommandOptionType, BotComponentType } from '@sandshark/shared';
+import { eq, inArray } from 'drizzle-orm';
 import { db } from '../../db';
+import { getMessage } from '../../db/queries/messages';
 import { getPublicUsers } from '../../db/queries/users';
-import { categories, channels } from '../../db/schema';
+import { botEphemeralMessages, categories, channels } from '../../db/schema';
 import type { TBotInteractionEvent, TInvocationOption } from '../../types';
+import { getBotInteractionById } from '../bot-interactions';
 import {
   channelSnowflake,
   serializeDmChannel,
   serializeGuildChannel
 } from './channel';
 import { commandSnowflake } from './command';
+import { serializeEphemeralMessage } from './ephemeral';
 import { getGuildContext, roleSnowflake, serializeRoles } from './guild';
 import { memberPermissionBits, serializeMember } from './member';
+import { serializeMessages, type TMessageSerializeOptions } from './message';
 import { encodeSnowflake, SnowflakeTag } from './snowflake';
 import { serializeUser, userSnowflake } from './user';
 
 const DiscordInteractionType = {
-  APPLICATION_COMMAND: 2
+  APPLICATION_COMMAND: 2,
+  MESSAGE_COMPONENT: 3
 } as const;
 
 const DiscordInteractionContext = {
@@ -72,7 +77,7 @@ const loadInteractionContext = async (event: TBotInteractionEvent) => {
     channels: new Set()
   };
 
-  collectReferences(event.options, referenced);
+  if (event.kind === 'command') collectReferences(event.options, referenced);
 
   const [guild, publicUsers, channelRows, categoryRows] = await Promise.all([
     getGuildContext(),
@@ -210,11 +215,83 @@ const serializeResolved = (
   return resolved;
 };
 
-// the INTERACTION_CREATE a bot's gateway session sends for a slash command. in a dm there
-// is no guild or member, only the user, as on discord
+// a command's data names the command and its options, a component's names the custom id
+// and carries the message the component is on
+const buildInteractionData = async (
+  event: TBotInteractionEvent,
+  context: TInteractionContext,
+  invokerBits: bigint,
+  options: TMessageSerializeOptions
+) => {
+  if (event.kind === 'component') {
+    const message = await serializeComponentMessage(event, options);
+
+    return {
+      type: DiscordInteractionType.MESSAGE_COMPONENT,
+      data: {
+        custom_id: event.customId,
+        component_type: event.componentType,
+        ...(event.componentType === BotComponentType.STRING_SELECT
+          ? { values: event.values }
+          : {})
+      },
+      ...(message ? { message } : {})
+    };
+  }
+
+  const resolved = serializeResolved(context, invokerBits);
+
+  return {
+    type: DiscordInteractionType.APPLICATION_COMMAND,
+    data: {
+      id: commandSnowflake(event.command),
+      name: event.command.name,
+      type: event.command.type,
+      ...(event.command.guildScoped ? { guild_id: context.guild.guildId } : {}),
+      ...(event.options.length > 0
+        ? { options: serializeOptions(event.options, context) }
+        : {}),
+      ...(Object.keys(resolved).length > 0 ? { resolved } : {})
+    }
+  };
+};
+
+// the message a button or select menu was used on, as the bot sees it
+const serializeComponentMessage = async (
+  event: Extract<TBotInteractionEvent, { kind: 'component' }>,
+  options: TMessageSerializeOptions
+) => {
+  if (event.messageId !== null) {
+    const message = await getMessage(event.messageId);
+
+    if (!message) return undefined;
+
+    const [serialized] = await serializeMessages([message], options);
+
+    return serialized;
+  }
+
+  if (event.ephemeralMessageId === null) return undefined;
+
+  const row = db
+    .select()
+    .from(botEphemeralMessages)
+    .where(eq(botEphemeralMessages.id, event.ephemeralMessageId))
+    .limit(1)
+    .get();
+  const owner = row ? getBotInteractionById(row.interactionId) : undefined;
+
+  return row && owner
+    ? serializeEphemeralMessage(row, owner, options)
+    : undefined;
+};
+
+// the INTERACTION_CREATE a bot's gateway session sends for a slash command or a button or
+// select menu. in a dm there is no guild or member, only the user, as on discord
 const buildInteractionPayload = async (
   event: TBotInteractionEvent,
-  botId: number
+  botId: number,
+  serializeOptions: Omit<TMessageSerializeOptions, 'guild'>
 ) => {
   const context = await loadInteractionContext(event);
   const { guild, usersById, channelsById, categoriesById } = context;
@@ -226,18 +303,12 @@ const buildInteractionPayload = async (
 
   const applicationId = userSnowflake(botUser);
   const invokerBits = memberPermissionBits(invoker, guild);
-  const resolved = serializeResolved(context, invokerBits);
-
-  const data = {
-    id: commandSnowflake(event.command),
-    name: event.command.name,
-    type: event.command.type,
-    ...(event.command.guildScoped ? { guild_id: guild.guildId } : {}),
-    ...(event.options.length > 0
-      ? { options: serializeOptions(event.options, context) }
-      : {}),
-    ...(Object.keys(resolved).length > 0 ? { resolved } : {})
-  };
+  const interactionData = await buildInteractionData(
+    event,
+    context,
+    invokerBits,
+    { ...serializeOptions, guild }
+  );
 
   const base = {
     id: interactionSnowflake({
@@ -245,8 +316,7 @@ const buildInteractionPayload = async (
       createdAt: event.createdAt
     }),
     application_id: applicationId,
-    type: DiscordInteractionType.APPLICATION_COMMAND,
-    data,
+    ...interactionData,
     channel_id: channelSnowflake(channel),
     token: event.token,
     version: 1,

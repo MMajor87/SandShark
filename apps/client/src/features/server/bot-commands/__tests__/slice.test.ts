@@ -16,6 +16,7 @@ const ephemeral = (
   commandName: 'ping',
   content: '<p>pong</p>',
   embeds: null,
+  components: null,
   loading: false,
   createdAt: id,
   updatedAt: id,

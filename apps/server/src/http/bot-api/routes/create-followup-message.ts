@@ -19,13 +19,17 @@ const createFollowupMessageRoute = async (request: TInteractionRequest) => {
 
   if (!parsed.success) throw invalidFormBody();
 
-  const original = findOriginalAnswer(request.interaction.id);
+  const original = await findOriginalAnswer(request.interaction);
 
   if (original && isLoadingAnswer(original)) {
-    const filled = await editInteractionMessage(request, original, {
-      content: parsed.data.content ?? '',
-      embeds: parsed.data.embeds
-    });
+    const filled = await editInteractionMessage(
+      request,
+      original,
+      await toStoredBody(
+        { ...parsed.data, content: parsed.data.content ?? '' },
+        { requireContent: false }
+      )
+    );
 
     return serializeInteractionMessage(request, filled);
   }

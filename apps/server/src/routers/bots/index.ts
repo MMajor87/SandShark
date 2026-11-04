@@ -9,6 +9,7 @@ import {
 } from './events';
 import { getBotsRoute } from './get-bots';
 import { getCommandsRoute } from './get-commands';
+import { pressComponentRoute } from './press-component';
 import { renameBotRoute } from './rename-bot';
 import { resetBotTokenRoute } from './reset-bot-token';
 import { runCommandRoute } from './run-command';
@@ -20,6 +21,7 @@ const botsRouter = t.router({
   resetToken: resetBotTokenRoute,
   delete: deleteBotRoute,
   runCommand: runCommandRoute,
+  pressComponent: pressComponentRoute,
   getCommands: getCommandsRoute,
   onCommandsChange: onCommandsChangeRoute,
   onEphemeralMessage: onEphemeralMessageRoute,

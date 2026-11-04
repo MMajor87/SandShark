@@ -10,6 +10,7 @@ import { db } from '../../db';
 import { getPublicUsers } from '../../db/queries/users';
 import { channels, emojis, messages } from '../../db/schema';
 import { channelSnowflake } from './channel';
+import { serializeComponents } from './component';
 import { serializeEmbed } from './embed';
 import { roleSnowflake, type TGuildContext } from './guild';
 import {
@@ -233,6 +234,8 @@ const serializeInteractionFields = (
 
   if (message.interactionCommandName === null || !invoker) return fields;
 
+  const isCommand = message.interactionCommandName !== '';
+
   const id = encodeSnowflake(
     SnowflakeTag.INTERACTION,
     message.interactionId ?? message.id,
@@ -244,13 +247,19 @@ const serializeInteractionFields = (
     ...fields,
     interaction_metadata: {
       id,
-      type: 2,
+      type: isCommand ? 2 : 3,
       user,
       authorizing_integration_owners: guildId ? { '0': guildId } : {},
-      name: message.interactionCommandName,
-      command_type: 1
+      ...(isCommand
+        ? { name: message.interactionCommandName, command_type: 1 }
+        : {})
     },
-    interaction: { id, type: 2, name: message.interactionCommandName, user }
+    interaction: {
+      id,
+      type: isCommand ? 2 : 3,
+      name: message.interactionCommandName,
+      user
+    }
   };
 };
 
@@ -281,7 +290,8 @@ const serializeMessages = async (
         : lookups.usersById.get(message.interactionUserId);
     let type: number = DiscordMessageType.DEFAULT;
 
-    if (message.interactionCommandName !== null) {
+    // a button or select menu answer has an empty command name and is an ordinary message
+    if (message.interactionCommandName) {
       type = DiscordMessageType.CHAT_INPUT_COMMAND;
     } else if (reply) {
       type = DiscordMessageType.REPLY;
@@ -322,6 +332,7 @@ const serializeMessages = async (
       embeds: (message.embeds ?? []).map((embed) =>
         serializeEmbed(embed, htmlLookups)
       ),
+      components: serializeComponents(message.components ?? []),
       reactions: serializeReactions(message.reactions, lookups, options.botId),
       pinned: message.pinned ?? false,
       flags: message.loading ? DiscordMessageFlag.LOADING : 0,

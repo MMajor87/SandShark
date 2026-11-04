@@ -5,6 +5,7 @@ import {
   PluginCapabilityType,
   type BotCommandType,
   type TActivityLogDetailsMap,
+  type TBotActionRow,
   type TBotCommandOption,
   type TMessageEmbed,
   type TMessageMetadata,
@@ -279,7 +280,17 @@ const botInteractions = sqliteTable(
     channelId: integer('channel_id')
       .notNull()
       .references(() => channels.id, { onDelete: 'cascade' }),
+    // empty for a button or select menu, which is not a command
     commandName: text('command_name').notNull(),
+    // the message, or ephemeral answer, whose button or select menu was used
+    messageId: integer('message_id').references(
+      (): AnySQLiteColumn => messages.id,
+      { onDelete: 'set null' }
+    ),
+    ephemeralMessageId: integer('ephemeral_message_id').references(
+      (): AnySQLiteColumn => botEphemeralMessages.id,
+      { onDelete: 'set null' }
+    ),
     tokenHash: text('token_hash').notNull(),
     responded: integer('responded', { mode: 'boolean' }).notNull(),
     createdAt: integer('created_at').notNull()
@@ -301,6 +312,9 @@ const botEphemeralMessages = sqliteTable(
       .references(() => botInteractions.id, { onDelete: 'cascade' }),
     content: text('content').notNull(),
     embeds: text('embeds', { mode: 'json' }).$type<TMessageEmbed[] | null>(),
+    components: text('components', { mode: 'json' }).$type<
+      TBotActionRow[] | null
+    >(),
     loading: integer('loading', { mode: 'boolean' }).notNull(),
     original: integer('original', { mode: 'boolean' }).notNull(),
     createdAt: integer('created_at').notNull(),
@@ -407,8 +421,11 @@ const messages = sqliteTable(
     interactionCommandName: text('interaction_command_name'),
     // a deferred answer the bot has not written yet, shown as the bot thinking
     loading: integer('loading', { mode: 'boolean' }).notNull().default(false),
-    // rich embeds, which only a bot can send
-    embeds: text('embeds', { mode: 'json' }).$type<TMessageEmbed[] | null>()
+    // rich embeds and buttons or select menus, which only a bot can send
+    embeds: text('embeds', { mode: 'json' }).$type<TMessageEmbed[] | null>(),
+    components: text('components', { mode: 'json' }).$type<
+      TBotActionRow[] | null
+    >()
   },
   (t) => [
     index('messages_user_idx').on(t.userId),

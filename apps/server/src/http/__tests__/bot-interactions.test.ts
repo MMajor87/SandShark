@@ -266,7 +266,11 @@ describe('running a bot command', () => {
       values: { sides: 4, for: 2, where: GENERAL, role: 2 }
     });
 
-    const payload = (await buildInteractionPayload(event, bot.id)) as TJson;
+    const payload = (await buildInteractionPayload(event, bot.id, {
+      botId: bot.id,
+      origin: 'http://localhost',
+      mediaToken: ''
+    })) as TJson;
 
     expect(payload).toMatchObject({
       application_id: applicationId,

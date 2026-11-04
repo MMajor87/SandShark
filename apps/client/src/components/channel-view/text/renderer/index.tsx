@@ -18,6 +18,7 @@ import { FileCard } from '../file-card';
 import { MessageReactions } from '../message-reactions';
 import { SocialMediaOverride } from '../overrides/social-media';
 import { YoutubeOverride } from '../overrides/youtube';
+import { BotMessageComponents } from './bot-message-components';
 import {
   getIsEmojiOnly,
   getParsedMessageHtml,
@@ -147,6 +148,10 @@ const MessageRenderer = memo(
         </div>
 
         <MessageEmbeds embeds={message.embeds} messageId={message.id} />
+        <BotMessageComponents
+          rows={message.components}
+          messageId={message.id}
+        />
 
         {message.pluginId &&
           message.pluginComponents &&

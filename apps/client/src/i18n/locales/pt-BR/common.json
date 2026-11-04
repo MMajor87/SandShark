@@ -160,5 +160,7 @@
   "botCommandMembers": "Membros",
   "botCommandRoles": "Cargos",
   "botDidNotRespond": "O bot não respondeu a /{{command}}.",
-  "failedRunBotCommand": "Falha ao executar o comando"
+  "failedRunBotCommand": "Falha ao executar o comando",
+  "failedUseComponent": "Não funcionou, tente novamente",
+  "botSelectApply": "Aplicar"
 }

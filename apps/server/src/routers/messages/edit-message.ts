@@ -85,7 +85,13 @@ const editMessageRoute = rateLimitedProcedure(protectedProcedure, {
         editedAt: message.loading ? null : editedAt,
         editedBy: message.loading ? null : ctx.user.id,
         loading: false,
-        embeds: embeds?.length ? embeds : null
+        embeds: embeds?.length ? embeds : null,
+        // a bot edit that brings no components keeps the ones the message has
+        ...(ctx.botComponents === undefined
+          ? {}
+          : {
+              components: ctx.botComponents.length ? ctx.botComponents : null
+            })
       })
       .where(eq(messages.id, input.messageId));
 

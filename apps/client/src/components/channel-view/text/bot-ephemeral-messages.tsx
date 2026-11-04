@@ -13,6 +13,7 @@ import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BotThinking } from './bot-thinking';
 import { InteractionHeader } from './interaction-header';
+import { BotMessageComponents } from './renderer/bot-message-components';
 import { getParsedMessageHtml } from './renderer/content-cache';
 import { MessageEmbeds } from './renderer/message-embeds';
 
@@ -41,6 +42,7 @@ const toParsableMessage = (message: TBotEphemeralMessage): TJoinedMessage => ({
   interactionCommandName: null,
   loading: message.loading,
   embeds: message.embeds,
+  components: message.components,
   files: [],
   reactions: []
 });
@@ -70,6 +72,10 @@ const BotEphemeralMessageItem = memo(
       <>
         <div className="prose max-w-full msg-content">{content}</div>
         <MessageEmbeds embeds={message.embeds} messageId={-message.id} />
+        <BotMessageComponents
+          rows={message.components}
+          ephemeralMessageId={message.id}
+        />
       </>
     );
 

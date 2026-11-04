@@ -21,7 +21,8 @@ const TOKEN_LIFETIME_MS = 15 * 60_000;
 type TCreateInteraction = Pick<
   TBotInteraction,
   'botId' | 'userId' | 'channelId' | 'commandName'
->;
+> &
+  Partial<Pick<TBotInteraction, 'messageId' | 'ephemeralMessageId'>>;
 
 const createBotInteraction = async (input: TCreateInteraction) => {
   const token = randomBytes(48).toString('base64url');
@@ -34,6 +35,14 @@ const createBotInteraction = async (input: TCreateInteraction) => {
 
   return { interaction, token };
 };
+
+const getBotInteractionById = (interactionId: number) =>
+  db
+    .select()
+    .from(botInteractions)
+    .where(eq(botInteractions.id, interactionId))
+    .limit(1)
+    .get();
 
 const getBotInteractionByToken = async (token: string) => {
   const tokenHash = await sha256(token);
@@ -117,6 +126,7 @@ const toEphemeralPayload = (
   commandName: interaction.commandName,
   content: row.content,
   embeds: row.embeds,
+  components: row.components,
   loading: row.loading,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt
@@ -138,9 +148,13 @@ const createBotEphemeralMessage = (
   {
     content,
     embeds,
+    components,
     loading,
     original
-  }: Pick<TBotEphemeralRow, 'content' | 'embeds' | 'loading' | 'original'>
+  }: Pick<
+    TBotEphemeralRow,
+    'content' | 'embeds' | 'components' | 'loading' | 'original'
+  >
 ) => {
   const now = Date.now();
   const row = db
@@ -149,6 +163,7 @@ const createBotEphemeralMessage = (
       interactionId: interaction.id,
       content,
       embeds,
+      components,
       loading,
       original,
       createdAt: now,
@@ -165,11 +180,15 @@ const createBotEphemeralMessage = (
 const updateBotEphemeralMessage = (
   interaction: TBotInteraction,
   messageId: number,
-  { content, embeds }: Pick<TBotEphemeralRow, 'content' | 'embeds'>
+  {
+    content,
+    embeds,
+    components
+  }: Pick<TBotEphemeralRow, 'content' | 'embeds' | 'components'>
 ) => {
   const row = db
     .update(botEphemeralMessages)
-    .set({ content, embeds, loading: false, updatedAt: Date.now() })
+    .set({ content, embeds, components, loading: false, updatedAt: Date.now() })
     .where(
       and(
         eq(botEphemeralMessages.id, messageId),
@@ -218,6 +237,7 @@ export {
   createBotEphemeralMessage,
   createBotInteraction,
   deleteBotEphemeralMessage,
+  getBotInteractionById,
   getBotInteractionByToken,
   isTokenAlive,
   isWithinResponseWindow,

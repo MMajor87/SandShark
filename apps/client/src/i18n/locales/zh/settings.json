@@ -609,6 +609,8 @@
   "hostedStatus_running": "运行中",
   "hostedStatus_crashed": "已崩溃",
   "hostedRestarts": "重启次数：{{count}}",
+  "hostedMemory": "内存：{{value}}",
+  "hostedCpu": "CPU：{{value}}%",
   "hostedStart": "启动",
   "hostedStop": "停止",
   "hostedRestart": "重启",

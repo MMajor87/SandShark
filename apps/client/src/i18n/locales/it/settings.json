@@ -609,6 +609,8 @@
   "hostedStatus_running": "In esecuzione",
   "hostedStatus_crashed": "Bloccato",
   "hostedRestarts": "Riavvii: {{count}}",
+  "hostedMemory": "Memoria: {{value}}",
+  "hostedCpu": "CPU: {{value}}%",
   "hostedStart": "Avvia",
   "hostedStop": "Ferma",
   "hostedRestart": "Riavvia",

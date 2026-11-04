@@ -491,6 +491,100 @@ setInterval(() => {}, 1000);
     });
   });
 
+  // usage is read from /proc, so the readings themselves are only covered on linux, which
+  // the ci runners are. elsewhere a running bot reports none, covered below
+  describe('usage', () => {
+    test('needs the host bots permission', async () => {
+      await enableHosting();
+
+      const { bot } = await createHostedBot({ 'index.js': WHOAMI_BOT });
+      const { caller } = await initTest(2);
+
+      await expect(
+        caller.bots.getHostedUsage({ botId: bot.id })
+      ).rejects.toThrow('Insufficient permissions');
+    });
+
+    test('refuses a bot that does not exist', async () => {
+      await enableHosting();
+
+      const { caller } = await initTest(1);
+
+      await expect(caller.bots.getHostedUsage({ botId: 999 })).rejects.toThrow(
+        'Bot not found.'
+      );
+    });
+
+    test('refuses while hosting is turned off', async () => {
+      const { caller, bot } = await createHostedBot({
+        'index.js': WHOAMI_BOT
+      });
+
+      await expect(
+        caller.bots.getHostedUsage({ botId: bot.id })
+      ).rejects.toThrow('Bot hosting is turned off on this server.');
+    });
+
+    test('reports nothing for a bot that is not running', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({
+        'index.js': WHOAMI_BOT
+      });
+
+      expect(await caller.bots.getHostedUsage({ botId: bot.id })).toBeNull();
+
+      await caller.bots.startHosted({ botId: bot.id });
+      await waitForLog(bot.id, 'whoami');
+      await caller.bots.stopHosted({ botId: bot.id });
+
+      expect(await caller.bots.getHostedUsage({ botId: bot.id })).toBeNull();
+    });
+
+    test.skipIf(process.platform !== 'linux')(
+      'reports the memory and cpu of a running bot',
+      async () => {
+        await enableHosting();
+
+        const { caller, bot } = await createHostedBot({
+          'index.js': WHOAMI_BOT
+        });
+
+        await caller.bots.startHosted({ botId: bot.id });
+        await waitForLog(bot.id, 'whoami');
+
+        const first = await caller.bots.getHostedUsage({ botId: bot.id });
+
+        expect(first?.memoryBytes).toBeGreaterThan(1024 * 1024);
+        // the share of a core needs a previous reading to measure against
+        expect(first?.cpuPercent).toBeNull();
+
+        await Bun.sleep(50);
+
+        const second = await caller.bots.getHostedUsage({ botId: bot.id });
+
+        expect(second?.memoryBytes).toBeGreaterThan(1024 * 1024);
+        expect(second?.cpuPercent).toBeGreaterThanOrEqual(0);
+      }
+    );
+
+    test.skipIf(process.platform === 'linux')(
+      'reports nothing where the platform cannot say',
+      async () => {
+        await enableHosting();
+
+        const { caller, bot } = await createHostedBot({
+          'index.js': WHOAMI_BOT
+        });
+
+        await caller.bots.startHosted({ botId: bot.id });
+        await waitForLog(bot.id, 'whoami');
+
+        expect(await caller.bots.getHostedUsage({ botId: bot.id })).toBeNull();
+      }
+    );
+  });
+
   describe('environment', () => {
     test('stores a variable and only ever returns its name', async () => {
       await enableHosting();

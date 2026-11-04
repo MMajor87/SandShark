@@ -4,7 +4,8 @@ import {
   ServerEvents,
   type THostedBotLogEntry,
   type THostedBotLogStream,
-  type THostedBotState
+  type THostedBotState,
+  type THostedBotUsage
 } from '@sandshark/shared';
 import type { Subprocess } from 'bun';
 import fs from 'fs/promises';
@@ -27,6 +28,7 @@ import { writeHostedBotShim } from '../helpers/hosted-bot-shim';
 import { HOSTED_BOT_LOGS_PATH, HOSTED_BOTS_PATH } from '../helpers/paths';
 import { closeBotGatewaySessions } from '../http/bot-api/gateway';
 import { logger } from '../logger';
+import { readProcessUsage } from '../utils/process-usage';
 import { pubsub } from '../utils/pubsub';
 
 const MAX_LOG_LINES = 2000;
@@ -93,6 +95,8 @@ class HostedBotRuntime {
   private logs: THostedBotLogEntry[] = [];
   private logFileBytes: number | undefined;
   private logFileWrite = Promise.resolve();
+  // the previous usage read, which the cpu share is measured against
+  private lastCpuSample: { pid: number; cpuMs: number; at: number } | undefined;
 
   private constructor(private botId: number) {}
 
@@ -170,6 +174,17 @@ class HostedBotRuntime {
     return runtime.logs;
   };
 
+  // null while the bot is not running, or where this platform cannot say
+  public static getUsage = async (
+    botId: number
+  ): Promise<THostedBotUsage | null> => {
+    const runtime = HostedBotRuntime.runtimes.get(botId);
+
+    if (!runtime) return null;
+
+    return runtime.getUsage();
+  };
+
   // a process left running would outlive the server and keep its token, so every exit path
   // takes the bots with it
   public static killAllSync = () => {
@@ -186,6 +201,30 @@ class HostedBotRuntime {
     startedAt: this.startedAt,
     restarts: this.restarts
   });
+
+  private getUsage = async (): Promise<THostedBotUsage | null> => {
+    const child = this.process;
+
+    if (!child) return null;
+
+    const { pid } = child;
+    const usage = await readProcessUsage(pid);
+
+    if (!usage) return null;
+
+    const at = Date.now();
+    const last = this.lastCpuSample;
+    let cpuPercent: number | null = null;
+
+    // a sample from before a restart belongs to another process
+    if (last && last.pid === pid && at > last.at) {
+      cpuPercent = ((usage.cpuMs - last.cpuMs) / (at - last.at)) * 100;
+    }
+
+    this.lastCpuSample = { pid, cpuMs: usage.cpuMs, at };
+
+    return { memoryBytes: usage.memoryBytes, cpuPercent };
+  };
 
   private setStatus = (status: HostedBotStatus) => {
     this.status = status;

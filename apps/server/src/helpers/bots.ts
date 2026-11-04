@@ -1,14 +1,19 @@
 import { ActivityLogType, type TJoinedBot } from '@sandshark/shared';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { publishUser } from '../db/publishers';
 import { getDefaultRole } from '../db/queries/roles';
 import { bots, userRoles, users } from '../db/schema';
 import { closeBotGatewaySessions } from '../http/bot-api/gateway';
 import { enqueueActivityLog } from '../queues/activity-log';
+import { HostedBotRuntime } from '../runtimes/hosted-bot';
 import { invariant } from '../utils/invariant';
 import { publishBotCommandsChange } from './bot-commands';
-import { createBotSecret, formatBotToken } from './bot-tokens';
+import {
+  createBotSecret,
+  formatBotToken,
+  writeNewBotToken
+} from './bot-tokens';
 
 // a bot is a user that holds roles like anyone else, so every permission check applies to
 // it unchanged. it has no usable password and no identity anyone knows, and login refuses it
@@ -96,25 +101,15 @@ const renameBot = async (
   });
 };
 
-// the old token stops working the moment the new hash is written, and the version bump
-// retires the media links handed out with it
+// a hosted bot's process held the old token, so it is stopped with it. the admin starts it
+// again, which mints the token it runs with
 const resetBotToken = async (
   bot: { id: number; name: string },
   actorUserId: number
 ) => {
-  const { secret, secretHash } = await createBotSecret();
-  const now = Date.now();
+  await HostedBotRuntime.stop(bot.id);
 
-  db.transaction((tx) => {
-    tx.update(bots)
-      .set({ tokenHash: secretHash, tokenUpdatedAt: now })
-      .where(eq(bots.userId, bot.id))
-      .run();
-    tx.update(users)
-      .set({ tokenVersion: sql`${users.tokenVersion} + 1`, updatedAt: now })
-      .where(eq(users.id, bot.id))
-      .run();
-  });
+  const token = await writeNewBotToken(bot.id);
 
   closeBotGatewaySessions(bot.id);
   enqueueActivityLog({
@@ -123,7 +118,7 @@ const resetBotToken = async (
     details: { botId: bot.id, name: bot.name }
   });
 
-  return formatBotToken(bot.id, secret);
+  return token;
 };
 
 export { createBot, renameBot, resetBotToken };

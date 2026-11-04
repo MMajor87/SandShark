@@ -1,9 +1,9 @@
 import { sha256 } from '@sandshark/shared';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import { db } from '../db';
 import { getUserById } from '../db/queries/users';
-import { bots } from '../db/schema';
+import { bots, users } from '../db/schema';
 import { safeCompare } from './safe-compare';
 
 // the token is `<bot user id>.<secret>`. the id lets a request find its bot without
@@ -15,6 +15,26 @@ const createBotSecret = async () => {
 };
 
 const formatBotToken = (botId: number, secret: string) => `${botId}.${secret}`;
+
+// the old token stops working the moment the new hash is written, and the version bump
+// retires the media links handed out with it
+const writeNewBotToken = async (botId: number) => {
+  const { secret, secretHash } = await createBotSecret();
+  const now = Date.now();
+
+  db.transaction((tx) => {
+    tx.update(bots)
+      .set({ tokenHash: secretHash, tokenUpdatedAt: now })
+      .where(eq(bots.userId, botId))
+      .run();
+    tx.update(users)
+      .set({ tokenVersion: sql`${users.tokenVersion} + 1`, updatedAt: now })
+      .where(eq(users.id, botId))
+      .run();
+  });
+
+  return formatBotToken(botId, secret);
+};
 
 const BOT_AUTHORIZATION = /^Bot (\d{1,10})\.([A-Za-z0-9_-]{43})$/;
 
@@ -43,4 +63,9 @@ const getBotUserByAuthorization = async (header: string | undefined) => {
   return safeCompare(secretHash, row.tokenHash) ? user : undefined;
 };
 
-export { createBotSecret, formatBotToken, getBotUserByAuthorization };
+export {
+  createBotSecret,
+  formatBotToken,
+  getBotUserByAuthorization,
+  writeNewBotToken
+};

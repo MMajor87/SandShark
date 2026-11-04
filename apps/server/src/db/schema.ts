@@ -86,6 +86,9 @@ const settings = sqliteTable(
     storageSpaceQuotaByUser: integer('storage_space_quota_by_user').notNull(),
     storageOverflowAction: text('storage_overflow_action').notNull(),
     enablePlugins: integer('enable_plugins', { mode: 'boolean' }).notNull(),
+    enableBotHosting: integer('enable_bot_hosting', { mode: 'boolean' })
+      .notNull()
+      .default(false),
     enableSearch: integer('enable_search', { mode: 'boolean' }).notNull(),
     webRtcSimulcastEnabled: integer('web_rtc_simulcast_enabled', {
       mode: 'boolean'
@@ -232,6 +235,29 @@ const bots = sqliteTable(
     createdAt: integer('created_at').notNull()
   },
   (t) => [index('bots_created_by_idx').on(t.createdBy)]
+);
+
+// a bot whose process this server runs. the env values are the admin's own variables, kept
+// as json and never sent back to a client
+const hostedBots = sqliteTable(
+  'hosted_bots',
+  {
+    botId: integer('bot_id')
+      .primaryKey()
+      .references(() => bots.userId, { onDelete: 'cascade' }),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+    env: text('env', { mode: 'json' })
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
+    tokenEnvNames: text('token_env_names', { mode: 'json' })
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at')
+  },
+  (t) => [index('hosted_bots_enabled_idx').on(t.enabled)]
 );
 
 // discord keeps a bot's global commands and its commands for a guild as two separate lists,
@@ -905,6 +931,7 @@ export {
   directMessages,
   emojis,
   files,
+  hostedBots,
   invites,
   logins,
   messageFiles,

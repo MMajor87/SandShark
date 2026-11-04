@@ -31,7 +31,8 @@
     "VIEW_USER_SENSITIVE_DATA": "Zobrazit senzitivní data uživatelů",
     "USE_SOUNDBOARD": "Používat zvukový panel",
     "MANAGE_SOUNDBOARD": "Spravovat zvukový panel",
-    "MANAGE_BOTS": "Spravovat boty"
+    "MANAGE_BOTS": "Spravovat boty",
+    "HOST_BOTS": "Hostovat boty"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "Umožňuje posílat zprávy do kanálů.",
@@ -60,7 +61,8 @@
     "VIEW_USER_SENSITIVE_DATA": "Umožňuje zobrazení senzitivních dat uživatelů, jako je identita, IP adresa a geografická lokace.",
     "USE_SOUNDBOARD": "Umožňuje přehrávat zvuky ze zvukového panelu v hlasových kanálech.",
     "MANAGE_SOUNDBOARD": "Umožňuje nahrávat, upravovat a mazat zvuky zvukového panelu.",
-    "MANAGE_BOTS": "Umožňuje vytvářet boty, obnovovat jejich tokeny a mazat je."
+    "MANAGE_BOTS": "Umožňuje vytvářet boty, obnovovat jejich tokeny a mazat je.",
+    "HOST_BOTS": "Umožňuje spouštět kód botů na tomto serveru. Hostovaný kód může číst vše, co server, proto ho svěřte jen lidem, kterým byste svěřili samotný server."
   },
   "channel": {
     "VIEW_CHANNEL": "Zobrazit kanály",

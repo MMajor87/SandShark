@@ -32,7 +32,8 @@
     "VIEW_USER_SENSITIVE_DATA": "Afficher les données sensibles des utilisateurs",
     "USE_SOUNDBOARD": "Utiliser la table de sons",
     "MANAGE_SOUNDBOARD": "Gérer la table de sons",
-    "MANAGE_BOTS": "Gérer les bots"
+    "MANAGE_BOTS": "Gérer les bots",
+    "HOST_BOTS": "Héberger des bots"
   },
   "serverDescriptions": {
     "SEND_MESSAGES": "Permet d'envoyer des messages dans les canaux.",
@@ -62,7 +63,8 @@
     "VIEW_USER_SENSITIVE_DATA": "Permet de consulter les données sensibles des utilisateurs, telles que leurs identités, leurs adresses IP et leurs localisations.",
     "USE_SOUNDBOARD": "Permet de jouer les sons de la table dans les salons vocaux.",
     "MANAGE_SOUNDBOARD": "Permet d’importer, de modifier et de supprimer les sons de la table.",
-    "MANAGE_BOTS": "Permet de créer des bots, de réinitialiser leurs jetons et de les supprimer."
+    "MANAGE_BOTS": "Permet de créer des bots, de réinitialiser leurs jetons et de les supprimer.",
+    "HOST_BOTS": "Permet d'exécuter le code de bots sur ce serveur. Le code hébergé peut lire tout ce que le serveur peut lire, ne l'accordez donc qu'aux personnes à qui vous confieriez le serveur lui-même."
   },
   "channel": {
     "VIEW_CHANNEL": "Voir le canal",

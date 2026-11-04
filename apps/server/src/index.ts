@@ -14,6 +14,10 @@ import { config, SERVER_PRIVATE_IP } from './config';
 import { loadCrons } from './crons';
 import { loadDb } from './db';
 import { getHost } from './helpers/get-host';
+import {
+  registerHostedBotShutdown,
+  startEnabledHostedBots
+} from './helpers/hosted-bots';
 import './helpers/updater';
 import { pluginManager } from './plugins';
 import { enqueueActivityLog } from './queues/activity-log';
@@ -28,6 +32,9 @@ await createServers();
 await loadMediasoup();
 await initVoiceRuntimes();
 await loadCrons();
+// last, so a bot that connects finds the api and gateway already listening
+registerHostedBotShutdown();
+await startEnabledHostedBots();
 
 const host = getHost(
   config.server.host,

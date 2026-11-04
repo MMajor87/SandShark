@@ -65,6 +65,7 @@ export type TPublicServerSettings = Pick<
   | 'storageSpaceQuotaByUser'
   | 'storageOverflowAction'
   | 'enablePlugins'
+  | 'enableBotHosting'
   | 'webRtcSimulcastEnabled'
   | 'enableSearch'
   | 'showWelcomeDialog'

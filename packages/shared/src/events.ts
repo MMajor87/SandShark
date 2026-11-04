@@ -63,6 +63,8 @@ export enum ServerEvents {
   BOT_MODAL_OPEN = 'botModalOpen',
   BOT_EPHEMERAL_MESSAGE = 'botEphemeralMessage',
   BOT_EPHEMERAL_MESSAGE_DELETE = 'botEphemeralMessageDelete',
+  HOSTED_BOT_UPDATE = 'hostedBotUpdate',
+  HOSTED_BOT_LOG = 'hostedBotLog',
 
   CATEGORY_CREATE = 'categoryCreate',
   CATEGORY_UPDATE = 'categoryUpdate',

@@ -12,6 +12,8 @@ import type {
   TCommandsMapByPlugin,
   TDirectMessageConversation,
   TExternalStream,
+  THostedBotLogEntry,
+  THostedBotState,
   TJoinedEmoji,
   TJoinedMessage,
   TJoinedPublicUser,
@@ -132,6 +134,8 @@ type Events = {
   };
 
   [ServerEvents.PLUGIN_LOG]: TLogEntry;
+  [ServerEvents.HOSTED_BOT_UPDATE]: THostedBotState;
+  [ServerEvents.HOSTED_BOT_LOG]: THostedBotLogEntry;
   [ServerEvents.PLUGIN_COMMANDS_CHANGE]: TCommandsMapByPlugin;
   [ServerEvents.PLUGIN_COMPONENTS_CHANGE]: string[]; // list of plugin ids that have components enabled
   [ServerEvents.PLUGIN_CAPABILITY_ACCESS_CHANGE]: TPluginCapabilityAccessRule[];

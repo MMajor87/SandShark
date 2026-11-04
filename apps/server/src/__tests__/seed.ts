@@ -17,7 +17,7 @@ import type { Database } from 'bun:sqlite';
  *                          have more distinct repliers than the six avatars it shows)
  *   roles             4    Owner (id 1), Member, Guest, Moderator
  *   userRoles         8    one per user, plus the moderator's extra role
- *   rolePermissions  36    the default permission sets for the roles above
+ *   rolePermissions  37    the default permission sets for the roles above
  *   categories        2    Text Channels, Voice Channels
  *   channels          5    1 General (text), Voice, DM Channel, Private Voice,
  *                          Restricted Text
@@ -136,6 +136,7 @@ const seedTestDb = async (
     storageSpaceQuotaByUser: STORAGE_MIN_QUOTA_PER_USER,
     storageOverflowAction: STORAGE_OVERFLOW_ACTION,
     enablePlugins: false,
+    enableBotHosting: false,
     enableSearch: true,
     webRtcSimulcastEnabled: false,
     showWelcomeDialog: true,

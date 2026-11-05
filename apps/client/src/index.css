@@ -55,19 +55,23 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  /* the surfaces carry a muted share of the accent from user settings, appearance: each keeps
+     its neutral base and mixes in a few percent of the accent, more for fills that should read
+     as part of the theme (hover, muted, the server rail) and least for cards and popovers.
+     text colors and borders stay neutral, so contrast does not move with the accent */
+  --background: color-mix(in oklch, var(--highlight) 3%, oklch(1 0 0));
   --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
+  --card: color-mix(in oklch, var(--highlight) 2%, oklch(1 0 0));
   --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
+  --popover: color-mix(in oklch, var(--highlight) 2%, oklch(1 0 0));
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  --secondary: color-mix(in oklch, var(--highlight) 6%, oklch(0.97 0 0));
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  --muted: color-mix(in oklch, var(--highlight) 6%, oklch(0.97 0 0));
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  --accent: color-mix(in oklch, var(--highlight) 7%, oklch(0.97 0 0));
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
@@ -78,15 +82,15 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
+  --sidebar: color-mix(in oklch, var(--highlight) 5%, oklch(0.985 0 0));
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent: color-mix(in oklch, var(--highlight) 7%, oklch(0.97 0 0));
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --rail: oklch(0.93 0 0);
+  --rail: color-mix(in oklch, var(--highlight) 8%, oklch(0.93 0 0));
   /* the accent chosen under user settings, appearance. each preset below sets a shade for
      light and one for dark, and these pick between them */
   --highlight-light: oklch(0.546 0.245 262.881);
@@ -96,19 +100,25 @@
 }
 
 .dark {
-  --background: oklch(0.235 0.008 265);
+  /* lower shares than light: the dark accents are light colors, so mixing them in also lifts
+     the surfaces, and much more would wash the dark theme out */
+  --background: color-mix(
+    in oklch,
+    var(--highlight) 5%,
+    oklch(0.235 0.008 265)
+  );
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0.008 265);
+  --card: color-mix(in oklch, var(--highlight) 4%, oklch(0.205 0.008 265));
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.19 0.008 265);
+  --popover: color-mix(in oklch, var(--highlight) 4%, oklch(0.19 0.008 265));
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.29 0.008 265);
+  --secondary: color-mix(in oklch, var(--highlight) 8%, oklch(0.29 0.008 265));
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.29 0.008 265);
+  --muted: color-mix(in oklch, var(--highlight) 8%, oklch(0.29 0.008 265));
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.29 0.008 265);
+  --accent: color-mix(in oklch, var(--highlight) 9%, oklch(0.29 0.008 265));
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 8%);
@@ -119,15 +129,19 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0.008 265);
+  --sidebar: color-mix(in oklch, var(--highlight) 5%, oklch(0.205 0.008 265));
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.29 0.008 265);
+  --sidebar-accent: color-mix(
+    in oklch,
+    var(--highlight) 9%,
+    oklch(0.29 0.008 265)
+  );
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
-  --rail: oklch(0.17 0.008 265);
+  --rail: color-mix(in oklch, var(--highlight) 6%, oklch(0.17 0.008 265));
   --highlight: var(--highlight-dark);
   --highlight-soft: color-mix(in oklch, var(--highlight) 20%, transparent);
 }

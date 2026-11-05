@@ -668,7 +668,7 @@
   "themeDark": "Sombre",
   "themeSystem": "Système",
   "accentLabel": "Couleur d'accent",
-  "accentDesc": "Met en évidence la vue ouverte dans la barre latérale, comme les messages privés, les fils, le calendrier ou le salon sélectionné.",
+  "accentDesc": "Donne à toute l'interface une légère teinte de cette couleur et met en évidence la vue ouverte dans la barre latérale, comme les messages privés, les fils, le calendrier ou le salon sélectionné.",
   "accent_blue": "Bleu",
   "accent_violet": "Violet",
   "accent_pink": "Rose",

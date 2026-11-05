@@ -668,7 +668,7 @@
   "themeDark": "深色",
   "themeSystem": "跟随系统",
   "accentLabel": "强调色",
-  "accentDesc": "在侧边栏中突出显示当前打开的视图，例如私信、话题、日历或所选频道。",
+  "accentDesc": "为整个界面添加此颜色的柔和色调，并在侧边栏中突出显示当前打开的视图，例如私信、话题、日历或所选频道。",
   "accent_blue": "蓝色",
   "accent_violet": "紫罗兰",
   "accent_pink": "粉色",

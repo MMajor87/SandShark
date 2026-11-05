@@ -30,7 +30,9 @@ The icon runs as the signed-in user, not as an administrator. It only reads the 
 
 ## Configuration
 
-The server writes `C:\ProgramData\SandShark Server\data\config.ini` on first start. Edit it, then use **Restart Server**. If you change the port, the Server Monitor shortcut and the firewall rule still point at 4991. Open `http://localhost:<port>/monitor` yourself, and add a firewall rule for the new port.
+The server writes `C:\ProgramData\SandShark Server\data\config.ini` on first start. Edit it in an editor run as administrator, since the folder is closed to other accounts, then use **Restart Server**. If you change the port, the Server Monitor shortcut and the firewall rule still point at 4991. Open `http://localhost:<port>/monitor` yourself, and add a firewall rule for the new port.
+
+Voice needs the address clients reach the server at. By default the server looks up its public IP address, which suits a server that people reach over the internet. If everyone connects over the local network, or the server sits behind an address the lookup doesn't see, set it under `[webRtc]`, for example `announcedAddress = 192.168.1.20`, then restart. Text chat works either way; only voice fails with the wrong address.
 
 ## Updates
 

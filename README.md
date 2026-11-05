@@ -29,7 +29,14 @@ To update a Docker server, either:
 - **From the server settings.** An owner chooses **Update Server** under Server settings, Updates. The new version is installed into the data volume and the container restarts on it, which needs a restart policy such as `--restart unless-stopped`. The container keeps running that version, whatever its image tag says, until you pull an image that is at least as new. With `SANDSHARK_AUTOUPDATE=true` the server does this by itself when a new version comes out.
 - **By hand.** Back up the data volume, pull the new image, and recreate the container from it with the same volume, ports and environment.
 
-For binary installs and release procedures, see [versioning and deployment](docs/sandshark-versioning.md).
+### Install the server as a service
+
+Server releases after 0.5.0 also install without Docker:
+
+- **Windows:** `sandshark-server-<version>-setup-x64.exe` installs a Windows service with a tray icon. See [the Windows server install](docs/windows-server-install.md).
+- **Linux with systemd:** `sandshark-install-linux.sh` installs a systemd service. See [the Linux server install](docs/linux-server-install.md).
+
+Every server, however it's installed, serves a status page at `http://localhost:4991/monitor` to its own machine. See [the server monitor](docs/server-monitor.md). For running a bare binary and for release procedures, see [versioning and deployment](docs/sandshark-versioning.md). For bots, see [the bots guide](docs/bots.md).
 
 ## Local development
 
@@ -52,7 +59,7 @@ bun run --cwd apps/desktop package
 bun run --cwd apps/desktop test:packaged-startup
 ```
 
-Server binaries are written to `apps/server/build/out/`; Windows installers are written to `apps/desktop/release/`. See the [Windows installer guide](docs/windows-installer.md) and [versioning policy](docs/sandshark-versioning.md).
+Server binaries are written to `apps/server/build/out/`, as is the Windows server installer from `bun run --cwd apps/server build:windows-installer`, which needs NSIS. Desktop installers are written to `apps/desktop/release/`. See the [Windows installer guide](docs/windows-installer.md) and [versioning policy](docs/sandshark-versioning.md).
 
 ## Project information
 

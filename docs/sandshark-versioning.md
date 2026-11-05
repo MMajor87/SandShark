@@ -70,6 +70,8 @@ For a local build, run `bun run --cwd apps/server build`. Outputs live in
 `apps/server/build/out`; generated binaries are not committed. The server manifest
 uses the server package version, never the desktop or root workspace version.
 
+A running server serves a status page to its own machine at `/monitor`; see [the server monitor](server-monitor.md).
+
 ## Desktop releases
 
 Update matching versions in `apps/client/package.json` and

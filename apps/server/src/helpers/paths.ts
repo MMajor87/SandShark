@@ -48,6 +48,7 @@ const MEDIASOUP_BINARY_PATH = getMediasoupBinaryPath();
 const DB_PATH = path.join(DATA_PATH, 'db.sqlite');
 const BACKUPS_PATH = path.join(DATA_PATH, 'backups');
 const LOGS_PATH = path.join(DATA_PATH, 'logs');
+const COMBINED_LOG_PATH = path.join(LOGS_PATH, 'combined.log');
 const PUBLIC_PATH = path.join(DATA_PATH, 'public');
 const TMP_PATH = path.join(DATA_PATH, 'tmp');
 const UPLOADS_PATH = path.join(DATA_PATH, 'uploads');
@@ -65,6 +66,7 @@ const SRC_MIGRATIONS_PATH = path.join(process.cwd(), 'src', 'db', 'migrations');
 
 export {
   BACKUPS_PATH,
+  COMBINED_LOG_PATH,
   CONFIG_INI_PATH,
   DATA_PATH,
   DB_PATH,

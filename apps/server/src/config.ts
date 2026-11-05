@@ -36,6 +36,7 @@ const zConfig = z.object({
     port: z.coerce.number().int().positive(),
     debug: z.coerce.boolean(),
     autoupdate: z.coerce.boolean(),
+    monitor: z.coerce.boolean(),
     backupDatabase: z.coerce.boolean(),
     maxRequestBodyBytes: z.coerce.number().int().positive(),
     allowedOrigins: z
@@ -119,6 +120,7 @@ const defaultConfig: TConfig = {
     port: 4991,
     debug: IS_DEVELOPMENT,
     autoupdate: false,
+    monitor: true,
     backupDatabase: true,
     maxRequestBodyBytes: 256 * 1024,
     allowedOrigins: ['*'],
@@ -314,6 +316,7 @@ const envOverridesMap: Record<string, string> = {
   'server.port': 'SANDSHARK_PORT',
   'server.debug': 'SANDSHARK_DEBUG',
   'server.autoupdate': 'SANDSHARK_AUTOUPDATE',
+  'server.monitor': 'SANDSHARK_MONITOR',
   'server.backupDatabase': 'SANDSHARK_BACKUP_DATABASE',
   'server.maxRequestBodyBytes': 'SANDSHARK_MAX_REQUEST_BODY_BYTES',
   'server.allowedOrigins': 'SANDSHARK_ALLOWED_ORIGINS',

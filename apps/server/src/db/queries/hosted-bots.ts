@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { db } from '..';
-import { hostedBots } from '../schema';
+import { hostedBots, users } from '../schema';
 
 const getHostedBot = (botId: number) =>
   db
@@ -30,4 +30,12 @@ const getEnabledHostedBotIds = async () => {
   return rows.map(({ botId }) => botId);
 };
 
-export { getEnabledHostedBotIds, getHostedBot };
+const getHostedBotNames = () =>
+  db
+    .select({ id: hostedBots.botId, name: users.name })
+    .from(hostedBots)
+    .innerJoin(users, eq(users.id, hostedBots.botId))
+    .orderBy(users.name)
+    .all();
+
+export { getEnabledHostedBotIds, getHostedBot, getHostedBotNames };

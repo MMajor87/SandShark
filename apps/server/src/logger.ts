@@ -1,7 +1,7 @@
 import path from 'path';
 import { createLogger, format, transports } from 'winston';
 import { config } from './config';
-import { LOGS_PATH } from './helpers/paths';
+import { COMBINED_LOG_PATH, LOGS_PATH } from './helpers/paths';
 import { ensureDir } from './utils/fs';
 
 const { combine, colorize, printf, errors, splat, timestamp, uncolorize } =
@@ -26,7 +26,6 @@ const consoleFormat = combine(
   })
 );
 
-const combinedLog = path.join(LOGS_PATH, 'combined.log');
 const errorLog = path.join(LOGS_PATH, 'error.log');
 
 await ensureDir(LOGS_PATH);
@@ -46,7 +45,7 @@ const logger = createLogger({
       format: consoleFormat
     }),
     new transports.File({
-      filename: combinedLog,
+      filename: COMBINED_LOG_PATH,
       format: fileFormat,
       level,
       ...ROTATION

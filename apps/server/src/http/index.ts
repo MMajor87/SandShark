@@ -24,6 +24,10 @@ import { infoRouteHandler } from './info';
 import { interfaceRouteHandler } from './interface';
 import { loginRouteHandler } from './login';
 import { manifestRouteHandler } from './manifest';
+import { monitorLogRouteHandler } from './monitor/log';
+import { monitorPageRouteHandler } from './monitor/page';
+import { monitorStatusRouteHandler } from './monitor/status';
+import { monitorUpdateRouteHandler } from './monitor/update';
 import { oidcBackchannelLogoutRouteHandler } from './oidc/backchannel-logout';
 import { oidcCallbackRouteHandler } from './oidc/callback';
 import { oidcExchangeRouteHandler } from './oidc/exchange';
@@ -81,6 +85,10 @@ const routeHandlers: Partial<
       '/healthz': healthRouteHandler,
       '/info': infoRouteHandler,
       '/manifest.json': manifestRouteHandler,
+      '/monitor': monitorPageRouteHandler,
+      '/monitor/status': monitorStatusRouteHandler,
+      '/monitor/log': monitorLogRouteHandler,
+      '/monitor/update': monitorUpdateRouteHandler,
       '/oidc/login': oidcLoginRouteHandler,
       '/oidc/callback': oidcCallbackRouteHandler
     },

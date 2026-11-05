@@ -42,10 +42,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # the runner image ships google chrome, so the libraries chromium needs are already there.
+      # --with-deps only added fonts from the ubuntu mirror, which has stalled this step past its
+      # limit on several runs
       - name: Install Playwright browsers
         timeout-minutes: 5
         working-directory: packages/e2e
-        run: bunx playwright install --with-deps --only-shell chromium
+        run: bunx playwright install --only-shell chromium
 
       - name: Run E2E tests
         working-directory: packages/e2e

@@ -72,6 +72,8 @@ uses the server package version, never the desktop or root workspace version.
 
 A running server serves a status page to its own machine at `/monitor`; see [the server monitor](server-monitor.md).
 
+Windows hosts can install the server as a service with the release's setup executable; see [the Windows server install](windows-server-install.md).
+
 ## Desktop releases
 
 Update matching versions in `apps/client/package.json` and

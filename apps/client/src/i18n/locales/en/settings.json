@@ -686,5 +686,7 @@
   "settingsGroupIntegrations": "Integrations",
   "settingsGroupPlugins": "Plugin settings",
   "closeSettings": "Close (Esc)",
-  "settingsMenu": "Settings menu"
+  "settingsMenu": "Settings menu",
+  "inviteCopiedLoopback": "Link copied, but it uses localhost, so it only works on this computer. Connect to the server by its network or internet address to share a link that works for others.",
+  "failedCopyInvite": "Could not copy the invite link."
 }

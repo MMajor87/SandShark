@@ -686,5 +686,7 @@
   "settingsGroupIntegrations": "Intégrations",
   "settingsGroupPlugins": "Paramètres des plugins",
   "closeSettings": "Fermer (Échap)",
-  "settingsMenu": "Menu des paramètres"
+  "settingsMenu": "Menu des paramètres",
+  "inviteCopiedLoopback": "Lien copié, mais il utilise localhost et ne fonctionne donc que sur cet ordinateur. Connectez-vous au serveur par son adresse réseau ou internet pour partager un lien qui fonctionne pour les autres.",
+  "failedCopyInvite": "Impossible de copier le lien d'invitation."
 }

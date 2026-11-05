@@ -36,5 +36,8 @@
   "serverUrlLabel": "服务器 URL",
   "linkedServerFailed": "无法打开链接中的服务器。",
   "chooseServerForLink": "打开频道链接前，请先选择服务器。",
-  "accountDeleted": "你的账户已删除。"
+  "accountDeleted": "你的账户已删除。",
+  "inviteOpenInAppDesc": "已安装 SandShark 应用？在应用中打开此邀请。",
+  "inviteOpenInAppBtn": "在 SandShark 应用中打开",
+  "serverUrlInviteHint": "你也可以在这里粘贴邀请链接。"
 }

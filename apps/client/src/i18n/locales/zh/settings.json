@@ -686,5 +686,7 @@
   "settingsGroupIntegrations": "集成",
   "settingsGroupPlugins": "插件设置",
   "closeSettings": "关闭 (Esc)",
-  "settingsMenu": "设置菜单"
+  "settingsMenu": "设置菜单",
+  "inviteCopiedLoopback": "链接已复制，但它使用 localhost，因此只能在这台电脑上使用。请通过服务器的局域网或互联网地址连接，以分享其他人也能使用的链接。",
+  "failedCopyInvite": "无法复制邀请链接。"
 }

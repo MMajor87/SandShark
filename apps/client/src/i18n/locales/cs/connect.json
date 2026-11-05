@@ -36,5 +36,8 @@
   "serverUrlLabel": "URL serveru",
   "linkedServerFailed": "Server z odkazu se nepodařilo otevřít.",
   "chooseServerForLink": "Před otevřením odkazu na kanál vyberte server.",
-  "accountDeleted": "Váš účet byl smazán."
+  "accountDeleted": "Váš účet byl smazán.",
+  "inviteOpenInAppDesc": "Máte aplikaci SandShark? Otevřete pozvánku v ní.",
+  "inviteOpenInAppBtn": "Otevřít v aplikaci SandShark",
+  "serverUrlInviteHint": "Můžete sem také vložit odkaz na pozvánku."
 }

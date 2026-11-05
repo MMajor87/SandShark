@@ -1,5 +1,6 @@
 import { isDesktopClient } from '@/platform/environment';
 import { getUrlFromServer } from './get-file-url';
+import { getCurrentInviteCode } from './invite-links';
 import {
   getSessionStorageItem,
   SessionStorageKey,
@@ -18,12 +19,10 @@ const getOidcHandoffCode = () =>
 const startOidcLogin = async () => {
   suppressOidcAutoRedirect();
 
-  const invite = new URLSearchParams(window.location.search).get('invite');
+  const invite = getCurrentInviteCode();
+
   if (isDesktopClient() && window.sandSharkDesktop) {
-    return window.sandSharkDesktop.startOidcLogin(
-      getUrlFromServer(),
-      invite ?? undefined
-    );
+    return window.sandSharkDesktop.startOidcLogin(getUrlFromServer(), invite);
   }
   const query = invite ? `?${new URLSearchParams({ invite })}` : '';
   window.location.href = `${getUrlFromServer()}/oidc/login${query}`;

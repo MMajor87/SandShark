@@ -1,6 +1,7 @@
 import { beginServerConnection } from '@/features/app/actions';
 import { useServerConnectionError } from '@/features/app/hooks';
 import { requestConfirmation } from '@/features/dialogs/actions';
+import { parseInviteLink, setPendingInvite } from '@/helpers/invite-links';
 import {
   getActiveServerProfileId,
   getServerProfiles,
@@ -88,7 +89,12 @@ const ServerConnection = memo(() => {
     setError(undefined);
 
     try {
-      const { config, icon } = await validateServerConnection(editor.url);
+      // an invite link pasted here names the server and carries the code its connect screen
+      // needs to register, so the address is validated without the code and the code is kept
+      const invite = parseInviteLink(editor.url);
+      const { config, icon } = await validateServerConnection(
+        invite?.serverUrl ?? editor.url
+      );
       const profile = saveServerConnection(
         {
           ...config,
@@ -101,10 +107,12 @@ const ServerConnection = memo(() => {
         }
       );
 
+      if (invite) setPendingInvite(profile.httpUrl, invite.code);
+
       refreshProfiles();
       setEditor(undefined);
 
-      if (!editor.profile) {
+      if (!editor.profile || invite) {
         connectProfile(profile.id);
       }
     } catch (reason) {
@@ -260,6 +268,9 @@ const ServerConnection = memo(() => {
                 }
                 onEnter={submitEditor}
               />
+              <p className="text-xs text-muted-foreground">
+                {t('serverUrlInviteHint')}
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="server-display-name">Display name</Label>

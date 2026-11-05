@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
 import { useXEmbedHeight } from '../hooks/use-x-embed-height';
 import { OverrideLayout } from './layout';
 
@@ -9,9 +9,17 @@ type TPostProps = {
   postId: string;
 };
 
+// the theme provider puts the resolved mode, light or dark, on the root element
+const getEmbedTheme = () =>
+  document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+
 const XPost = memo(({ postId }: TPostProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const reportedHeight = useXEmbedHeight(iframeRef);
+
+  // read once, when the post is shown: the theme is part of the address, and changing it would
+  // load the whole embed again
+  const [theme] = useState(getEmbedTheme);
 
   const style = useMemo(
     () => ({ height: reportedHeight ?? X_DEFAULT_HEIGHT_PX }),
@@ -21,7 +29,7 @@ const XPost = memo(({ postId }: TPostProps) => {
   return (
     <iframe
       ref={iframeRef}
-      src={`https://platform.twitter.com/embed/Tweet.html?id=${postId}&dnt=true`}
+      src={`https://platform.twitter.com/embed/Tweet.html?id=${postId}&dnt=true&theme=${theme}`}
       title="X post"
       style={style}
       className="w-137 max-w-full border-0"

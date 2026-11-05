@@ -37,7 +37,11 @@ const getCpuPercent = () => {
 
 const getMonitorStatus = async (): Promise<TMonitorStatus> => {
   const voiceMap = VoiceRuntime.getVoiceMap();
-  const voiceChannelIds = Object.keys(voiceMap).map(Number);
+  // the server keeps a runtime for every voice channel from the start, so only the ones with
+  // someone in them are active
+  const voiceChannelIds = Object.entries(voiceMap)
+    .filter(([, { users }]) => Object.keys(users).length > 0)
+    .map(([id]) => Number(id));
 
   const [onlineUsers, voiceChannelNames, hostedBots] = await Promise.all([
     getUserNamesByIds(getOnlineUserIds()),

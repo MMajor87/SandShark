@@ -119,6 +119,7 @@ jobs:
             apps/server/build/out/sandshark-linux-x64
             apps/server/build/out/sandshark-linux-arm64
             apps/server/build/out/sandshark-windows-x64.exe
+            apps/server/build/out/sandshark-server-${{ needs.resolve-release.outputs.version }}-setup-x64.exe
             apps/server/build/out/sandshark-macos-arm64
             apps/server/build/out/sandshark-install-linux.sh
             apps/server/build/out/release.json

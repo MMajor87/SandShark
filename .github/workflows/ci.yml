@@ -105,6 +105,16 @@ jobs:
           test ! -e /opt/sandshark
           test ! -e /var/lib/sandshark
 
+      # compiled on every build, so a broken installer script fails here rather than at release
+      - name: Install NSIS
+        if: ${{ !inputs.skip_build }}
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends nsis
+
+      - name: Build Windows server installer
+        if: ${{ !inputs.skip_build }}
+        working-directory: apps/server
+        run: bun run build:windows-installer
+
       - name: Upload server build
         if: ${{ !inputs.skip_build && inputs.upload_server_build }}
         uses: actions/upload-artifact@v6

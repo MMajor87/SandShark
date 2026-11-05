@@ -1,0 +1,8 @@
+{
+  "id": "hello-sandshark",
+  "name": "Hello SandShark",
+  "author": "SandShark",
+  "description": "A starter plugin: a slash command, a server setting, an action and a settings page",
+  "sdkVersion": 2,
+  "version": "1.0.0"
+}

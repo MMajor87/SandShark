@@ -1,4 +1,5 @@
 # SandShark Plugin SDK
 
-Types and helpers for writing SandShark server and client plugins. Install a built
-plugin by copying its folder into the `plugins` folder in the server's data directory.
+Types and helpers for writing SandShark server and client plugins.
+
+[The plugins guide](../../docs/plugins.md) covers installing a plugin, what goes in its folder and manifest, and the whole API, and starts from the example in [`examples/plugins/hello-sandshark`](../../examples/plugins/hello-sandshark).

@@ -2,6 +2,7 @@ export enum LocalStorageKey {
   IDENTITY = 'sandshark-identity',
   USER_PASSWORD = 'sandshark-user-password',
   VITE_UI_THEME = 'vite-ui-theme',
+  UI_ACCENT = 'sandshark-ui-accent',
   DEVICES_SETTINGS = 'sandshark-devices-settings',
   FLOATING_CARD_POSITION = 'sandshark-floating-card-position',
   RIGHT_SIDEBAR_STATE = 'sandshark-right-sidebar-state',

@@ -8,6 +8,7 @@ import {
   Keyboard,
   KeyRound,
   Package,
+  Palette,
   SlidersHorizontal,
   Trash2,
   User
@@ -17,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import type { TServerScreenBaseProps } from '../screens';
 import { SettingsShell } from '../settings-shell';
 import type { TSettingsEntry } from '../settings-shell/types';
+import { Appearance } from './appearance';
 import { DeleteAccount } from './delete-account';
 import { Desktop } from './desktop';
 import { Devices } from './devices';
@@ -64,6 +66,12 @@ const UserSettings = memo(({ close }: TUserSettingsProps) => {
         label: t('notificationsTab'),
         icon: Bell,
         content: <Notifications />
+      },
+      {
+        id: 'appearance',
+        label: t('appearanceTab'),
+        icon: Palette,
+        content: <Appearance />
       },
       {
         id: 'others',

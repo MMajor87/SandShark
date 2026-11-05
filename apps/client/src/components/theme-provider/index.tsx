@@ -3,9 +3,9 @@ import {
   LocalStorageKey,
   setLocalStorageItem
 } from '@/helpers/storage';
-import { createContext, useEffect, useState } from 'react';
-
-type Theme = 'dark' | 'light' | 'system';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { DEFAULT_ACCENT, isAccent, type TAccent } from './accents';
+import { ThemeProviderContext, type Theme } from './context';
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -13,17 +13,13 @@ type ThemeProviderProps = {
   storageKey?: LocalStorageKey;
 };
 
-type ThemeProviderState = {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-};
+const DARK_QUERY = '(prefers-color-scheme: dark)';
 
-const initialState: ThemeProviderState = {
-  theme: 'system',
-  setTheme: () => null
-};
+const getStoredAccent = (): TAccent => {
+  const stored = getLocalStorageItem(LocalStorageKey.UI_ACCENT);
 
-const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
+  return isAccent(stored) ? stored : DEFAULT_ACCENT;
+};
 
 function ThemeProvider({
   children,
@@ -31,35 +27,60 @@ function ThemeProvider({
   storageKey = LocalStorageKey.VITE_UI_THEME,
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
+  const [theme, setThemeState] = useState<Theme>(
     () => (getLocalStorageItem(storageKey) as Theme) || defaultTheme
   );
+  const [accent, setAccentState] = useState<TAccent>(getStoredAccent);
 
   useEffect(() => {
     const root = window.document.documentElement;
 
-    root.classList.remove('light', 'dark');
+    const apply = (mode: 'dark' | 'light') => {
+      root.classList.remove('light', 'dark');
+      root.classList.add(mode);
+    };
 
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
-        ? 'dark'
-        : 'light';
-
-      root.classList.add(systemTheme);
+    if (theme !== 'system') {
+      apply(theme);
       return;
     }
 
-    root.classList.add(theme);
+    // follows the system while the app stays open, not only when it starts
+    const media = window.matchMedia(DARK_QUERY);
+
+    const applySystem = () => {
+      apply(media.matches ? 'dark' : 'light');
+    };
+
+    applySystem();
+    media.addEventListener('change', applySystem);
+
+    return () => {
+      media.removeEventListener('change', applySystem);
+    };
   }, [theme]);
 
-  const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      setLocalStorageItem(storageKey, theme);
-      setTheme(theme);
-    }
-  };
+  useEffect(() => {
+    window.document.documentElement.dataset.accent = accent;
+  }, [accent]);
+
+  const setTheme = useCallback(
+    (next: Theme) => {
+      setLocalStorageItem(storageKey, next);
+      setThemeState(next);
+    },
+    [storageKey]
+  );
+
+  const setAccent = useCallback((next: TAccent) => {
+    setLocalStorageItem(LocalStorageKey.UI_ACCENT, next);
+    setAccentState(next);
+  }, []);
+
+  const value = useMemo(
+    () => ({ theme, setTheme, accent, setAccent }),
+    [theme, setTheme, accent, setAccent]
+  );
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>

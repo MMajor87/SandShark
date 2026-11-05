@@ -41,6 +41,8 @@ import { ChannelContextMenu } from '../context-menus/channel';
 import { UnreadCount } from '../unread-count';
 import { ExternalStream } from './external-stream';
 import {
+  SIDEBAR_ITEM_ACTIVE_CLASS,
+  SIDEBAR_ITEM_CLASS,
   VOICE_USER_DND_MIME,
   applyChannelDragPreview,
   categoryDropDndId,
@@ -240,10 +242,10 @@ const ItemWrapper = memo(
         onDragLeave={onDragLeave}
         onDrop={onDrop}
         className={cn(
-          'flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground select-none cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
+          SIDEBAR_ITEM_CLASS,
+          'select-none cursor-pointer focus-visible:outline-offset-[-2px]',
           {
-            'bg-accent font-medium text-accent-foreground ring-1 ring-inset ring-border':
-              isSelected,
+            [SIDEBAR_ITEM_ACTIVE_CLASS]: isSelected,
             'cursor-default opacity-50 hover:bg-transparent hover:text-muted-foreground':
               disabled
           },

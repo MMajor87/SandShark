@@ -12,6 +12,7 @@ import { cn, Tooltip } from '@sandshark/ui';
 import { CalendarDays, X } from 'lucide-react';
 import { memo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SIDEBAR_ITEM_ACTIVE_CLASS, SIDEBAR_ITEM_CLASS } from '../helpers';
 
 // events finish while the app stays open, so the list is refreshed now and then rather
 // than only when this user writes to the calendar
@@ -44,9 +45,8 @@ const CalendarButton = memo(() => {
         data-testid={TestId.CALENDAR_TOGGLE}
         onClick={onToggleCalendar}
         className={cn(
-          'flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-2 focus-visible:outline-ring',
-          calendarOpen &&
-            'bg-accent font-medium text-accent-foreground ring-1 ring-inset ring-border'
+          SIDEBAR_ITEM_CLASS,
+          calendarOpen && SIDEBAR_ITEM_ACTIVE_CLASS
         )}
         aria-current={calendarOpen ? 'page' : undefined}
       >

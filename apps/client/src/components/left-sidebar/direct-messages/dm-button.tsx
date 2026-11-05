@@ -8,6 +8,7 @@ import { cn, Tooltip } from '@sandshark/ui';
 import { MessageCircleMore, X } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SIDEBAR_ITEM_ACTIVE_CLASS, SIDEBAR_ITEM_CLASS } from '../helpers';
 
 const DmButton = memo(() => {
   const { t } = useTranslation('sidebar');
@@ -30,9 +31,8 @@ const DmButton = memo(() => {
         type="button"
         onClick={onToggleDmMode}
         className={cn(
-          'flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-2 focus-visible:outline-ring',
-          isActive &&
-            'bg-accent font-medium text-accent-foreground ring-1 ring-inset ring-border'
+          SIDEBAR_ITEM_CLASS,
+          isActive && SIDEBAR_ITEM_ACTIVE_CLASS
         )}
         aria-current={isActive ? 'page' : undefined}
       >

@@ -1,3 +1,19 @@
+# SandShark Server 0.6.0
+
+- **Windows service install.** `sandshark-server-0.6.0-setup-x64.exe` installs the server as a Windows service, so it starts with the computer and runs without anyone signed in. It runs as the built-in LocalService account and is restarted after a crash or an update. The installer can add the firewall rules, and adds Start Menu shortcuts to the monitor and to start, stop and restart the server. A tray icon shows the server's state. See [the Windows server install](https://github.com/MMajor87/SandShark/blob/main/docs/windows-server-install.md).
+- **Linux service install.** `sandshark-install-linux.sh` installs this release as a hardened systemd service on x64 and arm64, running as its own `sandshark` user. See [the Linux server install](https://github.com/MMajor87/SandShark/blob/main/docs/linux-server-install.md).
+- **Server monitor.** Every server serves a status page at `http://localhost:4991/monitor` to its own machine. It shows whether the server is up, its version, uptime, memory and CPU, who is online, the active voice channels, the hosted bots and the end of its log. Scripts can read the same data from `/monitor/status`. It has no login, so it is never served to other machines or through a reverse proxy. Set `SANDSHARK_MONITOR=false` to turn it off. See [the server monitor](https://github.com/MMajor87/SandShark/blob/main/docs/server-monitor.md).
+- **Updates in Docker.** **Update Server** now works in Docker. The new version is installed into the data volume, and the container's restart policy starts it. Pulling an image that is at least as new takes over again. `SANDSHARK_AUTOUPDATE=true` now applies in Docker too.
+- Under the systemd install, the server replaces its own binary when it updates and systemd restarts it.
+
+## Compatibility and upgrade
+
+Use SandShark Desktop 1.5.0 with this server. Desktop 1.4.0 keeps working with it, and Desktop 1.5.0 works with Server 0.5.0. Back up the server's data before upgrading. This release has no database migrations, and no configuration changes are needed.
+
+Docker servers need a restart policy, such as `--restart unless-stopped`, to come back after **Update Server**. Without one, start the container again yourself. After such an update the container runs the newer version whatever its image tag says, and the Updates screen shows which version is running.
+
+The release publishes Linux x64/arm64, Windows x64, and macOS arm64 binaries, the Windows setup, the Linux install script, and the versioned Docker image `ghcr.io/mmajor87/sandshark-server:0.6.0`. The workflow does not move a `latest` image tag. The desktop release remains GitHub's Latest release for desktop updater compatibility.
+
 # SandShark Server 0.5.0
 
 - Hosted bots can be written in Python. A folder with no JavaScript entry point runs from `main.py`, or else `bot.py`, and its `requirements.txt` (or else `pyproject.toml`) is installed with pip into a `.venv` in the bot's folder. discord.py and its forks, hikari, and bots that use `requests`, `httpx` or `websockets` directly are pointed at this server. This needs Python 3 with its `venv` module on the server; the Docker image does not include Python.

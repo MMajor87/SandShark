@@ -1,3 +1,11 @@
+# SandShark 1.5.0
+
+- On a server that runs in Docker, the Updates screen in server settings explains that **Update Server** installs the new version into the data volume and restarts the container, and shows how to update by hand instead.
+
+## Upgrade notes
+
+This version works with SandShark Server 0.5.0 and 0.6.0. Desktop 1.4.0 updates itself to this version. The Windows installer does not deploy a server; the server has its own Windows setup from Server 0.6.0. This installer remains unsigned.
+
 # SandShark 1.4.0
 
 - The bot Hosting panel gets a **Runtime** choice for JavaScript bots (Bun or Node.js), memory and CPU use for a running bot, and a **Start from a ping bot** button for a bot that has no code yet.

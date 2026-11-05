@@ -15,12 +15,44 @@ const outDir = path.join(serverCwd, 'build', 'out');
 const cacheDir = path.join(serverCwd, 'build', 'temp');
 const serverExe = path.join(outDir, 'sandshark-windows-x64.exe');
 const winswExe = path.join(cacheDir, `WinSW-x64-${WINSW_VERSION}.exe`);
-const script = path.join(
-  serverCwd,
-  'installer',
-  'windows',
-  'sandshark-server.nsi'
-);
+const installerDir = path.join(serverCwd, 'installer', 'windows');
+const script = path.join(installerDir, 'sandshark-server.nsi');
+const trayScript = path.join(installerDir, 'sandshark-tray.ps1');
+
+// nothing runs the tray script before it reaches a windows machine, so a syntax error in it is
+// caught here. ci has pwsh on linux; a local build without powershell skips the check
+const checkTrayScript = async () => {
+  const shell = Bun.which('pwsh') ?? Bun.which('powershell');
+
+  if (!shell) {
+    if (process.env.CI) {
+      throw new Error('PowerShell is needed to check the tray script.');
+    }
+
+    console.warn('PowerShell not found, skipping the tray script check.');
+
+    return;
+  }
+
+  const proc = Bun.spawn(
+    [
+      shell,
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      '$errors = $null; [System.Management.Automation.Language.Parser]::ParseFile($env:TRAY_SCRIPT, [ref]$null, [ref]$errors) | Out-Null; $errors | ForEach-Object { "$($_.Extent.StartLineNumber): $($_.Message)" }; exit $errors.Count'
+    ],
+    {
+      env: { ...process.env, TRAY_SCRIPT: trayScript },
+      stdout: 'inherit',
+      stderr: 'inherit'
+    }
+  );
+
+  if ((await proc.exited) !== 0) {
+    throw new Error(`${path.basename(trayScript)} does not parse.`);
+  }
+};
 
 const downloadWinsw = async () => {
   if (await fs.exists(winswExe)) {
@@ -57,6 +89,7 @@ if (!(await fs.exists(serverExe))) {
   throw new Error(`${serverExe} is missing. Run bun run build first.`);
 }
 
+await checkTrayScript();
 await downloadWinsw();
 
 const version = await getCurrentVersion();
@@ -76,6 +109,7 @@ const proc = Bun.spawn(
     `-DOUTFILE=${outFile}`,
     `-DLICENSE_FILE=${path.join(repoRoot, 'LICENSE')}`,
     `-DICON_FILE=${path.join(repoRoot, 'apps', 'client', 'public', 'favicon.ico')}`,
+    `-DTRAY_SCRIPT=${trayScript}`,
     script
   ],
   { stdout: 'inherit', stderr: 'inherit' }

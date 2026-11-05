@@ -17,8 +17,16 @@ Each server release includes `sandshark-server-<version>-setup-x64.exe`. It inst
   - **Server Monitor** opens the [status page](server-monitor.md) at `http://localhost:4991/monitor`.
   - **Start Server**, **Stop Server** and **Restart Server** control the service, after an administrator prompt.
   - **Server Data** opens the data folder.
+  - **SandShark Server Tray** shows the tray icon.
+- Optionally, enabled by default, starts the tray icon whenever someone signs in.
 
 The service can also be managed from Services (`services.msc`) or with `sc query SandSharkServer`.
+
+## Tray icon
+
+The tray icon shows the server's version and how many people are online and in voice. It switches to a warning icon when the server stops answering. Double-click it to open the monitor. Right-click it to open the monitor or the data folder, to start, stop or restart the server (after an administrator prompt), or to exit.
+
+The icon runs as the signed-in user, not as an administrator. It only reads the server's local status endpoint, checking every 10 seconds. It assumes port 4991. After changing the port, edit the shortcut so it ends with `-Port <port>`.
 
 ## Configuration
 

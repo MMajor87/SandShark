@@ -13,8 +13,8 @@
 Unicode true
 SetCompressor /SOLID lzma
 
-!ifndef VERSION | SERVER_EXE | WINSW_EXE | OUTFILE | LICENSE_FILE | ICON_FILE
-  !error "build/build-windows-installer.ts passes VERSION, SERVER_EXE, WINSW_EXE, OUTFILE, LICENSE_FILE and ICON_FILE"
+!ifndef VERSION | SERVER_EXE | WINSW_EXE | OUTFILE | LICENSE_FILE | ICON_FILE | TRAY_SCRIPT
+  !error "build/build-windows-installer.ts passes VERSION, SERVER_EXE, WINSW_EXE, OUTFILE, LICENSE_FILE, ICON_FILE and TRAY_SCRIPT"
 !endif
 
 !include "MUI2.nsh"
@@ -32,6 +32,7 @@ SetCompressor /SOLID lzma
 !define SID_SYSTEM "*S-1-5-18"
 !define SID_LOCAL_SERVICE "*S-1-5-19"
 !define SID_ADMINISTRATORS "*S-1-5-32-544"
+!define TRAY_LINK "SandShark Server Tray.lnk"
 
 Name "${PRODUCT} ${VERSION}"
 OutFile "${OUTFILE}"
@@ -108,6 +109,14 @@ FunctionEnd
   Pop $0
 !macroend
 
+; the tray icon runs as the signed in user, from a shortcut, so it never inherits the installer's
+; admin rights
+!macro TrayShortcut LINK
+  CreateShortcut "${LINK}" "$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" \
+    "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File $\"$INSTDIR\sandshark-tray.ps1$\"" \
+    "$INSTDIR\sandshark.ico" 0 SW_SHOWMINIMIZED
+!macroend
+
 ; a start menu shortcut that runs a winsw command with the admin prompt services need
 !macro ServiceShortcut LABEL COMMAND
   CreateShortcut "$SMPROGRAMS\${PRODUCT}\${LABEL}.lnk" "$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" \
@@ -128,6 +137,7 @@ Section "${PRODUCT}" SecServer
   File "/oname=sandshark-service.exe" "${WINSW_EXE}"
   File "/oname=LICENSE.txt" "${LICENSE_FILE}"
   File "/oname=sandshark.ico" "${ICON_FILE}"
+  File "/oname=sandshark-tray.ps1" "${TRAY_SCRIPT}"
 
   CreateDirectory "$DataRoot\bin"
   CreateDirectory "$DataRoot\data"
@@ -198,6 +208,7 @@ Section "${PRODUCT}" SecServer
   !insertmacro ServiceShortcut "Stop Server" "stop"
   !insertmacro ServiceShortcut "Restart Server" "restart"
   CreateShortcut "$SMPROGRAMS\${PRODUCT}\Server Data.lnk" "$DataRoot"
+  !insertmacro TrayShortcut "$SMPROGRAMS\${PRODUCT}\${TRAY_LINK}"
 
   WriteUninstaller "$INSTDIR\uninstall.exe"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayName" "${PRODUCT}"
@@ -221,9 +232,14 @@ Section "Allow through Windows Firewall" SecFirewall
   Pop $0
 SectionEnd
 
+Section "Show a tray icon at sign in" SecTray
+  !insertmacro TrayShortcut "$SMSTARTUP\${TRAY_LINK}"
+SectionEnd
+
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecServer} "The server, run as a Windows service that starts with the computer."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecFirewall} "Lets other computers reach the server: TCP ${HTTP_PORT} for the app and UDP ${WEBRTC_PORT} for voice."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecTray} "Shows the server's state in the notification area for everyone who signs in, with a menu to open the monitor and to start, stop or restart the server."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 Section "Uninstall"
@@ -232,6 +248,9 @@ Section "Uninstall"
   !insertmacro RemoveFirewallRules
 
   RMDir /r "$SMPROGRAMS\${PRODUCT}"
+  ; a tray icon still running notices its script is gone and exits by itself
+  Delete "$SMSTARTUP\${TRAY_LINK}"
+  Delete "$INSTDIR\sandshark-tray.ps1"
   Delete "$INSTDIR\sandshark-service.exe"
   Delete "$INSTDIR\sandshark-service.xml"
   Delete "$INSTDIR\LICENSE.txt"

@@ -1,3 +1,12 @@
+# SandShark 1.4.0
+
+- The bot Hosting panel gets a **Runtime** choice for JavaScript bots (Bun or Node.js), memory and CPU use for a running bot, and a **Start from a ping bot** button for a bot that has no code yet.
+- Python bots can be hosted, on servers that have Python installed.
+
+## Upgrade notes
+
+This version is meant for SandShark Server 0.5.0, so upgrade the server first: on Server 0.4.0 the new hosting controls fail. Desktop 1.3.0 updates itself to this version. The Windows installer does not deploy a server. This installer remains unsigned.
+
 # SandShark 1.3.0
 
 - Adds bots. Create and manage them from the new Bots tab in server settings. Bots show with a Bot badge, their slash commands appear in the message box's `/` menu, and their answers can carry embeds, buttons, select menus and forms. Answers only you can see are shown below the channel until you dismiss them.

@@ -1,3 +1,17 @@
+# SandShark Server 0.5.0
+
+- Hosted bots can be written in Python. A folder with no JavaScript entry point runs from `main.py`, or else `bot.py`, and its `requirements.txt` (or else `pyproject.toml`) is installed with pip into a `.venv` in the bot's folder. discord.py and its forks, hikari, and bots that use `requests`, `httpx` or `websockets` directly are pointed at this server. This needs Python 3 with its `venv` module on the server; the Docker image does not include Python.
+- Hosted JavaScript bots can run on Node.js instead of Bun, set per bot under **Runtime**, for packages with native add-ons that Bun cannot load. This needs Node.js 20 or newer on the server; the Docker image does not include Node.js.
+- A running hosted bot shows its memory and CPU use next to its status, on Linux servers, which includes the Docker image.
+- **Start from a ping bot** writes a small discord.js bot with a `/ping` command into a hosted bot that has no code yet, to try hosting without a bot of your own.
+- Starting, stopping and restarting a hosted bot, changing its code, source, runtime or variables, and installing its dependencies are now recorded in the activity log.
+
+## Compatibility and upgrade
+
+Use SandShark Desktop 1.4.0 with this server. Upgrade the server first: Desktop 1.3.0 keeps working with this server, without the new hosting controls. Stop the server and back up its entire data directory before upgrading. Migrations run automatically at startup. No configuration changes are needed.
+
+The release publishes Linux x64/arm64, Windows x64, and macOS arm64 binaries, plus the versioned Docker image `ghcr.io/mmajor87/sandshark-server:0.5.0`. The workflow does not move a `latest` image tag. The desktop release remains GitHub's Latest release for desktop updater compatibility.
+
 # SandShark Server 0.4.0
 
 - Adds bot accounts and a Discord compatible bot API (REST v10 and the gateway). A bot written with discord.js or discord.py runs against SandShark by pointing it at this server, with no code changes. See [the bots guide](https://github.com/MMajor87/SandShark/blob/main/docs/bots.md) for what is supported.

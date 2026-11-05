@@ -84,6 +84,24 @@ describe('/monitor', () => {
     });
   });
 
+  // a running server keeps a runtime for every voice channel, occupied or not
+  test('leaves out voice channels nobody is in', async () => {
+    const empty = new VoiceRuntime(4);
+    const occupied = new VoiceRuntime(2);
+
+    occupied.addUser(1, { micMuted: false, soundMuted: false });
+
+    try {
+      const response = await get('/monitor/status');
+      const { voiceChannels } = (await response.json()) as TMonitorStatus;
+
+      expect(voiceChannels).toEqual([{ id: 2, name: 'Voice', userCount: 1 }]);
+    } finally {
+      occupied.removeUser(1);
+      await Promise.all([empty.destroy(), occupied.destroy()]);
+    }
+  });
+
   test('serves the end of the server log', async () => {
     let previous: string | null = null;
 

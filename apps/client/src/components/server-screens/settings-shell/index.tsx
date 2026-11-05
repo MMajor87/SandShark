@@ -3,7 +3,7 @@ import { requestConfirmation } from '@/features/dialogs/actions';
 import { useDialogInfo } from '@/features/dialogs/hooks';
 import { usePreventExit } from '@/hooks/use-prevent-exit';
 import { cn } from '@/lib/utils';
-import { Button, IconButton } from '@sandshark/ui';
+import { Button, IconButton, Tooltip } from '@sandshark/ui';
 import { ChevronLeft, Menu } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -37,9 +37,16 @@ const SettingsShell = memo(
 
     usePreventExit(form?.isDirty);
 
+    // plugin pages get a heading of their own, below everything the app itself provides
     const allEntries = useMemo(
-      () => [...entries, ...pluginEntries],
-      [entries, pluginEntries]
+      () => [
+        ...entries,
+        ...pluginEntries.map((entry) => ({
+          ...entry,
+          group: entry.group ?? t('settingsGroupPlugins')
+        }))
+      ],
+      [entries, pluginEntries, t]
     );
 
     const selectedEntry =
@@ -99,17 +106,26 @@ const SettingsShell = memo(
 
     return (
       <SettingsFormContext.Provider value={setForm}>
-        <div className="flex h-dvh flex-col bg-background text-foreground dark">
+        <div className="flex h-dvh flex-col bg-background text-foreground">
           <div className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
-            <Button variant="ghost" size="icon" onClick={handleClose}>
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
+            <Tooltip content={t('closeSettings')}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleClose}
+                aria-label={t('closeSettings')}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+            </Tooltip>
             <h1 className="flex-1 truncate text-lg font-semibold">{title}</h1>
             <IconButton
               icon={Menu}
               variant="ghost"
               className="md:hidden"
               onClick={toggleDrawer}
+              aria-label={t('settingsMenu')}
+              aria-expanded={isDrawerOpen}
             />
           </div>
 
@@ -122,8 +138,7 @@ const SettingsShell = memo(
             )}
 
             <SettingsSidebar
-              entries={entries}
-              pluginEntries={pluginEntries}
+              entries={allEntries}
               selectedId={selectedEntry?.id ?? ''}
               onSelect={handleSelect}
               className={cn(

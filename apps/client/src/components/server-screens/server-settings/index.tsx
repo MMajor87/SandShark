@@ -5,6 +5,7 @@ import {
   AudioLines,
   Blocks,
   Bot,
+  HardDrive,
   Mail,
   Package,
   RefreshCw,
@@ -44,17 +45,48 @@ const ServerSettings = memo(({ close }: TServerSettingsProps) => {
   } = useAdminPlugins(canManagePlugins);
 
   const entries = useMemo<TSettingsEntry[]>(() => {
+    const server = t('settingsGroupServer');
+    const people = t('settingsGroupPeople');
+    const contentGroup = t('settingsGroupContent');
+    const integrations = t('settingsGroupIntegrations');
+
     const all = [
       {
         id: 'general',
         label: t('generalTab'),
+        group: server,
         icon: Settings,
         content: <General />,
         permission: Permission.MANAGE_SETTINGS
       },
       {
+        id: 'invites',
+        label: t('invitesTab'),
+        group: server,
+        icon: Mail,
+        content: <Invites />,
+        permission: Permission.MANAGE_INVITES
+      },
+      {
+        id: 'updates',
+        label: t('updatesTab'),
+        group: server,
+        icon: RefreshCw,
+        content: <Updates />,
+        permission: Permission.MANAGE_UPDATES
+      },
+      {
+        id: 'users',
+        label: t('usersTab'),
+        group: people,
+        icon: Users,
+        content: <UsersSection />,
+        permission: Permission.MANAGE_USERS
+      },
+      {
         id: 'roles',
         label: t('rolesTab'),
+        group: people,
         icon: Shield,
         content: <Roles />,
         permission: Permission.MANAGE_ROLES
@@ -62,6 +94,7 @@ const ServerSettings = memo(({ close }: TServerSettingsProps) => {
       {
         id: 'emojis',
         label: t('emojisTab'),
+        group: contentGroup,
         icon: Smile,
         content: <Emojis />,
         permission: Permission.MANAGE_EMOJIS
@@ -69,6 +102,7 @@ const ServerSettings = memo(({ close }: TServerSettingsProps) => {
       {
         id: 'soundboard',
         label: t('soundboardTab'),
+        group: contentGroup,
         icon: AudioLines,
         content: <Soundboard />,
         permission: Permission.MANAGE_SOUNDBOARD
@@ -76,41 +110,23 @@ const ServerSettings = memo(({ close }: TServerSettingsProps) => {
       {
         id: 'storage',
         label: t('storageTab'),
-        icon: Package,
+        group: contentGroup,
+        icon: HardDrive,
         content: <Storage />,
         permission: Permission.MANAGE_STORAGE
       },
       {
-        id: 'users',
-        label: t('usersTab'),
-        icon: Users,
-        content: <UsersSection />,
-        permission: Permission.MANAGE_USERS
-      },
-      {
-        id: 'invites',
-        label: t('invitesTab'),
-        icon: Mail,
-        content: <Invites />,
-        permission: Permission.MANAGE_INVITES
-      },
-      {
         id: 'bots',
         label: t('botsTab'),
+        group: integrations,
         icon: Bot,
         content: <Bots />,
         permission: Permission.MANAGE_BOTS
       },
       {
-        id: 'updates',
-        label: t('updatesTab'),
-        icon: RefreshCw,
-        content: <Updates />,
-        permission: Permission.MANAGE_UPDATES
-      },
-      {
         id: 'plugins',
         label: t('pluginsTab'),
+        group: integrations,
         icon: Blocks,
         content: (
           <Plugins
@@ -125,7 +141,13 @@ const ServerSettings = memo(({ close }: TServerSettingsProps) => {
 
     return all
       .filter((entry) => can(entry.permission))
-      .map(({ id, label, icon, content }) => ({ id, label, icon, content }));
+      .map(({ id, label, icon, group, content }) => ({
+        id,
+        label,
+        icon,
+        group,
+        content
+      }));
   }, [t, can, plugins, pluginsLoading, refetchPlugins]);
 
   // an enabled plugin that failed to load still gets an entry, its view is where the reason lives

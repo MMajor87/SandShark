@@ -8,4 +8,6 @@ export type TSettingsEntry = {
   content: ReactNode;
   logo?: string;
   error?: string;
+  group?: string;
+  tone?: 'danger';
 };

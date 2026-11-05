@@ -7,6 +7,7 @@ import {
   Headphones,
   Keyboard,
   KeyRound,
+  Monitor,
   Package,
   Palette,
   SlidersHorizontal,
@@ -35,69 +36,83 @@ const UserSettings = memo(({ close }: TUserSettingsProps) => {
   const can = useCan();
   const userSettingsPlugins = useUserSettingsPlugins();
 
-  const entries = useMemo<TSettingsEntry[]>(
-    () => [
+  const entries = useMemo<TSettingsEntry[]>(() => {
+    const account = t('settingsGroupAccount');
+    const app = t('settingsGroupApp');
+
+    // the account comes first and ends with deleting it, the riskiest entry, at the bottom of
+    // its group where it is not clicked by accident
+    return [
       {
         id: 'profile',
         label: t('profileTab'),
         icon: User,
+        group: account,
         content: <Profile />
+      },
+      {
+        id: 'password',
+        label: t('passwordTab'),
+        icon: KeyRound,
+        group: account,
+        content: <Password />
+      },
+      {
+        id: 'delete-account',
+        label: t('deleteAccountTab'),
+        icon: Trash2,
+        group: account,
+        tone: 'danger' as const,
+        content: <DeleteAccount />
+      },
+      {
+        id: 'appearance',
+        label: t('appearanceTab'),
+        icon: Palette,
+        group: app,
+        content: <Appearance />
+      },
+      {
+        id: 'notifications',
+        label: t('notificationsTab'),
+        icon: Bell,
+        group: app,
+        content: <Notifications />
       },
       {
         id: 'devices',
         label: t('devicesTab'),
         icon: Headphones,
+        group: app,
         content: <Devices />
       },
       {
         id: 'hotkeys',
         label: t('hotkeysTab'),
         icon: Keyboard,
+        group: app,
         content: <Hotkeys />
-      },
-      {
-        id: 'password',
-        label: t('passwordTab'),
-        icon: KeyRound,
-        content: <Password />
-      },
-      {
-        id: 'notifications',
-        label: t('notificationsTab'),
-        icon: Bell,
-        content: <Notifications />
-      },
-      {
-        id: 'appearance',
-        label: t('appearanceTab'),
-        icon: Palette,
-        content: <Appearance />
-      },
-      {
-        id: 'others',
-        label: t('othersTab'),
-        icon: SlidersHorizontal,
-        content: <Others />
-      },
-      {
-        id: 'delete-account',
-        label: t('deleteAccountTab'),
-        icon: Trash2,
-        content: <DeleteAccount />
       },
       ...(isDesktopClient() && window.sandSharkDesktop
         ? [
             {
               id: 'desktop',
               label: t('desktopTab'),
-              icon: SlidersHorizontal,
+              icon: Monitor,
+              group: app,
               content: <Desktop />
             }
           ]
-        : [])
-    ],
-    [t]
-  );
+        : []),
+      {
+        id: 'others',
+        label: t('othersTab'),
+        icon: SlidersHorizontal,
+        group: app,
+        content: <Others />
+      }
+    ];
+  }, [t]);
 
   // the plugin owns everything inside its entry, so this renders its slot and
   // nothing else

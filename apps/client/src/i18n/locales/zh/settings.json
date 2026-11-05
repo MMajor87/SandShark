@@ -677,5 +677,14 @@
   "accent_amber": "琥珀色",
   "accent_green": "绿色",
   "accent_teal": "青色",
-  "accent_slate": "石板灰"
+  "accent_slate": "石板灰",
+  "settingsGroupAccount": "账户",
+  "settingsGroupApp": "应用",
+  "settingsGroupServer": "服务器",
+  "settingsGroupPeople": "成员",
+  "settingsGroupContent": "内容",
+  "settingsGroupIntegrations": "集成",
+  "settingsGroupPlugins": "插件设置",
+  "closeSettings": "关闭 (Esc)",
+  "settingsMenu": "设置菜单"
 }

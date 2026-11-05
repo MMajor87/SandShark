@@ -677,5 +677,14 @@
   "accent_amber": "Ambra",
   "accent_green": "Verde",
   "accent_teal": "Verde acqua",
-  "accent_slate": "Ardesia"
+  "accent_slate": "Ardesia",
+  "settingsGroupAccount": "Account",
+  "settingsGroupApp": "App",
+  "settingsGroupServer": "Server",
+  "settingsGroupPeople": "Persone",
+  "settingsGroupContent": "Contenuti",
+  "settingsGroupIntegrations": "Integrazioni",
+  "settingsGroupPlugins": "Impostazioni dei plugin",
+  "closeSettings": "Chiudi (Esc)",
+  "settingsMenu": "Menu impostazioni"
 }

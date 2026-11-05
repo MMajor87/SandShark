@@ -677,5 +677,14 @@
   "accent_amber": "Ambre",
   "accent_green": "Vert",
   "accent_teal": "Sarcelle",
-  "accent_slate": "Ardoise"
+  "accent_slate": "Ardoise",
+  "settingsGroupAccount": "Compte",
+  "settingsGroupApp": "Application",
+  "settingsGroupServer": "Serveur",
+  "settingsGroupPeople": "Membres",
+  "settingsGroupContent": "Contenu",
+  "settingsGroupIntegrations": "Intégrations",
+  "settingsGroupPlugins": "Paramètres des plugins",
+  "closeSettings": "Fermer (Échap)",
+  "settingsMenu": "Menu des paramètres"
 }

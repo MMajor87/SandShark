@@ -686,5 +686,14 @@
   "accent_amber": "Янтарный",
   "accent_green": "Зелёный",
   "accent_teal": "Бирюзовый",
-  "accent_slate": "Сланцевый"
+  "accent_slate": "Сланцевый",
+  "settingsGroupAccount": "Аккаунт",
+  "settingsGroupApp": "Приложение",
+  "settingsGroupServer": "Сервер",
+  "settingsGroupPeople": "Люди",
+  "settingsGroupContent": "Контент",
+  "settingsGroupIntegrations": "Интеграции",
+  "settingsGroupPlugins": "Настройки плагинов",
+  "closeSettings": "Закрыть (Esc)",
+  "settingsMenu": "Меню настроек"
 }

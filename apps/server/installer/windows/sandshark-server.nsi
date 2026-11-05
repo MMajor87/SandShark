@@ -2,13 +2,13 @@
 ; built in LocalService account. built by build/build-windows-installer.ts, which passes the
 ; defines below
 ;
-; layout:
+; layout, where $APPDATA is ProgramData once SetShellVarContext all has run:
 ;   $INSTDIR (program files)              winsw and its config, which only admins can change, so
 ;                                         the service can never rewrite how it is run
-;   $COMMONAPPDATA\SandShark Server\bin   the server, writable by the service so the server can
+;   $APPDATA\SandShark Server\bin         the server, writable by the service so the server can
 ;                                         update itself the way it does anywhere else
-;   $COMMONAPPDATA\SandShark Server\data  the server's data (SANDSHARK_DATA_PATH)
-;   $COMMONAPPDATA\SandShark Server\logs  winsw's own logs of the server's console output
+;   $APPDATA\SandShark Server\data        the server's data (SANDSHARK_DATA_PATH)
+;   $APPDATA\SandShark Server\logs        winsw's own logs of the server's console output
 
 Unicode true
 SetCompressor /SOLID lzma
@@ -77,13 +77,13 @@ Function .onInit
 
   SetRegView 64
   SetShellVarContext all
-  StrCpy $DataRoot "$COMMONAPPDATA\${PRODUCT}"
+  StrCpy $DataRoot "$APPDATA\${PRODUCT}"
 FunctionEnd
 
 Function un.onInit
   SetRegView 64
   SetShellVarContext all
-  StrCpy $DataRoot "$COMMONAPPDATA\${PRODUCT}"
+  StrCpy $DataRoot "$APPDATA\${PRODUCT}"
 FunctionEnd
 
 ; the server needs a few seconds after the service starts before it answers

@@ -677,5 +677,14 @@
   "accent_amber": "Amber",
   "accent_green": "Green",
   "accent_teal": "Teal",
-  "accent_slate": "Slate"
+  "accent_slate": "Slate",
+  "settingsGroupAccount": "Account",
+  "settingsGroupApp": "App",
+  "settingsGroupServer": "Server",
+  "settingsGroupPeople": "People",
+  "settingsGroupContent": "Content",
+  "settingsGroupIntegrations": "Integrations",
+  "settingsGroupPlugins": "Plugin settings",
+  "closeSettings": "Close (Esc)",
+  "settingsMenu": "Settings menu"
 }

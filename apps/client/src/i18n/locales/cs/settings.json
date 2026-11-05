@@ -677,5 +677,14 @@
   "accent_amber": "Jantarová",
   "accent_green": "Zelená",
   "accent_teal": "Tyrkysová",
-  "accent_slate": "Břidlicová"
+  "accent_slate": "Břidlicová",
+  "settingsGroupAccount": "Účet",
+  "settingsGroupApp": "Aplikace",
+  "settingsGroupServer": "Server",
+  "settingsGroupPeople": "Lidé",
+  "settingsGroupContent": "Obsah",
+  "settingsGroupIntegrations": "Integrace",
+  "settingsGroupPlugins": "Nastavení pluginů",
+  "closeSettings": "Zavřít (Esc)",
+  "settingsMenu": "Nabídka nastavení"
 }

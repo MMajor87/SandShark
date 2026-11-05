@@ -1,9 +1,10 @@
 import { cn } from '@/lib/utils';
 import { TestId } from '@sandshark/shared';
-import { Separator, Tooltip } from '@sandshark/ui';
+import { Tooltip } from '@sandshark/ui';
 import { AlertCircle } from 'lucide-react';
 
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
+import { groupSettingsEntries } from './helpers';
 import type { TSettingsEntry } from './types';
 
 type TSidebarEntryProps = {
@@ -14,7 +15,7 @@ type TSidebarEntryProps = {
 
 const SidebarEntry = memo(
   ({ entry, isSelected, onSelect }: TSidebarEntryProps) => {
-    const { icon: Icon, logo, label, error } = entry;
+    const { icon: Icon, logo, label, error, tone } = entry;
 
     const handleClick = useCallback(
       () => onSelect(entry.id),
@@ -23,11 +24,16 @@ const SidebarEntry = memo(
 
     return (
       <button
+        type="button"
         data-testid={TestId.SETTINGS_SIDEBAR_ENTRY}
         onClick={handleClick}
+        aria-current={isSelected ? 'page' : undefined}
         className={cn(
-          'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent',
-          isSelected && 'bg-accent font-medium'
+          'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring',
+          isSelected &&
+            'bg-highlight-soft font-medium text-foreground shadow-[inset_3px_0_0_0_var(--highlight)] hover:bg-highlight-soft hover:text-foreground [&>svg:first-child]:text-highlight',
+          tone === 'danger' &&
+            'text-destructive hover:text-destructive [&>svg:first-child]:text-destructive'
         )}
       >
         {logo ? (
@@ -56,40 +62,30 @@ const SidebarEntry = memo(
 
 type TSettingsSidebarProps = {
   entries: TSettingsEntry[];
-  pluginEntries: TSettingsEntry[];
   selectedId: string;
   onSelect: (id: string) => void;
   className?: string;
 };
 
 const SettingsSidebar = memo(
-  ({
-    entries,
-    pluginEntries,
-    selectedId,
-    onSelect,
-    className
-  }: TSettingsSidebarProps) => {
+  ({ entries, selectedId, onSelect, className }: TSettingsSidebarProps) => {
+    const groups = useMemo(() => groupSettingsEntries(entries), [entries]);
+
     return (
       <nav
         className={cn(
-          'w-60 shrink-0 space-y-1 overflow-y-auto border-r bg-background p-3',
+          'w-60 shrink-0 space-y-4 overflow-y-auto border-r bg-background p-3',
           className
         )}
       >
-        {entries.map((entry) => (
-          <SidebarEntry
-            key={entry.id}
-            entry={entry}
-            isSelected={entry.id === selectedId}
-            onSelect={onSelect}
-          />
-        ))}
-
-        {pluginEntries.length > 0 && (
-          <>
-            <Separator className="my-3" />
-            {pluginEntries.map((entry) => (
+        {groups.map(({ label, entries: groupEntries }, index) => (
+          <div key={label ?? `group-${index}`} className="space-y-1">
+            {label && (
+              <h2 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {label}
+              </h2>
+            )}
+            {groupEntries.map((entry) => (
               <SidebarEntry
                 key={entry.id}
                 entry={entry}
@@ -97,8 +93,8 @@ const SettingsSidebar = memo(
                 onSelect={onSelect}
               />
             ))}
-          </>
-        )}
+          </div>
+        ))}
       </nav>
     );
   }

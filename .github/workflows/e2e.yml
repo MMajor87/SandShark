@@ -31,21 +31,29 @@ jobs:
         with:
           bun-version: 1.3.14
 
+      - name: Cache Bun packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-1.3.14-${{ hashFiles('bun.lock', 'patches/**') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-1.3.14-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
       - name: Install Playwright browsers
+        timeout-minutes: 5
         working-directory: packages/e2e
-        run: bunx playwright install --with-deps
+        run: bunx playwright install --with-deps --only-shell chromium
 
       - name: Run E2E tests
         working-directory: packages/e2e
         run: bun test:e2e
 
-      # the report holds the traces recorded on retry, which is the only way to see what a
-      # failing spec saw in ci
+      # passing retries still need their traces preserved so flakes can be diagnosed
       - name: Upload Playwright report
-        if: failure()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v6
         with:
           name: playwright-report

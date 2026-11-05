@@ -32,6 +32,7 @@ declare module 'bun' {
     SANDSHARK_DEBUG?: string;
     SANDSHARK_AUTOUPDATE?: string;
     SANDSHARK_MONITOR?: string;
+    SANDSHARK_SERVICE?: string;
     SANDSHARK_WEBRTC_PORT?: string;
     SANDSHARK_WEBRTC_ANNOUNCED_ADDRESS?: string;
     SANDSHARK_DATA_PATH?: string;

@@ -1,6 +1,7 @@
 import type { TRelease, TReleaseMetadata } from 'bun-sfe-autoupdater';
 import fs from 'fs/promises';
 import path from 'path';
+import { downloadServerBinary } from './download-server-binary';
 import { DOCKER_UPDATE_PATH } from './paths';
 
 const DOCKER_UPDATE_BINARY_PATH = path.join(DOCKER_UPDATE_PATH, 'sandshark');
@@ -14,35 +15,7 @@ const installDockerUpdate = async (
   release: TRelease,
   metadata: TReleaseMetadata
 ) => {
-  const target = process.arch === 'arm64' ? 'linux-arm64' : 'linux-x64';
-  const artifact = metadata.artifacts.find(
-    (candidate) => candidate.target === target
-  );
-  const asset = release.assets.find(({ name }) => name === artifact?.name);
-
-  if (!artifact || !asset) {
-    throw new Error(`Server ${metadata.version} has no ${target} binary.`);
-  }
-
-  const response = await fetch(asset.browser_download_url);
-
-  if (!response.ok) {
-    throw new Error(
-      `Downloading server ${metadata.version} failed: ${response.status} ${response.statusText}`
-    );
-  }
-
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  const hasher = new Bun.CryptoHasher('sha256');
-
-  hasher.update(bytes);
-
-  if (hasher.digest('hex') !== artifact.checksum) {
-    throw new Error(
-      `The download of server ${metadata.version} does not match its checksum.`
-    );
-  }
-
+  const bytes = await downloadServerBinary(release, metadata);
   const downloadPath = `${DOCKER_UPDATE_BINARY_PATH}.download`;
 
   await fs.mkdir(DOCKER_UPDATE_PATH, { recursive: true });

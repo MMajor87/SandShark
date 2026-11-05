@@ -79,8 +79,12 @@ jobs:
         working-directory: apps/server/build/out
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.sha }}
+          RELEASE_VERSION: ${{ needs.resolve-release.outputs.version }}
         run: |
           printf '%s\n' "$RELEASE_SHA" > BUILD_COMMIT.txt
+          # the published script installs this release
+          sed "s/@SANDSHARK_VERSION@/$RELEASE_VERSION/" ../../installer/linux/install.sh > sandshark-install-linux.sh
+          grep -q "^VERSION=\"$RELEASE_VERSION\"$" sandshark-install-linux.sh
           sha256sum sandshark-* release.json BUILD_COMMIT.txt > SHA256SUMS.txt
       - name: Extract this version's release notes
         env:
@@ -117,6 +121,7 @@ jobs:
             apps/server/build/out/sandshark-windows-x64.exe
             apps/server/build/out/sandshark-server-${{ needs.resolve-release.outputs.version }}-setup-x64.exe
             apps/server/build/out/sandshark-macos-arm64
+            apps/server/build/out/sandshark-install-linux.sh
             apps/server/build/out/release.json
             apps/server/build/out/SHA256SUMS.txt
             apps/server/build/out/BUILD_COMMIT.txt

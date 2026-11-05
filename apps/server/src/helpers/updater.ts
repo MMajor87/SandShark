@@ -3,11 +3,17 @@ import { BunUpdater } from 'bun-sfe-autoupdater';
 import semver from 'semver';
 import { config } from '../config';
 import { logger } from '../logger';
-import { IS_DOCKER, IS_PRODUCTION, SERVER_VERSION } from '../utils/env';
+import {
+  IS_DOCKER,
+  IS_PRODUCTION,
+  IS_SYSTEMD_SERVICE,
+  SERVER_VERSION
+} from '../utils/env';
 import { installDockerUpdate } from './docker-update';
+import { installSystemdUpdate } from './systemd-update';
 
 // long enough for the update request to answer before the server goes away
-const DOCKER_RESTART_DELAY_MS = 1000;
+const RESTART_DELAY_MS = 1000;
 
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -54,7 +60,9 @@ class Updater {
       logger.info('Checking for updates...');
 
       if (IS_DOCKER) {
-        await this.updateDocker();
+        await this.updateInPlace(installDockerUpdate);
+      } else if (IS_SYSTEMD_SERVICE) {
+        await this.updateInPlace(installSystemdUpdate);
       } else {
         // if an update is available, it will be downloaded automatically
         // the app will restart to apply the update
@@ -96,21 +104,25 @@ class Updater {
     this.checkTimer = null;
   };
 
-  private updateDocker = async (): Promise<void> => {
+  // where something supervises the server and restarts it when it exits, the server installs
+  // the new binary itself and exits: a container's restart policy with the entrypoint picking
+  // the binary, or a systemd unit's Restart=always
+  private updateInPlace = async (
+    install: typeof installDockerUpdate
+  ): Promise<void> => {
     const { release, updaterMetadata } =
       await this.bunUpdater.getLatestRelease();
 
     if (!semver.gt(updaterMetadata.version, SERVER_VERSION)) return;
 
-    await installDockerUpdate(release, updaterMetadata);
+    await install(release, updaterMetadata);
 
     logger.info(
-      'Installed server %s, exiting so the container restarts on it',
+      'Installed server %s, exiting so it restarts on it',
       updaterMetadata.version
     );
 
-    // the container's restart policy starts it again, and the entrypoint picks the new binary
-    setTimeout(() => process.exit(0), DOCKER_RESTART_DELAY_MS);
+    setTimeout(() => process.exit(0), RESTART_DELAY_MS);
   };
 
   private setupAutoUpdater = async (): Promise<void> => {

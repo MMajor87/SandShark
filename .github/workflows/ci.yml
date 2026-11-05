@@ -77,6 +77,34 @@ jobs:
         working-directory: apps/server
         run: bun run build
 
+      # a real install on the runner, which runs systemd: the unit has to start the server and
+      # the uninstall has to remove it again
+      - name: Check the Linux install script
+        if: ${{ !inputs.skip_build }}
+        run: shellcheck apps/server/installer/linux/install.sh
+
+      - name: Install the server as a systemd service
+        if: ${{ !inputs.skip_build }}
+        run: |
+          sudo sh apps/server/installer/linux/install.sh --binary apps/server/build/out/sandshark-linux-x64
+          for _ in $(seq 1 60); do
+            curl -fsS http://localhost:4991/healthz && break
+            sleep 1
+          done
+          if ! curl -fsS http://localhost:4991/monitor/status; then
+            sudo journalctl -u sandshark --no-pager | tail -n 80
+            exit 1
+          fi
+          systemctl is-active sandshark
+          test "$(sudo stat -c '%U %a' /var/lib/sandshark)" = "sandshark 750"
+          sudo sh apps/server/installer/linux/install.sh --uninstall --purge
+          # a negated command never fails a bash -e step, so these are spelled out
+          if systemctl is-active --quiet sandshark; then exit 1; fi
+          if id sandshark >/dev/null 2>&1; then exit 1; fi
+          test ! -e /etc/systemd/system/sandshark.service
+          test ! -e /opt/sandshark
+          test ! -e /var/lib/sandshark
+
       - name: Upload server build
         if: ${{ !inputs.skip_build && inputs.upload_server_build }}
         uses: actions/upload-artifact@v6

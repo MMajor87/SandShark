@@ -1,3 +1,26 @@
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index ed9bf2daf7e89acad26809a23f08770807ad0ed4..3d7cecf4f20a05d8880eb2127ef8ba4b07ac7e6b 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -1,5 +1,5 @@
+ import { validateReleaseMetadata } from './helpers';
+-import { type TOptions, type TOverrides } from './types';
++import { type TOptions, type TOverrides, type TRelease, type TReleaseMetadata } from './types';
+ declare class BunUpdater {
+     private owner;
+     private repo;
+@@ -9,7 +9,10 @@ declare class BunUpdater {
+     private autoStart;
+     private ignoreChecksum;
+     constructor(options: TOptions);
+-    private getLatestRelease;
++    getLatestRelease: () => Promise<{
++        release: TRelease;
++        updaterMetadata: TReleaseMetadata;
++    }>;
+     getLatestVersion: () => Promise<string>;
+     hasUpdates: () => Promise<boolean>;
+     checkForUpdates: (options?: TOverrides) => Promise<void>;
 diff --git a/dist/index.js b/dist/index.js
 index 457fa0353f0cc6871e459c853fe8a153013f1ff8..204f96c7220c613fcb842d4a237e55f477c0914a 100644
 --- a/dist/index.js

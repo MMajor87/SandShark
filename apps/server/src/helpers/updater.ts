@@ -1,8 +1,13 @@
 import { getErrorMessage } from '@sandshark/shared';
 import { BunUpdater } from 'bun-sfe-autoupdater';
+import semver from 'semver';
 import { config } from '../config';
 import { logger } from '../logger';
 import { IS_DOCKER, IS_PRODUCTION, SERVER_VERSION } from '../utils/env';
+import { installDockerUpdate } from './docker-update';
+
+// long enough for the update request to answer before the server goes away
+const DOCKER_RESTART_DELAY_MS = 1000;
 
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -29,7 +34,7 @@ class Updater {
     this.setupAutoUpdater();
   }
 
-  public canUpdate = (): boolean => IS_PRODUCTION && !IS_DOCKER;
+  public canUpdate = (): boolean => IS_PRODUCTION;
 
   public getLatestVersion = async () => this.bunUpdater.getLatestVersion();
 
@@ -48,9 +53,13 @@ class Updater {
     try {
       logger.info('Checking for updates...');
 
-      // if an update is available, it will be downloaded automatically
-      // the app will restart to apply the update
-      await this.bunUpdater.checkForUpdates();
+      if (IS_DOCKER) {
+        await this.updateDocker();
+      } else {
+        // if an update is available, it will be downloaded automatically
+        // the app will restart to apply the update
+        await this.bunUpdater.checkForUpdates();
+      }
 
       if (this.consecutiveFailures > 0) {
         logger.info(
@@ -85,6 +94,23 @@ class Updater {
 
     clearInterval(this.checkTimer);
     this.checkTimer = null;
+  };
+
+  private updateDocker = async (): Promise<void> => {
+    const { release, updaterMetadata } =
+      await this.bunUpdater.getLatestRelease();
+
+    if (!semver.gt(updaterMetadata.version, SERVER_VERSION)) return;
+
+    await installDockerUpdate(release, updaterMetadata);
+
+    logger.info(
+      'Installed server %s, exiting so the container restarts on it',
+      updaterMetadata.version
+    );
+
+    // the container's restart policy starts it again, and the entrypoint picks the new binary
+    setTimeout(() => process.exit(0), DOCKER_RESTART_DELAY_MS);
   };
 
   private setupAutoUpdater = async (): Promise<void> => {

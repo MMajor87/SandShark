@@ -24,6 +24,11 @@ docker run -d --name sandshark-server --restart unless-stopped -p 4991:4991/tcp 
 
 Replace `YOUR_PUBLIC_IP_OR_HOSTNAME` with the address clients use to reach the server. Open TCP 4991 for the app and UDP 40000 for voice on the host and firewall. The named volume keeps the database, uploads, configuration, plugins, and other server data when the container is replaced. Connect the desktop client to `http://YOUR_PUBLIC_IP_OR_HOSTNAME:4991` or your configured HTTPS address. Back up the whole data volume before upgrading; database migrations run at startup. There is no moving `latest` image tag, so pin the version you deploy.
 
+To update a Docker server, either:
+
+- **From the server settings.** An owner chooses **Update Server** under Server settings, Updates. The new version is installed into the data volume and the container restarts on it, which needs a restart policy such as `--restart unless-stopped`. The container keeps running that version, whatever its image tag says, until you pull an image that is at least as new. With `SANDSHARK_AUTOUPDATE=true` the server does this by itself when a new version comes out.
+- **By hand.** Back up the data volume, pull the new image, and recreate the container from it with the same volume, ports and environment.
+
 For binary installs and release procedures, see [versioning and deployment](docs/sandshark-versioning.md).
 
 ## Local development

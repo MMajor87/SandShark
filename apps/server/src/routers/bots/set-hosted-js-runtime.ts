@@ -18,8 +18,9 @@ const setHostedJsRuntimeRoute = rateLimitedProcedure(protectedProcedure, {
     })
   )
   .mutation(async ({ ctx, input }) => {
-    await assertHostedBotAccess(ctx, input.botId);
-    await setHostedBotJsRuntime(input.botId, input.jsRuntime);
+    const bot = await assertHostedBotAccess(ctx, input.botId);
+
+    await setHostedBotJsRuntime(bot, ctx.userId, input.jsRuntime);
   });
 
 export { setHostedJsRuntimeRoute };

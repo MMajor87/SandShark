@@ -17,8 +17,9 @@ const createHostedFromTemplateRoute = rateLimitedProcedure(protectedProcedure, {
     })
   )
   .mutation(async ({ ctx, input }) => {
-    await assertHostedBotAccess(ctx, input.botId);
-    await writeHostedBotTemplate(input.botId, input.template);
+    const bot = await assertHostedBotAccess(ctx, input.botId);
+
+    await writeHostedBotTemplate(bot, ctx.userId, input.template);
   });
 
 export { createHostedFromTemplateRoute };

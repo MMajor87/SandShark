@@ -1,4 +1,5 @@
 import {
+  ActivityLogType,
   HOSTED_BOT_GITHUB_URL_REGEX,
   HOSTED_BOT_MAX_ARCHIVE_SIZE,
   HostedBotSourceType,
@@ -10,12 +11,20 @@ import path from 'path';
 import { upsertHostedBot } from '../db/mutations/hosted-bots';
 import { getHostedBot } from '../db/queries/hosted-bots';
 import { logger } from '../logger';
+import { enqueueActivityLog } from '../queues/activity-log';
 import { getHostedBotPath, HostedBotRuntime } from '../runtimes/hosted-bot';
 import { invariant } from '../utils/invariant';
 import { unzipBlobToDirectory } from '../utils/zip';
 import { hasHostedBotDependencies } from './hosted-bot-install';
 import { HOSTED_BOT_TEMPLATES } from './hosted-bot-templates';
+import type { THostedBotRef } from './hosted-bots';
 import { TMP_PATH } from './paths';
+
+type THostedBotCodeSource = {
+  type: HostedBotSourceType;
+  url: string | null;
+  ref: string | null;
+};
 
 const MAX_ARCHIVE_MB = HOSTED_BOT_MAX_ARCHIVE_SIZE / 1024 / 1024;
 
@@ -39,27 +48,54 @@ const installInBackground = (botId: number) => {
   });
 };
 
-const installHostedBotDependencies = async (botId: number) => {
-  invariant(await hasHostedBotDependencies(getHostedBotPath(botId)), {
+// an install that an upload or update starts is part of that code change, logged with it
+const installHostedBotDependencies = async (
+  bot: THostedBotRef,
+  actorUserId: number
+) => {
+  invariant(await hasHostedBotDependencies(getHostedBotPath(bot.id)), {
     code: 'BAD_REQUEST',
     message:
       'This bot has no package.json, requirements.txt or pyproject.toml to install from.'
   });
 
-  installInBackground(botId);
+  installInBackground(bot.id);
+
+  enqueueActivityLog({
+    type: ActivityLogType.INSTALLED_HOSTED_BOT_DEPENDENCIES,
+    userId: actorUserId,
+    details: { botId: bot.id, name: bot.name }
+  });
 };
 
 // records where the new code came from, and installs its dependencies, which restarts the
 // bot if it was running, or else restarts it on the new code straight away
 const onHostedBotCodeChanged = async (
-  botId: number,
-  source: { type: HostedBotSourceType; url: string | null; ref: string | null }
+  bot: THostedBotRef,
+  actorUserId: number,
+  source: THostedBotCodeSource,
+  template: HostedBotTemplate | null = null
 ) => {
+  const botId = bot.id;
+
   await upsertHostedBot(botId, {
     sourceType: source.type,
     sourceUrl: source.url,
     sourceRef: source.ref,
     codeUpdatedAt: Date.now()
+  });
+
+  enqueueActivityLog({
+    type: ActivityLogType.UPDATED_HOSTED_BOT_CODE,
+    userId: actorUserId,
+    details: {
+      botId,
+      name: bot.name,
+      sourceType: source.type,
+      sourceUrl: source.url,
+      sourceRef: source.ref,
+      template
+    }
   });
 
   if (await hasHostedBotDependencies(getHostedBotPath(botId))) {
@@ -79,10 +115,12 @@ const onHostedBotCodeChanged = async (
 // a bot keeps next to its code (json files, sqlite) survives an update. a bot with
 // dependencies has them installed, which restarts it if it was running
 const replaceHostedBotCode = async (
-  botId: number,
+  bot: THostedBotRef,
+  actorUserId: number,
   archive: Blob | Uint8Array,
-  source: { type: HostedBotSourceType; url: string | null; ref: string | null }
+  source: THostedBotCodeSource
 ) => {
+  const botId = bot.id;
   const staging = path.join(TMP_PATH, `hosted-bot-${botId}-${randomUUIDv7()}`);
   const botPath = getHostedBotPath(botId);
 
@@ -108,14 +146,16 @@ const replaceHostedBotCode = async (
     await fs.rm(staging, { recursive: true, force: true });
   }
 
-  await onHostedBotCodeChanged(botId, source);
+  await onHostedBotCodeChanged(bot, actorUserId, source);
 };
 
 // the template's files are the bot's own from then on, to change and upload like any code
 const writeHostedBotTemplate = async (
-  botId: number,
+  bot: THostedBotRef,
+  actorUserId: number,
   template: HostedBotTemplate
 ) => {
+  const botId = bot.id;
   const row = await getHostedBot(botId);
 
   invariant(!row?.codeUpdatedAt, {
@@ -132,22 +172,30 @@ const writeHostedBotTemplate = async (
     )
   );
 
-  await onHostedBotCodeChanged(botId, {
-    type: HostedBotSourceType.UPLOAD,
-    url: null,
-    ref: null
-  });
+  await onHostedBotCodeChanged(
+    bot,
+    actorUserId,
+    { type: HostedBotSourceType.UPLOAD, url: null, ref: null },
+    template
+  );
 };
 
 const setHostedBotGithubSource = async (
-  botId: number,
+  bot: THostedBotRef,
+  actorUserId: number,
   url: string,
   ref: string | null
 ) => {
-  await upsertHostedBot(botId, {
+  await upsertHostedBot(bot.id, {
     sourceType: HostedBotSourceType.GITHUB,
     sourceUrl: url,
     sourceRef: ref
+  });
+
+  enqueueActivityLog({
+    type: ActivityLogType.UPDATED_HOSTED_BOT,
+    userId: actorUserId,
+    details: { botId: bot.id, name: bot.name, sourceUrl: url, sourceRef: ref }
   });
 };
 
@@ -199,8 +247,11 @@ const downloadGithubArchive = async (url: string, ref: string | null) => {
   return archive;
 };
 
-const updateHostedBotFromGithub = async (botId: number) => {
-  const row = await getHostedBot(botId);
+const updateHostedBotFromGithub = async (
+  bot: THostedBotRef,
+  actorUserId: number
+) => {
+  const row = await getHostedBot(bot.id);
 
   invariant(row?.sourceType === HostedBotSourceType.GITHUB && row.sourceUrl, {
     code: 'BAD_REQUEST',
@@ -209,7 +260,7 @@ const updateHostedBotFromGithub = async (botId: number) => {
 
   const archive = await downloadGithubArchive(row.sourceUrl, row.sourceRef);
 
-  await replaceHostedBotCode(botId, archive, {
+  await replaceHostedBotCode(bot, actorUserId, archive, {
     type: HostedBotSourceType.GITHUB,
     url: row.sourceUrl,
     ref: row.sourceRef

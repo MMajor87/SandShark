@@ -11,8 +11,9 @@ const startHostedRoute = rateLimitedProcedure(protectedProcedure, {
 })
   .input(z.object({ botId: z.number().int().positive() }))
   .mutation(async ({ ctx, input }) => {
-    await assertHostedBotAccess(ctx, input.botId);
-    await startHostedBot(input.botId);
+    const bot = await assertHostedBotAccess(ctx, input.botId);
+
+    await startHostedBot(bot, ctx.userId);
   });
 
 export { startHostedRoute };

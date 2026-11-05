@@ -1,4 +1,5 @@
 import {
+  ActivityLogType,
   HostedBotJsRuntime,
   HostedBotSourceType,
   HostedBotStatus,
@@ -41,6 +42,7 @@ import { fileManager } from '../../helpers/file-manager';
 import { findNode } from '../../helpers/hosted-bot-node';
 import { findPython } from '../../helpers/hosted-bot-python';
 import { HOSTED_BOTS_PATH } from '../../helpers/paths';
+import * as activityLog from '../../queues/activity-log';
 import { getHostedBotPath, HostedBotRuntime } from '../../runtimes/hosted-bot';
 import { pubsub } from '../../utils/pubsub';
 
@@ -725,6 +727,232 @@ setInterval(() => {}, 1000);
 
       expect(reply).toBe('<p>Pong!</p>');
     }, 50_000);
+  });
+
+  describe('activity log', () => {
+    const loggedEntries = (spy: { mock: { calls: unknown[][] } }) =>
+      spy.mock.calls.map(([entry]) => entry);
+
+    test('logs who started, restarted and stopped a bot', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({ 'index.js': WHOAMI_BOT });
+      const logs = spyOn(activityLog, 'enqueueActivityLog');
+      const details = { botId: bot.id, name: 'Hosted' };
+
+      await caller.bots.startHosted({ botId: bot.id });
+      await waitForLog(bot.id, 'whoami');
+      await caller.bots.restartHosted({ botId: bot.id });
+      await caller.bots.stopHosted({ botId: bot.id });
+
+      expect(loggedEntries(logs)).toEqual([
+        { type: ActivityLogType.STARTED_HOSTED_BOT, userId: 1, details },
+        { type: ActivityLogType.RESTARTED_HOSTED_BOT, userId: 1, details },
+        { type: ActivityLogType.STOPPED_HOSTED_BOT, userId: 1, details }
+      ]);
+    });
+
+    test('logs nothing for a start that was refused', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({});
+      const logs = spyOn(activityLog, 'enqueueActivityLog');
+
+      await expect(caller.bots.startHosted({ botId: bot.id })).rejects.toThrow(
+        'This bot has no code to run yet.'
+      );
+      expect(logs).not.toHaveBeenCalled();
+    });
+
+    test('logs the names of changed variables, never their values', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({});
+      const logs = spyOn(activityLog, 'enqueueActivityLog');
+
+      await caller.bots.setHostedEnv({
+        botId: bot.id,
+        name: 'WEATHER_KEY',
+        value: 'very-secret-value'
+      });
+      await caller.bots.setHostedEnv({
+        botId: bot.id,
+        name: 'WEATHER_KEY',
+        value: null
+      });
+
+      expect(loggedEntries(logs)).toEqual([
+        {
+          type: ActivityLogType.UPDATED_HOSTED_BOT_ENV,
+          userId: 1,
+          details: {
+            botId: bot.id,
+            name: 'Hosted',
+            envName: 'WEATHER_KEY',
+            removed: false
+          }
+        },
+        {
+          type: ActivityLogType.UPDATED_HOSTED_BOT_ENV,
+          userId: 1,
+          details: {
+            botId: bot.id,
+            name: 'Hosted',
+            envName: 'WEATHER_KEY',
+            removed: true
+          }
+        }
+      ]);
+      expect(JSON.stringify(loggedEntries(logs))).not.toContain(
+        'very-secret-value'
+      );
+    });
+
+    test('logs changes to the token names, runtime and github source', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({});
+      const logs = spyOn(activityLog, 'enqueueActivityLog');
+
+      await caller.bots.setHostedTokenEnvNames({
+        botId: bot.id,
+        names: ['MY_TOKEN', 'MY_TOKEN']
+      });
+      await caller.bots.setHostedJsRuntime({
+        botId: bot.id,
+        jsRuntime: HostedBotJsRuntime.BUN
+      });
+      await caller.bots.setHostedSource({
+        botId: bot.id,
+        url: 'https://github.com/someone/my-bot',
+        ref: null
+      });
+
+      expect(loggedEntries(logs)).toEqual([
+        {
+          type: ActivityLogType.UPDATED_HOSTED_BOT,
+          userId: 1,
+          details: {
+            botId: bot.id,
+            name: 'Hosted',
+            tokenEnvNames: ['MY_TOKEN']
+          }
+        },
+        {
+          type: ActivityLogType.UPDATED_HOSTED_BOT,
+          userId: 1,
+          details: {
+            botId: bot.id,
+            name: 'Hosted',
+            jsRuntime: HostedBotJsRuntime.BUN
+          }
+        },
+        {
+          type: ActivityLogType.UPDATED_HOSTED_BOT,
+          userId: 1,
+          details: {
+            botId: bot.id,
+            name: 'Hosted',
+            sourceUrl: 'https://github.com/someone/my-bot',
+            sourceRef: null
+          }
+        }
+      ]);
+    });
+
+    test('logs every code change with where it came from', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({});
+      const { bot: templated } = await createHostedBot({});
+      const { mockedToken } = await initTest(1);
+      const fileId = await uploadZip(mockedToken, { 'index.js': '' });
+
+      await caller.bots.setHostedSource({
+        botId: bot.id,
+        url: 'https://github.com/someone/my-bot',
+        ref: 'v2'
+      });
+
+      const logs = spyOn(activityLog, 'enqueueActivityLog');
+
+      // the template has a package.json, whose install would download discord.js
+      spyOn(HostedBotRuntime, 'install').mockResolvedValue(undefined);
+      spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(await makeZip({ 'index.js': 'from github' }), {
+          status: 200
+        })
+      );
+
+      // github first, an upload sets the source back to an upload
+      await caller.bots.updateHostedCode({ botId: bot.id });
+      await caller.bots.uploadHostedCode({ botId: bot.id, fileId });
+      await caller.bots.createHostedFromTemplate({
+        botId: templated.id,
+        template: HostedBotTemplate.PING
+      });
+
+      const codeDetails = (botId: number) => ({ botId, name: 'Hosted' });
+
+      expect(loggedEntries(logs)).toEqual([
+        {
+          type: ActivityLogType.UPDATED_HOSTED_BOT_CODE,
+          userId: 1,
+          details: {
+            ...codeDetails(bot.id),
+            sourceType: HostedBotSourceType.GITHUB,
+            sourceUrl: 'https://github.com/someone/my-bot',
+            sourceRef: 'v2',
+            template: null
+          }
+        },
+        {
+          type: ActivityLogType.UPDATED_HOSTED_BOT_CODE,
+          userId: 1,
+          details: {
+            ...codeDetails(bot.id),
+            sourceType: HostedBotSourceType.UPLOAD,
+            sourceUrl: null,
+            sourceRef: null,
+            template: null
+          }
+        },
+        {
+          type: ActivityLogType.UPDATED_HOSTED_BOT_CODE,
+          userId: 1,
+          details: {
+            ...codeDetails(templated.id),
+            sourceType: HostedBotSourceType.UPLOAD,
+            sourceUrl: null,
+            sourceRef: null,
+            template: HostedBotTemplate.PING
+          }
+        }
+      ]);
+    });
+
+    test('logs an install asked for, but not the one a code change starts', async () => {
+      await enableHosting();
+
+      const { caller, bot } = await createHostedBot({
+        'package.json': JSON.stringify({ name: 'bot' })
+      });
+      const logs = spyOn(activityLog, 'enqueueActivityLog');
+      const install = spyOn(HostedBotRuntime, 'install').mockResolvedValue(
+        undefined
+      );
+
+      await caller.bots.installHostedDependencies({ botId: bot.id });
+
+      expect(install).toHaveBeenCalledWith(bot.id);
+      expect(loggedEntries(logs)).toEqual([
+        {
+          type: ActivityLogType.INSTALLED_HOSTED_BOT_DEPENDENCIES,
+          userId: 1,
+          details: { botId: bot.id, name: 'Hosted' }
+        }
+      ]);
+    });
   });
 
   describe('environment', () => {

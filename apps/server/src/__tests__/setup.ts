@@ -81,6 +81,15 @@ let testsBaseUrl: string;
 
 beforeAll(async () => {
   const server = await createHttpServer(0);
+
+  // every test request gets a connection of its own. bun's fetch pools keep alive
+  // connections, and many tests read a response's headers and leave its body, after which a
+  // pooled connection can be reset under the next test's first request, on windows above all
+  // (#54). bun's node:http ignores res.shouldKeepAlive, so the header is set instead
+  server.prependListener('request', (_req, res) => {
+    res.setHeader('Connection', 'close');
+  });
+
   const address = server.address();
 
   if (!address || typeof address === 'string') {

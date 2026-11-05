@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { channelPermissionsSelector } from '../channels/selectors';
 import { serverSliceActions } from '../slice';
+import { getHeldFileIds } from './helpers';
 
 const BATCH_SIZE = 50;
 const MAX_BATCHES = 4;
@@ -17,7 +18,10 @@ const useMediaAccessRefresh = () => {
   const nextIndex = useRef(0);
   const inFlight = useRef(false);
 
-  const refresh = useCallback(async () => {
+  // full renews every url the client holds, which drops files from channels the user can no
+  // longer see. otherwise only the urls about to run out are renewed: renewing changes a url and
+  // reloads every image and video showing it, which on every focus froze the window for a moment
+  const refresh = useCallback(async (full: boolean) => {
     if (inFlight.current || document.visibilityState === 'hidden') return;
     inFlight.current = true;
 
@@ -29,20 +33,7 @@ const useMediaAccessRefresh = () => {
     }
 
     try {
-      const state = store.getState();
-      const ids = new Set<number>();
-      for (const emoji of state.server.emojis) ids.add(emoji.file.id);
-      for (const sound of state.server.soundboardSounds) ids.add(sound.file.id);
-      for (const messages of Object.values(state.server.messagesMap)) {
-        for (const message of messages) {
-          for (const file of message.files) ids.add(file.id);
-          for (const reaction of message.reactions) {
-            if (reaction.file) ids.add(reaction.file.id);
-          }
-        }
-      }
-
-      const fileIds = [...ids];
+      const fileIds = getHeldFileIds(store.getState(), Date.now(), !full);
       const start = nextIndex.current % Math.max(fileIds.length, 1);
       const selected = [
         ...fileIds.slice(start),
@@ -68,6 +59,10 @@ const useMediaAccessRefresh = () => {
           return;
 
         setMediaAccessToken(result.mediaAccessToken);
+
+        // nothing was due, so the request only renewed the media access token
+        if (requestedIds.length === 0) return;
+
         store.dispatch(
           serverSliceActions.refreshFileAccess({
             requestedIds,
@@ -82,18 +77,22 @@ const useMediaAccessRefresh = () => {
     }
   }, []);
 
+  const refreshDue = useCallback(() => {
+    refresh(false);
+  }, [refresh]);
+
   useEffect(() => {
-    refresh();
-    const interval = setInterval(refresh, REFRESH_INTERVAL_MS);
-    window.addEventListener('focus', refresh);
-    document.addEventListener('visibilitychange', refresh);
+    refresh(true);
+    const interval = setInterval(refreshDue, REFRESH_INTERVAL_MS);
+    window.addEventListener('focus', refreshDue);
+    document.addEventListener('visibilitychange', refreshDue);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('focus', refresh);
-      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('focus', refreshDue);
+      document.removeEventListener('visibilitychange', refreshDue);
     };
-  }, [refresh, channelPermissions]);
+  }, [refresh, refreshDue, channelPermissions]);
 };
 
 export { useMediaAccessRefresh };

@@ -1,6 +1,6 @@
 import { Permission } from '@sandshark/shared';
 import { updater } from '../../helpers/updater';
-import { SERVER_VERSION } from '../../utils/env';
+import { IS_DOCKER, SERVER_VERSION } from '../../utils/env';
 import { protectedProcedure } from '../../utils/trpc';
 
 const getLatestVersion = async () => {
@@ -29,6 +29,7 @@ const getUpdateRoute = protectedProcedure.query(async ({ ctx }) => {
 
   return {
     canUpdate: updater.canUpdate(),
+    isDocker: IS_DOCKER,
     latestVersion,
     hasUpdate,
     currentVersion: SERVER_VERSION

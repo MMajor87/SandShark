@@ -59,6 +59,8 @@ const PLUGINS_PATH = path.join(DATA_PATH, 'plugins');
 const PLUGINS_DATA_PATH = path.join(DATA_PATH, 'plugin-data');
 const HOSTED_BOTS_PATH = path.join(DATA_PATH, 'hosted-bots');
 const HOSTED_BOT_LOGS_PATH = path.join(LOGS_PATH, 'hosted-bots');
+// docker-entrypoint.sh reads the same folder, so the two have to stay in step
+const DOCKER_UPDATE_PATH = path.join(DATA_PATH, 'server-update');
 const SRC_MIGRATIONS_PATH = path.join(process.cwd(), 'src', 'db', 'migrations');
 
 export {
@@ -66,6 +68,7 @@ export {
   CONFIG_INI_PATH,
   DATA_PATH,
   DB_PATH,
+  DOCKER_UPDATE_PATH,
   DRIZZLE_PATH,
   HOSTED_BOT_LOGS_PATH,
   HOSTED_BOTS_PATH,

@@ -205,9 +205,12 @@ test('an option the bot completes offers its suggestions while typing', async ({
   await openChannel(page, LIVE_MESSAGES_CHANNEL);
   await pickCommand(page, 'city');
 
-  // the chip focuses its first field, the one the bot completes. it asks once on its own
-  // with nothing typed, and that answer is dropped once the member types on
-  await page.keyboard.type('lis');
+  // the chip focuses its field on the next animation frame, after the menu click returns
+  const city = page.getByPlaceholder('The city', { exact: true });
+
+  await expect(city).toBeFocused();
+  await city.pressSequentially('lis');
+  await expect(city).toHaveValue('lis');
 
   const autocomplete = await bot.nextInteraction(
     AUTOCOMPLETE,

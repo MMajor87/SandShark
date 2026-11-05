@@ -7,6 +7,13 @@ USER root
 
 COPY apps/server/build/out/sandshark-linux-x64 /tmp/sandshark-linux-x64
 COPY apps/server/build/out/sandshark-linux-arm64 /tmp/sandshark-linux-arm64
+COPY apps/server/package.json /tmp/server-package.json
+
+# the entrypoint compares this with a server update installed into the data volume
+RUN set -eux; \
+    sed -n 's/^  "version": "\([^"]*\)".*/\1/p' /tmp/server-package.json > /sandshark-version; \
+    test -s /sandshark-version; \
+    rm /tmp/server-package.json
 
 RUN set -eux; \
     case "$TARGETARCH" in \

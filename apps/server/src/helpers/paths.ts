@@ -48,6 +48,7 @@ const MEDIASOUP_BINARY_PATH = getMediasoupBinaryPath();
 const DB_PATH = path.join(DATA_PATH, 'db.sqlite');
 const BACKUPS_PATH = path.join(DATA_PATH, 'backups');
 const LOGS_PATH = path.join(DATA_PATH, 'logs');
+const COMBINED_LOG_PATH = path.join(LOGS_PATH, 'combined.log');
 const PUBLIC_PATH = path.join(DATA_PATH, 'public');
 const TMP_PATH = path.join(DATA_PATH, 'tmp');
 const UPLOADS_PATH = path.join(DATA_PATH, 'uploads');
@@ -59,13 +60,17 @@ const PLUGINS_PATH = path.join(DATA_PATH, 'plugins');
 const PLUGINS_DATA_PATH = path.join(DATA_PATH, 'plugin-data');
 const HOSTED_BOTS_PATH = path.join(DATA_PATH, 'hosted-bots');
 const HOSTED_BOT_LOGS_PATH = path.join(LOGS_PATH, 'hosted-bots');
+// docker-entrypoint.sh reads the same folder, so the two have to stay in step
+const DOCKER_UPDATE_PATH = path.join(DATA_PATH, 'server-update');
 const SRC_MIGRATIONS_PATH = path.join(process.cwd(), 'src', 'db', 'migrations');
 
 export {
   BACKUPS_PATH,
+  COMBINED_LOG_PATH,
   CONFIG_INI_PATH,
   DATA_PATH,
   DB_PATH,
+  DOCKER_UPDATE_PATH,
   DRIZZLE_PATH,
   HOSTED_BOT_LOGS_PATH,
   HOSTED_BOTS_PATH,

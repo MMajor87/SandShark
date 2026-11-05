@@ -59,6 +59,7 @@ export const useAdminUpdates = () => {
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState<string | null>(null);
   const [canUpdate, setCanUpdate] = useState(false);
+  const [isDocker, setIsDocker] = useState(false);
 
   const fetchUpdate = useCallback(async () => {
     setLoading(true);
@@ -66,13 +67,14 @@ export const useAdminUpdates = () => {
     const trpc = getTRPCClient();
 
     try {
-      const { hasUpdate, latestVersion, canUpdate, currentVersion } =
+      const { hasUpdate, latestVersion, canUpdate, isDocker, currentVersion } =
         await trpc.others.getUpdate.query();
 
       setHasUpdate(hasUpdate);
       setLatestVersion(latestVersion);
       setCurrentVersion(currentVersion);
       setCanUpdate(canUpdate);
+      setIsDocker(isDocker);
     } catch (error) {
       console.error('Error fetching update:', error);
       setErrors(parseTrpcErrors(error));
@@ -115,6 +117,7 @@ export const useAdminUpdates = () => {
     latestVersion,
     currentVersion,
     canUpdate,
+    isDocker,
     errors,
     update
   };

@@ -11,6 +11,7 @@ import {
 import { ArrowUpCircle, CheckCircle, Download, X } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DockerNotes } from './docker-notes';
 
 const Updates = memo(() => {
   const { t } = useTranslation('settings');
@@ -20,6 +21,7 @@ const Updates = memo(() => {
     latestVersion,
     currentVersion,
     canUpdate,
+    isDocker,
     update
   } = useAdminUpdates();
 
@@ -84,6 +86,8 @@ const Updates = memo(() => {
       </Group>
 
       {status}
+
+      {isDocker && <DockerNotes version={hasUpdate ? latestVersion : null} />}
     </SettingsSection>
   );
 });

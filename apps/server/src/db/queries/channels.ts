@@ -502,11 +502,23 @@ const getChannelsReadStatesForUser = async (
   return readStateMap;
 };
 
+const getChannelNamesByIds = async (channelIds: number[]) => {
+  if (channelIds.length === 0) return [];
+
+  return db
+    .select({ id: channels.id, name: channels.name })
+    .from(channels)
+    .where(inArray(channels.id, channelIds))
+    .orderBy(channels.name)
+    .all();
+};
+
 export {
   channelUserCan,
   getAffectedOnlineUserIdsForChannel,
   getAffectedUserIdsForChannel,
   getAllChannelUserPermissions,
+  getChannelNamesByIds,
   getChannelsForUser,
   getChannelsReadStatesForUser
 };

@@ -3,7 +3,7 @@ import {
   type TJoinedUser,
   type TStorageData
 } from '@sandshark/shared';
-import { count, eq, sum, type SQL } from 'drizzle-orm';
+import { count, eq, inArray, sum, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import jwt from 'jsonwebtoken';
 import { db } from '..';
@@ -423,6 +423,17 @@ const getAllUserIds = async (): Promise<number[]> => {
   return results.map((r) => r.id);
 };
 
+const getUserNamesByIds = async (userIds: number[]) => {
+  if (userIds.length === 0) return [];
+
+  return db
+    .select({ id: users.id, name: users.name })
+    .from(users)
+    .where(inArray(users.id, userIds))
+    .orderBy(users.name)
+    .all();
+};
+
 export {
   getAllUserIds,
   getPublicUserById,
@@ -432,5 +443,6 @@ export {
   getUserByIdentity,
   getUserByOidcSub,
   getUserByToken,
+  getUserNamesByIds,
   getUsers
 };

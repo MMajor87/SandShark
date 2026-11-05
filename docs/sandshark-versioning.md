@@ -70,6 +70,8 @@ For a local build, run `bun run --cwd apps/server build`. Outputs live in
 `apps/server/build/out`; generated binaries are not committed. The server manifest
 uses the server package version, never the desktop or root workspace version.
 
+Windows hosts can install the server as a service with the release's setup executable; see [the Windows server install](windows-server-install.md).
+
 ## Desktop releases
 
 Update matching versions in `apps/client/package.json` and

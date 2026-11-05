@@ -191,6 +191,7 @@ export {
   compile,
   downloadMediasoupBinary,
   getCurrentVersion,
+  getFileChecksum,
   getVersionInfo,
   patchServerVersion,
   rmIfExists

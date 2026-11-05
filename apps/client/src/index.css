@@ -48,6 +48,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-highlight: var(--highlight);
+  --color-highlight-soft: var(--highlight-soft);
   --color-rail: var(--rail);
 }
 
@@ -85,6 +87,12 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   --rail: oklch(0.93 0 0);
+  /* the accent chosen under user settings, appearance. each preset below sets a shade for
+     light and one for dark, and these pick between them */
+  --highlight-light: oklch(0.546 0.245 262.881);
+  --highlight-dark: oklch(0.707 0.165 254.624);
+  --highlight: var(--highlight-light);
+  --highlight-soft: color-mix(in oklch, var(--highlight) 14%, transparent);
 }
 
 .dark {
@@ -120,6 +128,56 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
   --rail: oklch(0.17 0.008 265);
+  --highlight: var(--highlight-dark);
+  --highlight-soft: color-mix(in oklch, var(--highlight) 20%, transparent);
+}
+
+/* the light shades are dark enough to read on white, the dark ones light enough to read on
+   the dark background. set on the root for the whole app, and on a swatch in settings so it
+   shows its own color */
+[data-accent='blue'] {
+  --highlight-light: oklch(0.546 0.245 262.881);
+  --highlight-dark: oklch(0.707 0.165 254.624);
+}
+
+[data-accent='violet'] {
+  --highlight-light: oklch(0.541 0.281 293.009);
+  --highlight-dark: oklch(0.702 0.183 293.541);
+}
+
+[data-accent='pink'] {
+  --highlight-light: oklch(0.592 0.249 0.584);
+  --highlight-dark: oklch(0.718 0.202 349.761);
+}
+
+[data-accent='rose'] {
+  --highlight-light: oklch(0.586 0.253 17.585);
+  --highlight-dark: oklch(0.712 0.194 13.428);
+}
+
+[data-accent='orange'] {
+  --highlight-light: oklch(0.553 0.195 38.402);
+  --highlight-dark: oklch(0.75 0.183 55.934);
+}
+
+[data-accent='amber'] {
+  --highlight-light: oklch(0.555 0.163 48.998);
+  --highlight-dark: oklch(0.828 0.189 84.429);
+}
+
+[data-accent='green'] {
+  --highlight-light: oklch(0.527 0.154 150.069);
+  --highlight-dark: oklch(0.792 0.209 151.711);
+}
+
+[data-accent='teal'] {
+  --highlight-light: oklch(0.511 0.096 186.391);
+  --highlight-dark: oklch(0.777 0.152 181.912);
+}
+
+[data-accent='slate'] {
+  --highlight-light: oklch(0.446 0.043 257.281);
+  --highlight-dark: oklch(0.704 0.04 256.788);
 }
 
 @layer base {

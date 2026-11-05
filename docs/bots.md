@@ -80,7 +80,8 @@ What the server does for a hosted bot:
 - **Runs the right file.** It picks the file a `start` script such as `node bot.js` runs, then `main` in `package.json`, then `index.js` or `index.ts`. TypeScript runs without a build step. A folder with none of those is run as a Python bot from `main.py`, or else `bot.py`.
 - **Installs dependencies.** Dependencies are installed after every upload or update, and on **Install dependencies**: `package.json` with Bun, and `requirements.txt` (or else `pyproject.toml`) with pip into a `.venv` in the bot's folder. The install doesn't see the token or your variables.
 - **Keeps the bot's data.** An upload replaces the files it contains and keeps everything else, so data the bot saves next to its code survives updates.
-- **Keeps it running.** A crash is restarted after a short wait that grows each time. Five crashes within half a minute of starting leave the bot **Crashed** until you start it again. Enabled bots start with the server.
+- **Keeps it running.** A crash is restarted after a short wait that grows each time, up to a minute. If it crashes within half a minute of starting five times in a row, the bot is left **Crashed** until you start it again. Enabled bots start with the server.
+- **Records what people do with it.** Starting, stopping and restarting a hosted bot, changing its code, source, runtime or variables, and installing its dependencies are written to the server's activity log, with who did it.
 - **Shows what it uses.** While the bot runs, its memory and its share of one CPU core are shown next to its status, on Linux servers only, which includes the Docker image. Processes the bot starts itself aren't counted. There are no limits on either.
 
 **Compatibility** lists the calls a bot made that SandShark doesn't support yet, each counted once per endpoint and written to the log the first time. A few lists that bots fetch while starting, the server's emojis, stickers and scheduled events, are answered empty instead of refused and marked **answered empty**. When a bot that works on Discord misbehaves here, this is the first place to look.
@@ -113,15 +114,16 @@ Python bots need Python 3 installed on the server, found as `python3` or `python
 | `GET /users/@me`, `GET /users/{id}` | |
 | `GET /applications/@me`, `GET /oauth2/applications/@me` | the bot is its own application, owned by whoever created it |
 | `GET /guilds/{id}`, `/channels`, `/roles`, `/members`, `/members/{user}` | members page with `limit` and `after` |
+| `GET /guilds/{id}/emojis`, `/stickers`, `/scheduled-events` | answered with an empty list, so bots that fetch them while starting carry on |
 | `GET /channels/{id}` | text, voice, category or a DM the bot is in |
 | `GET /channels/{id}/messages` | `limit` up to 100, and `before`, `after` or `around` |
 | `GET`, `PATCH`, `DELETE /channels/{id}/messages/{id}` | a bot can edit and delete its own messages, and other people's only with Manage messages |
-| `POST /channels/{id}/messages` | `content` up to 2000 characters, `embeds`, and `message_reference` for replies |
+| `POST /channels/{id}/messages` | `content` up to 2000 characters, `embeds`, `components`, and `message_reference` for replies |
 | `PUT`, `DELETE /channels/{id}/messages/{id}/reactions/{emoji}/@me` | |
 | `POST /channels/{id}/typing` | |
 | `POST /users/@me/channels` | opens a DM, if the server allows direct messages |
 | `GET`, `POST`, `PUT /applications/{id}/commands`, and `GET`, `PATCH`, `DELETE /applications/{id}/commands/{id}` | slash commands. The same routes under `/applications/{id}/guilds/{id}/commands` hold the guild's own list |
-| `POST /interactions/{id}/{token}/callback` | answers a slash command: a message (type 4) or a deferred "thinking" answer (type 5), either one ephemeral with flag 64 |
+| `POST /interactions/{id}/{token}/callback` | answers an interaction: a message (type 4) or a deferred "thinking" answer (type 5), either one ephemeral with flag 64; for a button or select menu, a deferred update (type 6) or an update of its message (type 7); autocomplete suggestions (type 8); or a modal (type 9) |
 | `POST /webhooks/{id}/{token}`, and `GET`, `PATCH`, `DELETE /webhooks/{id}/{token}/messages/{id or @original}` | follow ups, and reading, editing or deleting the answers. After a deferred answer the first follow up fills it in, as on Discord |
 
 **Gateway (`/api/v10/gateway`)**

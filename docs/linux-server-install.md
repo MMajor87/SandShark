@@ -33,6 +33,8 @@ Open TCP 4991 for the app and UDP 40000 for voice in the firewall, for example w
 
 The server writes `/var/lib/sandshark/config.ini` on first start. Edit it, then restart the service.
 
+Voice needs the address clients reach the server at. By default the server looks up its public IP address, which suits a server that people reach over the internet. If everyone connects over the local network, or the server sits behind an address the lookup doesn't see, set it under `[webRtc]`, for example `announcedAddress = 192.168.1.20`, then restart. Text chat works either way; only voice fails with the wrong address.
+
 ## Monitoring
 
 The [status page](server-monitor.md) is served to the machine itself at `http://localhost:4991/monitor`. On a machine without a browser, tunnel it with `ssh -L 4991:localhost:4991 <this machine>`, then open the same address on your own computer. Scripts and monitoring tools on the machine can read `/monitor/status`.

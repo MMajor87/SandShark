@@ -7,8 +7,10 @@ import { HOSTED_BOTS_PATH } from './paths';
 //
 // discord.py and its forks (nextcord, disnake, py-cord) and hikari all talk to discord
 // through aiohttp, so aiohttp's one request method is where the api and the gateway are
-// moved to this server. it is patched the moment the bot imports it, since aiohttp is not
-// loaded yet when this runs. below that, every name lookup of a discord host is refused,
+// moved to this server. bots that call the api themselves mostly use requests or httpx, and
+// websockets for the gateway, which are moved the same way. each is patched the moment the
+// bot imports it, since none is loaded yet when this runs. below that, every name lookup
+// of a discord host is refused,
 // which no library can get around without its own resolver: the bot's token is this
 // server's and must never reach discord
 const HOSTED_BOT_PYTHON_SHIM_SOURCE = String.raw`
@@ -97,9 +99,82 @@ def patch_aiohttp(aiohttp):
     session._request = _request
 
 
+# every request a session makes goes through send, prepared or not. urllib3 takes the host
+# header from the url, so the url is all there is to change
+def patch_requests(requests):
+    session = requests.Session
+    original_send = session.send
+
+    def send(self, request, **kwargs):
+        request.url = rewrite(request.url)
+
+        return original_send(self, request, **kwargs)
+
+    session.send = send
+
+
+# httpx sets the host header when the request is built, so it moves with the url
+def patch_httpx(httpx):
+    def move(request):
+        url = str(request.url)
+        target = rewrite(url)
+
+        if target != url:
+            request.url = httpx.URL(target)
+            request.headers['Host'] = urlsplit(target).netloc
+
+    original_send = httpx.Client.send
+    original_async_send = httpx.AsyncClient.send
+
+    def send(self, request, **kwargs):
+        move(request)
+
+        return original_send(self, request, **kwargs)
+
+    async def async_send(self, request, **kwargs):
+        move(request)
+
+        return await original_async_send(self, request, **kwargs)
+
+    httpx.Client.send = send
+    httpx.AsyncClient.send = async_send
+
+
+# the asyncio and legacy clients make connect a class, the sync client a function. either
+# way the uri comes first
+def patch_websockets_client(module):
+    connect = module.connect
+
+    if isinstance(connect, type):
+        original_init = connect.__init__
+
+        def __init__(self, uri, *args, **kwargs):
+            original_init(self, rewrite(uri), *args, **kwargs)
+
+        connect.__init__ = __init__
+        return
+
+    def patched_connect(uri, *args, **kwargs):
+        return connect(rewrite(uri), *args, **kwargs)
+
+    module.connect = patched_connect
+
+
+PATCHES = {
+    'aiohttp': patch_aiohttp,
+    'requests': patch_requests,
+    'httpx': patch_httpx,
+    'websockets.asyncio.client': patch_websockets_client,
+    'websockets.legacy.client': patch_websockets_client,
+    'websockets.sync.client': patch_websockets_client,
+}
+
+
 class PatchOnImport:
     def find_spec(self, name, path=None, target=None):
-        if name != 'aiohttp':
+        patch = PATCHES.get(name)
+
+        if patch is None:
             return None
 
         for finder in sys.meta_path:
@@ -117,7 +192,7 @@ class PatchOnImport:
 
         def patched_exec_module(module):
             exec_module(module)
-            patch_aiohttp(module)
+            patch(module)
 
         spec.loader.exec_module = patched_exec_module
 

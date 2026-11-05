@@ -53,7 +53,8 @@ export enum LocalStorageKey {
 export enum SessionStorageKey {
   TOKEN = 'sandshark-token',
   SERVER_SESSION_KEY = 'sandshark-server-session-key',
-  OIDC_NO_AUTO_REDIRECT = 'sandshark-oidc-no-auto-redirect'
+  OIDC_NO_AUTO_REDIRECT = 'sandshark-oidc-no-auto-redirect',
+  PENDING_INVITE = 'sandshark-pending-invite'
 }
 
 // librewolf and firefox private mode throw SecurityError when privacy hardening

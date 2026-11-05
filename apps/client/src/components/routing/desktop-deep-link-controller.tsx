@@ -6,6 +6,7 @@ import { setDmsOpen, switchServer } from '@/features/server/actions';
 import { setSelectedChannelId } from '@/features/server/channels/actions';
 import { useIsConnected } from '@/features/server/hooks';
 import { store } from '@/features/store';
+import { parseInviteLink, setPendingInvite } from '@/helpers/invite-links';
 import {
   getActiveServerProfile,
   saveServerConnection,
@@ -106,8 +107,37 @@ const DesktopDeepLinkController = memo(() => {
     setSelectedChannelId(channelId);
   }, []);
 
+  // sandshark://invite/<server>/<code>, from the web client's open in app button. the server
+  // is added like any linked server, and its connect screen finds the code waiting for it
+  const openInvite = useCallback(
+    async (serverUrl: string, code: string) => {
+      try {
+        const { config, icon } = await validateServerConnection(serverUrl);
+        const profile = saveServerConnection(config, { icon });
+
+        setPendingInvite(profile.httpUrl, code);
+        pendingDestinationRef.current = undefined;
+        switchServer();
+        selectServerProfile(profile.id);
+        beginServerConnection();
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : t('linkedServerFailed')
+        );
+      }
+    },
+    [t]
+  );
+
   const openDeepLink = useCallback(
     async (value: string) => {
+      const invite = parseInviteLink(value);
+
+      if (invite) {
+        await openInvite(invite.serverUrl, invite.code);
+        return;
+      }
+
       const destination = parseDeepLink(value);
 
       if (!destination) {
@@ -150,7 +180,7 @@ const DesktopDeepLinkController = memo(() => {
       pendingDestinationRef.current = destination;
       beginServerConnection();
     },
-    [isConnected, openChannel, t]
+    [isConnected, openChannel, openInvite, t]
   );
 
   useEffect(() => {

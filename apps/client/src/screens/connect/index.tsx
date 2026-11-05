@@ -4,6 +4,11 @@ import { connect } from '@/features/server/actions';
 import { useInfo } from '@/features/server/hooks';
 import { getFileUrl, getUrlFromServer } from '@/helpers/get-file-url';
 import {
+  buildInviteDeepLink,
+  clearPendingInvite,
+  getCurrentInviteCode
+} from '@/helpers/invite-links';
+import {
   clearCurrentServerAutoLogin,
   getCurrentServerAutoLoginToken,
   getCurrentServerIdentity,
@@ -73,11 +78,17 @@ const Connect = memo(() => {
     }
   }, [errors.identity, t]);
 
-  const inviteCode = useMemo(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const invite = urlParams.get('invite');
-    return invite || undefined;
-  }, []);
+  const inviteCode = useMemo(getCurrentInviteCode, []);
+
+  const inviteDeepLink = useMemo(() => {
+    if (!inviteCode || !isBrowserClient()) return undefined;
+
+    try {
+      return buildInviteDeepLink(getUrlFromServer(), inviteCode);
+    } catch {
+      return undefined;
+    }
+  }, [inviteCode]);
 
   useEffect(() => {
     let active = true;
@@ -98,6 +109,8 @@ const Connect = memo(() => {
         autoLogin: values.autoLogin,
         serverSessionKey
       });
+      // the invite did its work: the account exists, so it must not be offered again
+      clearPendingInvite();
       await connect();
     },
     [values.identity, values.autoLogin, serverSessionKey]
@@ -299,10 +312,18 @@ const Connect = memo(() => {
             {inviteCode && (
               <Alert variant="info">
                 <AlertTitle>{t('invitedTitle')}</AlertTitle>
-                <AlertDescription>
+                <AlertDescription className="flex flex-col gap-2">
                   <span className="font-mono text-xs">
                     {t('inviteCode', { code: inviteCode })}
                   </span>
+                  {inviteDeepLink && (
+                    <>
+                      <span>{t('inviteOpenInAppDesc')}</span>
+                      <Button asChild size="sm" className="self-start">
+                        <a href={inviteDeepLink}>{t('inviteOpenInAppBtn')}</a>
+                      </Button>
+                    </>
+                  )}
                 </AlertDescription>
               </Alert>
             )}

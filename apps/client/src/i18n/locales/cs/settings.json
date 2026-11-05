@@ -686,5 +686,7 @@
   "settingsGroupIntegrations": "Integrace",
   "settingsGroupPlugins": "Nastavení pluginů",
   "closeSettings": "Zavřít (Esc)",
-  "settingsMenu": "Nabídka nastavení"
+  "settingsMenu": "Nabídka nastavení",
+  "inviteCopiedLoopback": "Odkaz byl zkopírován, ale používá localhost, takže funguje jen na tomto počítači. Abyste mohli sdílet odkaz, který funguje i ostatním, připojte se k serveru přes jeho síťovou nebo internetovou adresu.",
+  "failedCopyInvite": "Odkaz na pozvánku se nepodařilo zkopírovat."
 }

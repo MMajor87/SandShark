@@ -10,7 +10,7 @@ SandShark creates these files under Electron's `logs` path:
 - `screen-capture.log` for focused screen-share capture diagnostics.
 - `chromium-media.log` for Chromium media subsystem output.
 
-Desktop settings include `Settings > Desktop > Open log folder`.
+Desktop settings include `Settings > Desktop app > Advanced > Open log folder`.
 
 ## Logged Events
 

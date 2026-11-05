@@ -5,7 +5,6 @@ import {
   savePushToTalkSettings,
   type TPushToTalkSettings
 } from '@/helpers/push-to-talk';
-import { isDesktopClient } from '@/platform/environment';
 import {
   Alert,
   AlertDescription,
@@ -21,69 +20,79 @@ import {
 } from '@sandshark/ui';
 import { Info, Keyboard, Mouse } from 'lucide-react';
 import { memo, useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
+type TCapture = 'key' | 'mouse' | null;
+
+// the desktop app's global push to talk and push to mute, held from anywhere in windows. only
+// rendered in the desktop app; the browser has its own mic mode, driven by hotkeys
 const PushToTalkSettings = memo(() => {
+  const { t } = useTranslation('settings');
   const [settings, setSettings] = useState<TPushToTalkSettings>(
     getPushToTalkSettings
   );
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [captureMouseButton, setCaptureMouseButton] = useState(false);
+  const [capture, setCapture] = useState<TCapture>(null);
   const [registrationError, setRegistrationError] = useState<
     string | undefined
   >(undefined);
-  const isAvailable = isDesktopClient() && !!window.sandSharkDesktop;
 
   const applySettings = useCallback(
     async (nextSettings: TPushToTalkSettings) => {
       setSettings(nextSettings);
       savePushToTalkSettings(nextSettings);
 
-      if (!isAvailable || !window.sandSharkDesktop) return;
+      const desktop = window.sandSharkDesktop;
+
+      if (!desktop) return;
 
       setRegistrationError(undefined);
 
-      if (!nextSettings.enabled) {
-        await window.sandSharkDesktop.clearPushToTalk();
-        return;
-      }
+      try {
+        if (!nextSettings.enabled) {
+          await desktop.clearPushToTalk();
+          return;
+        }
 
-      const result = await window.sandSharkDesktop.setPushToTalk({
-        input: nextSettings.input,
-        modifiers: nextSettings.input.modifiers
-      });
+        const result = await desktop.setPushToTalk({
+          input: nextSettings.input,
+          modifiers: nextSettings.input.modifiers
+        });
 
-      if (!result.registered) {
-        setRegistrationError(
-          result.error ?? 'The selected key could not be registered.'
-        );
+        if (!result.registered) {
+          setRegistrationError(result.error ?? t('pttRegistrationFailed'));
+        }
+      } catch {
+        setRegistrationError(t('pttRegistrationFailed'));
       }
     },
-    [isAvailable]
+    [t]
   );
 
   useEffect(() => {
-    if (!isCapturing && !captureMouseButton) return;
+    if (!capture) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      const key = isCapturing ? getPushToTalkKey(event) : undefined;
-      if (!key) return;
+      if (capture !== 'key') return;
 
-      event.preventDefault();
-      if (key) {
-        setIsCapturing(false);
-        void applySettings({ ...settings, input: key });
-      }
-    };
+      const input = getPushToTalkKey(event);
 
-    const onMouseDown = (event: MouseEvent) => {
-      if (!captureMouseButton) return;
-
-      const input = getPushToTalkMouseButton(event);
       if (!input) return;
 
       event.preventDefault();
-      setCaptureMouseButton(false);
-      void applySettings({ ...settings, input });
+      setCapture(null);
+      applySettings({ ...settings, input });
+    };
+
+    const onMouseDown = (event: MouseEvent) => {
+      if (capture !== 'mouse') return;
+
+      const input = getPushToTalkMouseButton(event);
+
+      if (!input) return;
+
+      event.preventDefault();
+      setCapture(null);
+      applySettings({ ...settings, input });
     };
 
     window.addEventListener('keydown', onKeyDown, true);
@@ -93,95 +102,96 @@ const PushToTalkSettings = memo(() => {
       window.removeEventListener('keydown', onKeyDown, true);
       window.removeEventListener('mousedown', onMouseDown, true);
     };
-  }, [applySettings, captureMouseButton, isCapturing, settings]);
+  }, [applySettings, capture, settings]);
+
+  const handleEnabledChange = useCallback(
+    (enabled: boolean) => {
+      applySettings({ ...settings, enabled });
+    },
+    [applySettings, settings]
+  );
+
+  const handleModeChange = useCallback(
+    (mode: string) => {
+      applySettings({ ...settings, mode: mode === 'mute' ? 'mute' : 'talk' });
+    },
+    [applySettings, settings]
+  );
+
+  const handleCaptureKey = useCallback(() => {
+    setCapture('key');
+  }, []);
+
+  const handleCaptureMouse = useCallback(() => {
+    setCapture('mouse');
+  }, []);
+
+  const handleActivationDelayChange = useCallback(
+    ([activationDelayMs]: number[]) => {
+      if (activationDelayMs === undefined) return;
+
+      applySettings({ ...settings, activationDelayMs });
+    },
+    [applySettings, settings]
+  );
+
+  const handleReleaseDelayChange = useCallback(
+    ([releaseDelayMs]: number[]) => {
+      if (releaseDelayMs === undefined) return;
+
+      applySettings({ ...settings, releaseDelayMs });
+    },
+    [applySettings, settings]
+  );
 
   return (
-    <Group
-      label="Push to Talk"
-      description={
-        isAvailable
-          ? 'Hold the selected key to transmit while SandShark is unfocused.'
-          : 'Global push-to-talk is available in the SandShark desktop client.'
-      }
-    >
+    <Group label={t('pttLabel')} description={t('pttDesc')}>
       <div className="space-y-3">
         <Switch
           checked={settings.enabled}
-          disabled={!isAvailable}
-          onCheckedChange={(enabled) =>
-            void applySettings({ ...settings, enabled })
-          }
+          onCheckedChange={handleEnabledChange}
         />
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="secondary"
-            disabled={!isAvailable}
-            onClick={() => {
-              setCaptureMouseButton(false);
-              setIsCapturing(true);
-            }}
-          >
-            <Keyboard className="size-4" />
-            {isCapturing ? 'Press a key...' : settings.input.keyLabel}
-          </Button>
-          <Button
-            variant="secondary"
-            disabled={!isAvailable}
-            onClick={() => {
-              setIsCapturing(false);
-              setCaptureMouseButton(true);
-            }}
-          >
-            <Mouse className="size-4" />
-            {captureMouseButton ? 'Press a mouse button...' : 'Capture mouse'}
-          </Button>
-        </div>
-
-        <Select
-          value={settings.mode}
-          disabled={!isAvailable}
-          onValueChange={(mode) =>
-            void applySettings({
-              ...settings,
-              mode: mode === 'mute' ? 'mute' : 'talk'
-            })
-          }
-        >
+        <Select value={settings.mode} onValueChange={handleModeChange}>
           <SelectTrigger className="max-w-56">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="talk">Push to talk</SelectItem>
-            <SelectItem value="mute">Push to mute</SelectItem>
+            <SelectItem value="talk">{t('pttModeTalk')}</SelectItem>
+            <SelectItem value="mute">{t('pttModeMute')}</SelectItem>
           </SelectContent>
         </Select>
 
-        <Group label={`Activation delay: ${settings.activationDelayMs} ms`}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" onClick={handleCaptureKey}>
+            <Keyboard className="size-4" />
+            {capture === 'key' ? t('pttKeyCapturing') : settings.input.keyLabel}
+          </Button>
+          <Button variant="secondary" onClick={handleCaptureMouse}>
+            <Mouse className="size-4" />
+            {capture === 'mouse' ? t('pttMouseCapturing') : t('pttMouseBtn')}
+          </Button>
+        </div>
+
+        <Group
+          label={t('pttActivationDelay', { ms: settings.activationDelayMs })}
+        >
           <Slider
             min={0}
             max={1000}
             step={25}
             value={[settings.activationDelayMs]}
-            disabled={!isAvailable}
-            onValueChange={([activationDelayMs]) =>
-              activationDelayMs !== undefined &&
-              void applySettings({ ...settings, activationDelayMs })
-            }
+            onValueChange={handleActivationDelayChange}
           />
         </Group>
 
-        <Group label={`Release delay: ${settings.releaseDelayMs} ms`}>
+        <Group label={t('pttReleaseDelay', { ms: settings.releaseDelayMs })}>
           <Slider
             min={0}
             max={1000}
             step={25}
             value={[settings.releaseDelayMs]}
-            disabled={!isAvailable}
-            onValueChange={([releaseDelayMs]) =>
-              releaseDelayMs !== undefined &&
-              void applySettings({ ...settings, releaseDelayMs })
-            }
+            onValueChange={handleReleaseDelayChange}
           />
         </Group>
 

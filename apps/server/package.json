@@ -1,6 +1,6 @@
 {
   "name": "@sandshark/server",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "module": "src/index.ts",
   "type": "module",
   "private": true,

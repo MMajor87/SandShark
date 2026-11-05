@@ -1,3 +1,15 @@
+# SandShark 1.6.0
+
+- Adds an **Appearance** tab to user settings. Choose a light, dark or system theme (the system theme now follows Windows while the app is open), and one of nine accent colors.
+- The open view stands out in the sidebar: direct messages, threads, the calendar or the selected channel get the accent color, with a bar on the left edge.
+- The user and server settings menus are grouped under headings, the open page is highlighted the same way, and settings follow the chosen theme instead of always being dark. **Delete account** moves to the end of the account group and is shown in red.
+- X posts in messages are sized to the post, so there is no scrollbar inside them, and open in the app's light or dark theme.
+- Fixes a brief freeze when the window takes focus, for example when clicking its title bar: every image and video in loaded channels was being fetched again.
+
+## Upgrade notes
+
+This version works with SandShark Server 0.5.0 and later. Desktop 1.5.0 updates itself to this version. The Windows installer does not deploy a server. This installer remains unsigned.
+
 # SandShark 1.5.0
 
 - On a server that runs in Docker, the Updates screen in server settings explains that **Update Server** installs the new version into the data volume and restarts the container, and shows how to update by hand instead.

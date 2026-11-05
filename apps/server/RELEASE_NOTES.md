@@ -1,3 +1,14 @@
+# SandShark Server 0.6.1
+
+- Updates the web client the server serves to browsers to SandShark 1.6.0: an Appearance tab with light, dark or system theme and an accent color, the open view highlighted in the sidebar and in settings, grouped settings menus, X posts sized to fit with no scrollbar and shown in the client's theme, and no more brief freeze when the window takes focus. See the desktop release notes for the details.
+- The server itself is unchanged from 0.6.0.
+
+## Compatibility and upgrade
+
+Use SandShark Desktop 1.6.0 with this server. Desktop 1.5.0 and 1.4.0 keep working with it. There are no database migrations and no configuration changes. Back up the server's data before upgrading, as always.
+
+The release publishes Linux x64/arm64, Windows x64, and macOS arm64 binaries, the Windows setup, the Linux install script, and the versioned Docker image `ghcr.io/mmajor87/sandshark-server:0.6.1`. The workflow does not move a `latest` image tag. The desktop release remains GitHub's Latest release for desktop updater compatibility.
+
 # SandShark Server 0.6.0
 
 - **Windows service install.** `sandshark-server-0.6.0-setup-x64.exe` installs the server as a Windows service, so it starts with the computer and runs without anyone signed in. It runs as the built-in LocalService account and is restarted after a crash or an update. The installer can add the firewall rules, and adds Start Menu shortcuts to the monitor and to start, stop and restart the server. A tray icon shows the server's state. See [the Windows server install](https://github.com/MMajor87/SandShark/blob/main/docs/windows-server-install.md).

@@ -119,13 +119,48 @@ const measureMinHeight = (composeEl: HTMLDivElement): number => {
 
 const getHeight = (el: HTMLElement) => el.getBoundingClientRect().height;
 
+const X_EMBED_ORIGIN = 'https://platform.twitter.com';
+
+// an x post is taller than this only by mistake or by a hostile frame, and the iframe is sized
+// from the message, so the value is bounded
+const MAX_X_EMBED_HEIGHT_PX = 2000;
+
+// the height an x embed reports for the post it rendered. its frame posts
+// { 'twttr.embed': { method: 'twttr.private.resize', params: [{ width, height }] } } to the
+// page around it whenever the post lays out, the way x's own widgets.js sizes embeds. undefined
+// for any other message
+const getXEmbedHeight = (data: unknown): number | undefined => {
+  if (!data || typeof data !== 'object') return undefined;
+
+  const embed = (data as Record<string, unknown>)['twttr.embed'];
+
+  if (!embed || typeof embed !== 'object') return undefined;
+
+  const { method, params } = embed as { method?: unknown; params?: unknown };
+
+  if (method !== 'twttr.private.resize' || !Array.isArray(params)) {
+    return undefined;
+  }
+
+  const [size] = params as { height?: unknown }[];
+  const height = size?.height;
+
+  if (typeof height !== 'number' || !Number.isFinite(height) || height <= 0) {
+    return undefined;
+  }
+
+  return Math.min(Math.ceil(height), MAX_X_EMBED_HEIGHT_PX);
+};
+
 export {
   areGroupsEqual,
   DEFAULT_MAX_HEIGHT_VH,
   getHeight,
+  getXEmbedHeight,
   groupContainsMessageId,
   MAX_VH,
   measureMinHeight,
   MIN_PX,
-  RESET_THRESHOLD_PX
+  RESET_THRESHOLD_PX,
+  X_EMBED_ORIGIN
 };

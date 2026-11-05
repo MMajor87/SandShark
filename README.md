@@ -36,7 +36,7 @@ From Server 0.6.0, the server also installs without Docker:
 - **Windows:** `sandshark-server-<version>-setup-x64.exe` installs a Windows service with a tray icon. See [the Windows server install](docs/windows-server-install.md).
 - **Linux with systemd:** `sandshark-install-linux.sh` installs a systemd service. See [the Linux server install](docs/linux-server-install.md).
 
-Every server, however it's installed, serves a status page at `http://localhost:4991/monitor` to its own machine. See [the server monitor](docs/server-monitor.md). For running a bare binary and for release procedures, see [versioning and deployment](docs/sandshark-versioning.md). For bots, see [the bots guide](docs/bots.md).
+Every server, however it's installed, serves a status page at `http://localhost:4991/monitor` to its own machine. See [the server monitor](docs/server-monitor.md). For running a bare binary and for release procedures, see [versioning and deployment](docs/sandshark-versioning.md). For bots, see [the bots guide](docs/bots.md), and for extending SandShark itself, [the plugins guide](docs/plugins.md).
 
 ## Local development
 

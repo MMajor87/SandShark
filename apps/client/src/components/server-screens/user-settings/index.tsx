@@ -1,6 +1,5 @@
 import { PluginSlotRenderer } from '@/components/plugin-slot-renderer';
 import { useCan, useUserSettingsPlugins } from '@/features/server/hooks';
-import { isDesktopClient } from '@/platform/environment';
 import { Permission, PluginSlot } from '@sandshark/shared';
 import {
   Bell,
@@ -41,7 +40,9 @@ const UserSettings = memo(({ close }: TUserSettingsProps) => {
     const app = t('settingsGroupApp');
 
     // the account comes first and ends with deleting it, the riskiest entry, at the bottom of
-    // its group where it is not clicked by accident
+    // its group where it is not clicked by accident. the app group puts voice first, since the
+    // desktop app is mostly used in calls. the desktop entry is there in the browser too, where
+    // it says what the app adds
     return [
       {
         id: 'profile',
@@ -66,11 +67,11 @@ const UserSettings = memo(({ close }: TUserSettingsProps) => {
         content: <DeleteAccount />
       },
       {
-        id: 'appearance',
-        label: t('appearanceTab'),
-        icon: Palette,
+        id: 'devices',
+        label: t('devicesTab'),
+        icon: Headphones,
         group: app,
-        content: <Appearance />
+        content: <Devices />
       },
       {
         id: 'notifications',
@@ -80,30 +81,26 @@ const UserSettings = memo(({ close }: TUserSettingsProps) => {
         content: <Notifications />
       },
       {
-        id: 'devices',
-        label: t('devicesTab'),
-        icon: Headphones,
-        group: app,
-        content: <Devices />
-      },
-      {
         id: 'hotkeys',
         label: t('hotkeysTab'),
         icon: Keyboard,
         group: app,
         content: <Hotkeys />
       },
-      ...(isDesktopClient() && window.sandSharkDesktop
-        ? [
-            {
-              id: 'desktop',
-              label: t('desktopTab'),
-              icon: Monitor,
-              group: app,
-              content: <Desktop />
-            }
-          ]
-        : []),
+      {
+        id: 'appearance',
+        label: t('appearanceTab'),
+        icon: Palette,
+        group: app,
+        content: <Appearance />
+      },
+      {
+        id: 'desktop',
+        label: t('desktopAppTab'),
+        icon: Monitor,
+        group: app,
+        content: <Desktop />
+      },
       {
         id: 'others',
         label: t('othersTab'),

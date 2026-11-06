@@ -750,5 +750,7 @@
   "pttMouseCapturing": "Premi un pulsante del mouse",
   "pttActivationDelay": "Ritardo di attivazione: {{ms}} ms",
   "pttReleaseDelay": "Ritardo di rilascio: {{ms}} ms",
-  "pttRegistrationFailed": "Impossibile registrare quel tasto. Scegline un altro."
+  "pttRegistrationFailed": "Impossibile registrare quel tasto. Scegline un altro.",
+  "inviteCopiedLoopback": "Link copiato, ma usa localhost, quindi funziona solo su questo computer. Connettiti al server con il suo indirizzo di rete o internet per condividere un link che funzioni per gli altri.",
+  "failedCopyInvite": "Impossibile copiare il link di invito."
 }

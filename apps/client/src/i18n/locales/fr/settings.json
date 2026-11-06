@@ -750,5 +750,7 @@
   "pttMouseCapturing": "Appuyez sur un bouton de la souris",
   "pttActivationDelay": "Délai d'activation : {{ms}} ms",
   "pttReleaseDelay": "Délai de relâchement : {{ms}} ms",
-  "pttRegistrationFailed": "Impossible d'enregistrer cette touche. Choisissez-en une autre."
+  "pttRegistrationFailed": "Impossible d'enregistrer cette touche. Choisissez-en une autre.",
+  "inviteCopiedLoopback": "Lien copié, mais il utilise localhost et ne fonctionne donc que sur cet ordinateur. Connectez-vous au serveur par son adresse réseau ou internet pour partager un lien qui fonctionne pour les autres.",
+  "failedCopyInvite": "Impossible de copier le lien d'invitation."
 }

@@ -2,6 +2,7 @@ import { RoleBadge } from '@/components/role-badge';
 import { UserAvatar } from '@/components/user-avatar';
 import { requestConfirmation } from '@/features/dialogs/actions';
 import { getUrlFromServer } from '@/helpers/get-file-url';
+import { buildInviteLink, isLoopbackServer } from '@/helpers/invite-links';
 import { useDateLocale } from '@/hooks/use-date-locale';
 import { getTRPCClient } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
@@ -32,10 +33,24 @@ const TableInvite = memo(({ invite, refetch }: TTableInviteProps) => {
   const isExpired = invite.expiresAt && invite.expiresAt < Date.now();
   const isMaxUsesReached = invite.maxUses && invite.uses >= invite.maxUses;
 
-  const handleCopyCode = useCallback(() => {
-    const inviteUrl = `${getUrlFromServer()}/?invite=${invite.code}`;
-    navigator.clipboard.writeText(inviteUrl);
-    toast.success(t('inviteCopied'));
+  const handleCopyCode = useCallback(async () => {
+    try {
+      const serverUrl = getUrlFromServer();
+
+      await navigator.clipboard.writeText(
+        buildInviteLink(serverUrl, invite.code)
+      );
+
+      // the link is built from the address this admin connected with, and localhost reaches
+      // nobody else's computer
+      if (isLoopbackServer(serverUrl)) {
+        toast.warning(t('inviteCopiedLoopback'));
+      } else {
+        toast.success(t('inviteCopied'));
+      }
+    } catch (error) {
+      toast.error(getTrpcError(error, t('failedCopyInvite')));
+    }
   }, [invite.code, t]);
 
   const handleDelete = useCallback(async () => {

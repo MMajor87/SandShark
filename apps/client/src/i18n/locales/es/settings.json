@@ -750,5 +750,7 @@
   "pttMouseCapturing": "Pulsa un botón del ratón",
   "pttActivationDelay": "Retardo de activación: {{ms}} ms",
   "pttReleaseDelay": "Retardo de liberación: {{ms}} ms",
-  "pttRegistrationFailed": "No se pudo registrar esa tecla. Elige otra."
+  "pttRegistrationFailed": "No se pudo registrar esa tecla. Elige otra.",
+  "inviteCopiedLoopback": "Enlace copiado, pero usa localhost, así que solo funciona en este equipo. Conéctate al servidor con su dirección de red o de internet para compartir un enlace que funcione para los demás.",
+  "failedCopyInvite": "No se pudo copiar el enlace de invitación."
 }

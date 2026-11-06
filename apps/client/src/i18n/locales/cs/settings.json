@@ -750,5 +750,7 @@
   "pttMouseCapturing": "Stiskněte tlačítko myši",
   "pttActivationDelay": "Zpoždění aktivace: {{ms}} ms",
   "pttReleaseDelay": "Zpoždění uvolnění: {{ms}} ms",
-  "pttRegistrationFailed": "Tuto klávesu se nepodařilo zaregistrovat. Zvolte jinou."
+  "pttRegistrationFailed": "Tuto klávesu se nepodařilo zaregistrovat. Zvolte jinou.",
+  "inviteCopiedLoopback": "Odkaz byl zkopírován, ale používá localhost, takže funguje jen na tomto počítači. Abyste mohli sdílet odkaz, který funguje i ostatním, připojte se k serveru přes jeho síťovou nebo internetovou adresu.",
+  "failedCopyInvite": "Odkaz na pozvánku se nepodařilo zkopírovat."
 }

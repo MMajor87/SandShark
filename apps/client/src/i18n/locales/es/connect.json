@@ -36,5 +36,8 @@
   "serverUrlLabel": "URL del servidor",
   "linkedServerFailed": "No se pudo abrir el servidor del enlace.",
   "chooseServerForLink": "Selecciona un servidor antes de abrir un enlace a un canal.",
-  "accountDeleted": "Se eliminó tu cuenta."
+  "accountDeleted": "Se eliminó tu cuenta.",
+  "inviteOpenInAppDesc": "¿Tienes la aplicación SandShark? Abre la invitación allí.",
+  "inviteOpenInAppBtn": "Abrir en la aplicación SandShark",
+  "serverUrlInviteHint": "También puedes pegar aquí un enlace de invitación."
 }

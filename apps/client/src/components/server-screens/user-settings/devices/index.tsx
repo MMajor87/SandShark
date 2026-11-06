@@ -51,7 +51,8 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useSyncExternalStore
+  useSyncExternalStore,
+  type ReactNode
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -59,6 +60,7 @@ import { useMicrophoneTest } from './hooks/use-microphone-test';
 import { useWebcamTest } from './hooks/use-webcam-test';
 import { MicModeGroup } from './mic-mode-group';
 import { MicrophoneTestLevelBar } from './microphone-test-level-bar';
+import { PushToTalkSettings } from './push-to-talk-settings';
 import { ResolutionFpsControl } from './resolution-fps-control';
 import { RestrictOwnAudioAlert } from './restrict-own-audio-alert';
 import { SuppressLocalAudioPlaybackAlert } from './suppress-local-audio-playback-alert';
@@ -275,6 +277,16 @@ const Devices = memo(() => {
     return <LoadingCard className="h-[600px]" />;
   }
 
+  // how the microphone is switched on: the desktop app's global push to talk and push to
+  // mute, or in the browser the hotkey driven mic mode
+  let inputMode: ReactNode = null;
+
+  if (isDesktopClient()) {
+    inputMode = <PushToTalkSettings />;
+  } else if (hotkeysEnabled) {
+    inputMode = <MicModeGroup />;
+  }
+
   return (
     <SettingsSection title={t('devicesTitle')} description={t('devicesDesc')}>
       <div className="space-y-6">
@@ -419,7 +431,7 @@ const Devices = memo(() => {
           )}
         </Group>
 
-        {hotkeysEnabled && !isDesktopClient() && <MicModeGroup />}
+        {inputMode}
 
         <Group label={t('microphoneTestLabel')}>
           <div className="flex items-center gap-2">

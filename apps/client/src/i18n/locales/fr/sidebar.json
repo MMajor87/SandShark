@@ -92,5 +92,7 @@
   "members": "Membres",
   "membersOnline": "En ligne",
   "membersOffline": "Hors ligne",
-  "membersHidden": "+{{count}} de plus"
+  "membersHidden": "+{{count}} de plus",
+  "voicePing": "{{ms}} ms",
+  "voicePingTitle": "Aller-retour vers le serveur vocal"
 }

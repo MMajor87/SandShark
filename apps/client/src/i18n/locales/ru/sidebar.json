@@ -92,5 +92,7 @@
   "members": "Участники",
   "membersOnline": "В сети",
   "membersOffline": "Не в сети",
-  "membersHidden": "+ещё {{count}}"
+  "membersHidden": "+ещё {{count}}",
+  "voicePing": "{{ms}} мс",
+  "voicePingTitle": "Задержка до голосового сервера"
 }

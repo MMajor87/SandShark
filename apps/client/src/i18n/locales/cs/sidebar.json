@@ -92,5 +92,7 @@
   "members": "Členové",
   "membersOnline": "Online",
   "membersOffline": "Offline",
-  "membersHidden": "+{{count}} dalších"
+  "membersHidden": "+{{count}} dalších",
+  "voicePing": "{{ms}} ms",
+  "voicePingTitle": "Doba odezvy k hlasovému serveru"
 }

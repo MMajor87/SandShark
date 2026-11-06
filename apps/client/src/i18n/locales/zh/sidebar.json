@@ -92,5 +92,7 @@
   "members": "成员",
   "membersOnline": "在线",
   "membersOffline": "离线",
-  "membersHidden": "还有 {{count}} 位"
+  "membersHidden": "还有 {{count}} 位",
+  "voicePing": "{{ms}} 毫秒",
+  "voicePingTitle": "到语音服务器的往返时间"
 }

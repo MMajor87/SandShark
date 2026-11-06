@@ -8,18 +8,18 @@ The desktop app provides notifications, tray controls, push-to-talk, saved serve
 
 | Product | Current release | Install option |
 | --- | --- | --- |
-| Windows desktop | [SandShark 1.6.0](https://github.com/MMajor87/SandShark/releases/tag/sandshark-v1.6.0) | Download the Windows setup executable from the release. |
-| Server | [SandShark Server 0.6.1](https://github.com/MMajor87/SandShark/releases/tag/sandshark-server-v0.6.1) | Install it as a service with the Windows setup or the Linux install script, run a Linux x64/arm64, Windows x64, or macOS arm64 binary, or use the Docker image below. |
+| Windows desktop | [SandShark 1.7.0](https://github.com/MMajor87/SandShark/releases/tag/sandshark-v1.7.0) | Download the Windows setup executable from the release. |
+| Server | [SandShark Server 0.6.2](https://github.com/MMajor87/SandShark/releases/tag/sandshark-server-v0.6.2) | Install it as a service with the Windows setup or the Linux install script, run a Linux x64/arm64, Windows x64, or macOS arm64 binary, or use the Docker image below. |
 
-Desktop and server versions advance independently. Server 0.6.1 pairs with Desktop 1.6.0; upgrade the server first. The [server release notes](apps/server/RELEASE_NOTES.md) cover compatibility, upgrades, and verification.
+Desktop and server versions advance independently. Server 0.6.2 pairs with Desktop 1.7.0; upgrade the server first. The [server release notes](apps/server/RELEASE_NOTES.md) cover compatibility, upgrades, and verification.
 
 ### Install the server with Docker
 
-The Server 0.6.1 release includes a public Linux amd64/arm64 image at `ghcr.io/mmajor87/sandshark-server:0.6.1`. Docker pulls the image for your machine's architecture.
+The Server 0.6.2 release includes a public Linux amd64/arm64 image at `ghcr.io/mmajor87/sandshark-server:0.6.2`. Docker pulls the image for your machine's architecture.
 
 ```sh
 docker volume create sandshark-data
-docker run -d --name sandshark-server --restart unless-stopped -p 4991:4991/tcp -p 40000:40000/udp -e SANDSHARK_HOST=0.0.0.0 -e SANDSHARK_WEBRTC_ANNOUNCED_ADDRESS=YOUR_PUBLIC_IP_OR_HOSTNAME -v sandshark-data:/home/bun/.config/sandshark ghcr.io/mmajor87/sandshark-server:0.6.1
+docker run -d --name sandshark-server --restart unless-stopped -p 4991:4991/tcp -p 40000:40000/udp -e SANDSHARK_HOST=0.0.0.0 -e SANDSHARK_WEBRTC_ANNOUNCED_ADDRESS=YOUR_PUBLIC_IP_OR_HOSTNAME -v sandshark-data:/home/bun/.config/sandshark ghcr.io/mmajor87/sandshark-server:0.6.2
 ```
 
 Replace `YOUR_PUBLIC_IP_OR_HOSTNAME` with the address clients use to reach the server. Open TCP 4991 for the app and UDP 40000 for voice on the host and firewall. The named volume keeps the database, uploads, configuration, plugins, and other server data when the container is replaced. Connect the desktop client to `http://YOUR_PUBLIC_IP_OR_HOSTNAME:4991` or your configured HTTPS address. Back up the whole data volume before upgrading; database migrations run at startup. There is no moving `latest` image tag, so pin the version you deploy.

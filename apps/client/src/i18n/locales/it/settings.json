@@ -668,7 +668,7 @@
   "themeDark": "Scuro",
   "themeSystem": "Sistema",
   "accentLabel": "Colore di accento",
-  "accentDesc": "Evidenzia la vista aperta nella barra laterale, come i messaggi diretti, le discussioni, il calendario o il canale selezionato.",
+  "accentDesc": "Dà a tutta l'interfaccia una leggera sfumatura di questo colore ed evidenzia la vista aperta nella barra laterale, come i messaggi diretti, le discussioni, il calendario o il canale selezionato.",
   "accent_blue": "Blu",
   "accent_violet": "Viola",
   "accent_pink": "Rosa",

@@ -48,4 +48,44 @@ describe('accents', () => {
     expect(isAccent(null)).toBe(false);
     expect(isAccent(undefined)).toBe(false);
   });
+
+  // the main interface takes a muted share of the accent, in light and in dark, while text
+  // keeps its neutral color so contrast does not move with the theme
+  test('tints the surfaces with the accent and leaves text neutral', () => {
+    const block = (selector: string) => {
+      const start = css.indexOf(`${selector} {`);
+
+      return css.slice(start, css.indexOf('\n}', start));
+    };
+
+    const value = (body: string, token: string) => {
+      const match = new RegExp(`\\s${token}:\\s*([^;]+);`).exec(body);
+
+      return match?.[1] ?? '';
+    };
+
+    for (const selector of [':root', '.dark']) {
+      const body = block(selector);
+
+      for (const surface of [
+        '--background',
+        '--card',
+        '--popover',
+        '--muted',
+        '--accent',
+        '--sidebar',
+        '--rail'
+      ]) {
+        expect(value(body, surface), `${selector} ${surface}`).toContain(
+          'var(--highlight)'
+        );
+      }
+
+      for (const text of ['--foreground', '--muted-foreground']) {
+        expect(value(body, text), `${selector} ${text}`).not.toContain(
+          '--highlight'
+        );
+      }
+    }
+  });
 });

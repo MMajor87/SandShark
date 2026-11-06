@@ -668,7 +668,7 @@
   "themeDark": "Dark",
   "themeSystem": "System",
   "accentLabel": "Accent color",
-  "accentDesc": "Highlights the open view in the sidebar, such as direct messages, threads, the calendar or the selected channel.",
+  "accentDesc": "Gives the whole interface a soft tint of this color, and highlights the open view in the sidebar, such as direct messages, threads, the calendar or the selected channel.",
   "accent_blue": "Blue",
   "accent_violet": "Violet",
   "accent_pink": "Pink",

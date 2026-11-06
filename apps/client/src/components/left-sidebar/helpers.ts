@@ -53,3 +53,29 @@ export const applyChannelDragPreview = (
 
   return withoutDraggedChannel;
 };
+
+// below these the round trip to the voice server feels instant, then noticeable, then laggy
+export const GOOD_PING_MS = 100;
+export const FAIR_PING_MS = 250;
+
+export type TPingQuality = 'good' | 'fair' | 'poor';
+
+// the round trip to the voice server, from whichever transport has measured one. the sending
+// and receiving transports reach the same server, so either answer is the same latency.
+// undefined until one has, since webrtc reports 0 before the first measurement
+export const getVoicePing = (
+  ...rtts: (number | null | undefined)[]
+): number | undefined => {
+  const rtt = rtts.find(
+    (value) => value !== null && value !== undefined && value > 0
+  );
+
+  return rtt === null || rtt === undefined ? undefined : Math.round(rtt);
+};
+
+export const getPingQuality = (ping: number): TPingQuality => {
+  if (ping < GOOD_PING_MS) return 'good';
+  if (ping < FAIR_PING_MS) return 'fair';
+
+  return 'poor';
+};

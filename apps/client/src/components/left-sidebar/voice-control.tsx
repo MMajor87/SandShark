@@ -22,6 +22,7 @@ import { ExternalAudioStreams } from '../channel-view/voice/external-audio-strea
 import { VoiceAudioStreams } from '../channel-view/voice/voice-audio-streams';
 import { PluginSlotRenderer } from '../plugin-slot-renderer';
 import { StatsPopover } from './stats-popover';
+import { VoicePing } from './voice-ping';
 
 const VoiceControl = memo(() => {
   const { t } = useTranslation('sidebar');
@@ -85,6 +86,7 @@ const VoiceControl = memo(() => {
             <span className={cn('text-xs font-medium', connectionInfo.color)}>
               {connectionInfo.text}
             </span>
+            {connectionStatus === 'connected' && <VoicePing />}
           </div>
         </StatsPopover>
 

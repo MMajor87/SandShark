@@ -91,5 +91,7 @@
   "members": "Members",
   "membersOnline": "Online",
   "membersOffline": "Offline",
-  "membersHidden": "+{{count}} more"
+  "membersHidden": "+{{count}} more",
+  "voicePing": "{{ms}} ms",
+  "voicePingTitle": "Round trip to the voice server"
 }

@@ -91,5 +91,7 @@
   "members": "Membros",
   "membersOnline": "Online",
   "membersOffline": "Offline",
-  "membersHidden": "+{{count}} a mais"
+  "membersHidden": "+{{count}} a mais",
+  "voicePing": "{{ms}} ms",
+  "voicePingTitle": "Ida e volta até o servidor de voz"
 }

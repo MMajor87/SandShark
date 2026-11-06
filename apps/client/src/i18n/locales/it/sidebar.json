@@ -92,5 +92,7 @@
   "members": "Membri",
   "membersOnline": "Online",
   "membersOffline": "Offline",
-  "membersHidden": "+{{count}} altri"
+  "membersHidden": "+{{count}} altri",
+  "voicePing": "{{ms}} ms",
+  "voicePingTitle": "Andata e ritorno verso il server vocale"
 }

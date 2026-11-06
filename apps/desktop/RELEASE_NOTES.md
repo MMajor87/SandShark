@@ -1,3 +1,13 @@
+# SandShark 1.7.0
+
+- Invite links work. **Copy invite link** gives a link others can use, and warns you when you are connected through `localhost`, which only works on your own computer. Paste an invite link into **Add server** in the app to join that server, or open it in a browser and choose **Open in the SandShark app**. Signing up through an invite works with both passwords and single sign-on.
+- Settings are organized around the app. **Devices** comes first and holds push to talk and push to mute, next to the microphone. The **Desktop app** page is split into window and startup, updates, and advanced settings. In the browser, the same entry explains what the app adds and links to the download.
+- The accent color you pick under **Appearance** now gives the whole interface a soft tint, in light and dark mode. Text stays neutral, so it stays easy to read.
+
+## Upgrade notes
+
+This version works with SandShark Server 0.5.0 and later. Desktop 1.6.0 updates itself to this version. The Windows installer does not deploy a server. This installer remains unsigned.
+
 # SandShark 1.6.0
 
 - Adds an **Appearance** tab to user settings. Choose a light, dark or system theme (the system theme now follows Windows while the app is open), and one of nine accent colors.

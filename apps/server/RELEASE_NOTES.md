@@ -1,3 +1,14 @@
+# SandShark Server 0.6.2
+
+- Updates the web client the server serves to browsers to SandShark 1.7.0: invite links that work, settings reorganized around the desktop app, and the chosen accent tinting the whole interface. See the desktop release notes for the details.
+- The server itself is unchanged from 0.6.1.
+
+## Compatibility and upgrade
+
+Use SandShark Desktop 1.7.0 with this server. Earlier desktop versions keep working with it. There are no database migrations and no configuration changes. Back up the server's data before upgrading, as always.
+
+The release publishes Linux x64/arm64, Windows x64, and macOS arm64 binaries, the Windows setup, the Linux install script, and the versioned Docker image `ghcr.io/mmajor87/sandshark-server:0.6.2`. The workflow does not move a `latest` image tag. The desktop release remains GitHub's Latest release for desktop updater compatibility.
+
 # SandShark Server 0.6.1
 
 - Updates the web client the server serves to browsers to SandShark 1.6.0: an Appearance tab with light, dark or system theme and an accent color, the open view highlighted in the sidebar and in settings, grouped settings menus, X posts sized to fit with no scrollbar and shown in the client's theme, and no more brief freeze when the window takes focus. See the desktop release notes for the details.
